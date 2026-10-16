@@ -38,11 +38,15 @@ test('nested groups collapse to rails and reopen with keyboard and mouse', async
   await page.getByRole('button', { name: 'Collapse all', exact: true }).click();
   await expect(header(page, 'clinical-rail')).toBeVisible();
   await expect(header(page, 'bed')).toHaveCount(0);
-  await expect(page.getByRole('status')).toHaveText('All column groups collapsed.');
+  await expect(page.locator('.cdk-live-announcer-element')).toHaveText(
+    'All column groups collapsed.',
+  );
   await page.getByRole('button', { name: 'Expand all', exact: true }).click();
   await expect(header(page, 'workOrder')).toBeVisible();
   await expect(header(page, 'calibrationDue')).toBeVisible();
-  await expect(page.getByRole('status')).toHaveText('All column groups expanded.');
+  await expect(page.locator('.cdk-live-announcer-element')).toHaveText(
+    'All column groups expanded.',
+  );
 });
 
 test('group colours follow nesting depth', async ({ page }) => {
@@ -123,6 +127,8 @@ test('expanded groups can resize while collapsed strips stay fixed', async ({ pa
 test('only revised cells use the revised renderer', async ({ page }) => {
   const ward = (row: number) => page.locator(`.ag-row[row-id="${row}"] .ag-cell[col-id="ward"]`);
   await expect(page.locator('app-revised-cell')).toHaveCount(6);
+  await expect(page.locator('app-revised-cell del').first()).toHaveText('SDU');
+  await expect(page.locator('app-revised-cell ins').first()).toHaveText('ICU-N');
   await expect(ward(3).locator('app-revised-cell')).toContainText('Step-down Unit');
   await expect(ward(3)).toHaveClass(/\bequipment-revised\b/);
   await expect(ward(7).locator('app-revised-cell')).toHaveCount(0);
@@ -144,18 +150,13 @@ test('filters and sorting operate on equipment data', async ({ page }) => {
 });
 
 test('the page shows only the table and its group controls', async ({ page }) => {
-  await expect(page.getByRole('heading', { level: 1, name: 'Hospital equipment' })).toHaveCSS(
-    'clip-path',
-    'inset(50%)',
+  // Only the toolbar (title + group controls) and the grid are on the page.
+  await expect(page.locator('main > :not(.equipment-toolbar, ag-grid-angular)')).toHaveCount(0);
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Hospital equipment');
+  await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
+  await expect(page.getByRole('toolbar', { name: 'Column groups' }).getByRole('button')).toHaveText(
+    ['Expand all', 'Collapse all'],
   );
-  // Besides the screen-reader heading and status, only the toolbar and grid are on the page.
-  await expect(
-    page.locator('main > :not(h1, .equipment-toolbar, ag-grid-angular, [role="status"])'),
-  ).toHaveCount(0);
-  await expect(page.locator('.equipment-toolbar').getByRole('button')).toHaveText([
-    'Expand all',
-    'Collapse all',
-  ]);
   await expect(page.getByRole('navigation')).toHaveCount(0);
 });
 

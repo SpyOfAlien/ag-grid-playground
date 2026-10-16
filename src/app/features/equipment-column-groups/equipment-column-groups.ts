@@ -1,4 +1,5 @@
-import { ChangeDetectionStrategy, Component, signal, ViewEncapsulation } from '@angular/core';
+import { LiveAnnouncer } from '@angular/cdk/a11y';
+import { ChangeDetectionStrategy, Component, inject, ViewEncapsulation } from '@angular/core';
 import { AgGridAngular } from 'ag-grid-angular';
 import {
   AllCommunityModule,
@@ -15,15 +16,17 @@ import { EQUIPMENT_GROUPS, EQUIPMENT_ROWS, type EquipmentRow } from './equipment
   imports: [AgGridAngular],
   template: `
     <main class="equipment-demo">
-      <h1 class="equipment-sr-only">Hospital equipment</h1>
-      <div class="equipment-toolbar" role="toolbar" aria-label="Column groups">
-        <button type="button" class="equipment-button" (click)="setGroupsExpanded(true)">
-          Expand all
-        </button>
-        <button type="button" class="equipment-button" (click)="setGroupsExpanded(false)">
-          Collapse all
-        </button>
-      </div>
+      <header class="equipment-toolbar">
+        <h1 class="equipment-title">Hospital equipment</h1>
+        <div class="equipment-actions" role="toolbar" aria-label="Column groups">
+          <button type="button" class="equipment-button" (click)="setGroupsExpanded(true)">
+            Expand all
+          </button>
+          <button type="button" class="equipment-button" (click)="setGroupsExpanded(false)">
+            Collapse all
+          </button>
+        </div>
+      </header>
       <!-- Header row above the filter row, so rail headers can paint the filter-row slot. -->
       <ag-grid-angular
         class="equipment-grid [&_.ag-header-row-column]:z-3"
@@ -32,7 +35,6 @@ import { EQUIPMENT_GROUPS, EQUIPMENT_ROWS, type EquipmentRow } from './equipment
         [rowData]="rowData"
         (gridReady)="onGridReady($event)"
       />
-      <p class="equipment-sr-only" role="status">{{ message() }}</p>
     </main>
   `,
   // Group headers and rails are styled with Tailwind classes (equipment-group-classes.ts).
@@ -41,7 +43,7 @@ import { EQUIPMENT_GROUPS, EQUIPMENT_ROWS, type EquipmentRow } from './equipment
   encapsulation: ViewEncapsulation.None,
 })
 export class EquipmentColumnGroups {
-  protected readonly message = signal('');
+  private readonly liveAnnouncer = inject(LiveAnnouncer);
 
   private gridApi: GridApi<EquipmentRow> | undefined;
   protected readonly modules = [AllCommunityModule];
@@ -105,6 +107,8 @@ export class EquipmentColumnGroups {
 
   protected setGroupsExpanded(open: boolean): void {
     this.gridApi?.setColumnGroupState(EQUIPMENT_GROUPS.map(({ id }) => ({ groupId: id, open })));
-    this.message.set(open ? 'All column groups expanded.' : 'All column groups collapsed.');
+    void this.liveAnnouncer.announce(
+      open ? 'All column groups expanded.' : 'All column groups collapsed.',
+    );
   }
 }

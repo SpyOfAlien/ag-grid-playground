@@ -26,7 +26,8 @@ function computeRevisedContent(params: RevisedCellParams | null) {
 }
 
 /**
- * Shows the previous value (struck through) above the current one.
+ * Shows the previous value (struck through) above the current one, as <del> and <ins>
+ * so assistive technology can tell the old value from the new one.
  * Columns pick it through cellRendererSelector only for revised cells;
  * other cells keep AG Grid's plain text rendering.
  */
@@ -34,10 +35,8 @@ function computeRevisedContent(params: RevisedCellParams | null) {
   selector: 'app-revised-cell',
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <span class="previous"
-      ><span class="sr-only">Previous value: </span>{{ cellContent().previous }}</span
-    >
-    <span class="current"><span class="sr-only">New value: </span>{{ cellContent().value }}</span>
+    <del class="previous">{{ cellContent().previous }}</del>
+    <ins class="current">{{ cellContent().value }}</ins>
   `,
   styles: `
     :host {
@@ -57,13 +56,7 @@ function computeRevisedContent(params: RevisedCellParams | null) {
     .current {
       color: #b42318;
       font-weight: 500;
-    }
-    .sr-only {
-      position: absolute;
-      width: 1px;
-      height: 1px;
-      overflow: hidden;
-      clip-path: inset(50%);
+      text-decoration: none;
     }
   `,
 })
