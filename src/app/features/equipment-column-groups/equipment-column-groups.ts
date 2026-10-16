@@ -24,8 +24,9 @@ import { EQUIPMENT_GROUPS, EQUIPMENT_ROWS, type EquipmentRow } from './equipment
           Collapse all
         </button>
       </div>
+      <!-- Header row above the filter row, so rail headers can paint the filter-row slot. -->
       <ag-grid-angular
-        class="equipment-grid"
+        class="equipment-grid [&_.ag-header-row-column]:z-3"
         [modules]="modules"
         [gridOptions]="options"
         [rowData]="rowData"
@@ -34,12 +35,8 @@ import { EQUIPMENT_GROUPS, EQUIPMENT_ROWS, type EquipmentRow } from './equipment
       <p class="equipment-sr-only" role="status">{{ message() }}</p>
     </main>
   `,
-  // Order matters: group header rules override the base table rules.
-  styleUrls: [
-    './equipment-column-groups.css',
-    './equipment-table.css',
-    './equipment-group-header.css',
-  ],
+  // Group headers and rails are styled with Tailwind classes (equipment-group-classes.ts).
+  styleUrls: ['./equipment-column-groups.css', './equipment-table.css'],
   changeDetection: ChangeDetectionStrategy.OnPush,
   encapsulation: ViewEncapsulation.None,
 })

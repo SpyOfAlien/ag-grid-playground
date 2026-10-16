@@ -1,0 +1,23 @@
+/*
+ * Tailwind CSS v4, used by the equipment column groups demo.
+ * - No Preflight: the other demos and Angular Material keep their own base styles.
+ * - Only that feature's folder is scanned for class names.
+ * - Utilities are !important so they win over AG Grid's theme styles, which are
+ *   unlayered and would otherwise beat anything inside a cascade layer.
+ */
+@layer theme, base, components, utilities;
+@import 'tailwindcss/theme.css' layer(theme);
+@import 'tailwindcss/utilities.css' layer(utilities) source(none) important;
+
+@source './app/features/equipment-column-groups';
+/* Words from comments that would otherwise become global !important utilities. */
+@source not inline('border collapse filter fixed grid hidden resize ring visible sr-only');
+
+/* Brand colours (warm orange). `static` emits every variable so plain CSS can use them too. */
+@theme static {
+  --color-brand-900: #511c10;
+  --color-brand-700: #7c2d12;
+  --color-brand-600: #b93815;
+  --color-brand-50-alt: #fdead7;
+  --color-brand-primary-alt: #fef6ee;
+}

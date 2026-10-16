@@ -1,12 +1,15 @@
 import type { ColDef, ColGroupDef } from 'ag-grid-community';
-import { RevisedCell, computePreviousValue } from './cells/revised-cell';
-import { EquipmentRailHeader } from './equipment-rail-header';
+import { RevisedCell, computePreviousValue } from './renderers/cells/revised-cell';
+import { CollapsedGroupHeader } from './renderers/headers/collapsed-group-header';
+import {
+  GROUP_HEADER_CLASSES,
+  GROUP_LEVEL_CLASSES,
+  RAIL_CELL_CLASSES,
+  RAIL_HEADER_CLASSES,
+} from './equipment-group-classes';
 import { EQUIPMENT_ROWS, type EquipmentGroupId, type EquipmentRow } from './equipment-data';
 
 type EquipmentColumn = ColDef<EquipmentRow> | ColGroupDef<EquipmentRow>;
-
-/** Groups at this depth and deeper share the last level's colours. */
-const MAX_GROUP_LEVEL = 3;
 
 interface EquipmentGroup {
   id: EquipmentGroupId;
@@ -53,14 +56,16 @@ function buildGroup(
   { id, label, children, open = false }: EquipmentGroup,
   level: number,
 ): ColGroupDef<EquipmentRow> {
-  const levelClass = `equipment-level-${Math.min(level, MAX_GROUP_LEVEL)}`;
+  // Groups deeper than the last defined level share its colours.
+  const levelClasses = GROUP_LEVEL_CLASSES[Math.min(level, GROUP_LEVEL_CLASSES.length - 1)];
   return {
     groupId: id,
     headerName: label,
     openByDefault: open,
     marryChildren: true,
-    headerClass: `equipment-group ${levelClass}`,
+    headerClass: `${GROUP_HEADER_CLASSES} ${levelClasses}`,
     children: [
+      // Rail: the fixed 38px placeholder column shown while the group is collapsed.
       {
         colId: `${id}-rail`,
         headerName: label,
@@ -73,9 +78,9 @@ function buildGroup(
         filter: false,
         floatingFilter: false,
         suppressNavigable: true,
-        headerClass: `equipment-rail ${levelClass}`,
-        cellClass: `equipment-rail-cell ${levelClass}`,
-        headerComponent: EquipmentRailHeader,
+        headerClass: `${RAIL_HEADER_CLASSES} ${levelClasses}`,
+        cellClass: `${RAIL_CELL_CLASSES} ${levelClasses}`,
+        headerComponent: CollapsedGroupHeader,
         headerComponentParams: { changeCount: EQUIPMENT_ROWS.filter((row) => row.changed).length },
         valueGetter: () => '',
       },

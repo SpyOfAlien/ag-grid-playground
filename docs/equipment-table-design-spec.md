@@ -4,9 +4,11 @@ Design reference for the `/equipment-column-groups` demo: a full-page AG Grid ta
 
 Code: `src/app/features/equipment-column-groups/` · Tests: `e2e/equipment-column-groups.spec.ts`.
 
+Renderers: `renderers/cells/revised-cell.ts` (`RevisedCell`) and `renderers/headers/collapsed-group-header.ts` (`CollapsedGroupHeader`). A *rail* is the 38px placeholder column shown while a group is collapsed.
+
 ## 1. Design tokens
 
-Defined on `app-equipment-column-groups` in `equipment-column-groups.css`. The scale follows an Untitled UI–style system with a warm orange brand.
+Brand colours (`--color-brand-*`) are Tailwind theme tokens in `src/tailwind.css` (emitted with `@theme static`, so plain CSS can use them too). The other tokens are defined on `app-equipment-column-groups` in `equipment-column-groups.css`. The scale follows an Untitled UI–style system with a warm orange brand.
 
 ```css
 app-equipment-column-groups {
@@ -76,7 +78,7 @@ app-equipment-column-groups {
 
 ### Count badge
 
-On collapsed rails: 20×20, radius 4, bg `#f04438`, 12/18 semibold white (set in `equipment-rail-header.ts`).
+On collapsed rails: 20×20, radius 4, bg `#f04438`, 12/18 semibold white (Tailwind classes in `renderers/headers/collapsed-group-header.ts`).
 
 ### Filter input
 
@@ -95,7 +97,13 @@ Height 36, radius 8, white, 1px `--color-border-secondary`, 20px search icon at 
 
 ### Column groups
 
-Group colour comes from nesting depth: `buildGroup()` in `equipment-columns.ts` adds `equipment-level-N` to the group header, its rail header and rail cells. Levels 3 and deeper share the level-3 colours.
+Group headers and rails are styled with **Tailwind** utility classes, kept in `equipment-group-classes.ts`. AG Grid creates these elements itself, so `buildGroup()` in `equipment-columns.ts` applies the classes through `headerClass` / `cellClass`. Group colour comes from nesting depth: each level's classes set `--group-bg` and `--group-divider`, which the shared classes read. Levels 3 and deeper share the level-3 colours. `equipment-group`, `equipment-rail`, `equipment-rail-cell` and `equipment-level-N` stay on the elements as unstyled hooks for `equipment-table.css` and the tests.
+
+Tailwind setup (`src/tailwind.css`, `.postcssrc.json`):
+
+- No Preflight, so the other demos and Angular Material keep their base styles.
+- Only this feature's folder is scanned; words from comments that would become stray utilities are excluded with `@source not inline(...)`.
+- Utilities are `!important`, because AG Grid's theme CSS is unlayered and would otherwise beat anything in a cascade layer. Watch for utilities that change `display` on AG Grid elements: they also override `.ag-hidden`, so scope them with `:not(.ag-hidden)`.
 
 | Level | Background | Text | Divider |
 | --- | --- | --- | --- |
@@ -106,7 +114,7 @@ Group colour comes from nesting depth: `buildGroup()` in `equipment-columns.ts` 
 
 - **Group header (expanded):** 36px, 24px chevron button + 14 semibold label in the level colours.
 - **Collapsed rail:** 38px wide, full height, level background, 1px inset divider on both sides through the group header, column header, filter row and body. Contents from top: 20px count badge, then the label rotated −90°, 14/20 medium with ellipsis, both centred.
-- **Filter-row slot:** AG Grid doesn't put column classes on filter-row cells, so the rail header's `::after` paints the 44px slot below itself.
+- **Filter-row slot:** AG Grid doesn't put column classes on filter-row cells, so the rail header's `::after` paints the 44px slot below itself (`after:` utilities in `RAIL_HEADER_CLASSES`).
 
 ### Icons
 

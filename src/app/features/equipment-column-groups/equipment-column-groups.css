@@ -1,10 +1,6 @@
 app-equipment-column-groups {
-  /* Design tokens: see docs/equipment-table-design-spec.md. */
-  --color-brand-900: #511c10;
-  --color-brand-700: #7c2d12;
-  --color-brand-600: #b93815;
-  --color-brand-50-alt: #fdead7;
-  --color-brand-primary-alt: #fef6ee;
+  /* Design tokens: see docs/equipment-table-design-spec.md.
+     Brand colours (--color-brand-*) come from the Tailwind theme in src/tailwind.css. */
   --color-gray-900: #181d27;
   --color-gray-800: #252b37;
   --color-gray-700: #414651;
