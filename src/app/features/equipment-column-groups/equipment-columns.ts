@@ -1,5 +1,5 @@
 import type { ColDef, ColGroupDef } from 'ag-grid-community';
-import { EquipmentChangeCell } from './equipment-change-cell';
+import { RevisedCell, computePreviousValue } from './cells/revised-cell';
 import { EquipmentRailHeader } from './equipment-rail-header';
 import { EQUIPMENT_ROWS, type EquipmentGroupId, type EquipmentRow } from './equipment-data';
 
@@ -13,6 +13,24 @@ interface EquipmentGroup {
   label: string;
   children: (ColDef<EquipmentRow> | EquipmentGroup)[];
   open?: boolean;
+}
+
+/**
+ * A column whose revised cells show the previous value above the current one.
+ * Only changed cells get the Angular renderer; the rest stay plain text.
+ */
+function revisedColumn(
+  colDef: ColDef<EquipmentRow>,
+  previousField: keyof EquipmentRow & string,
+): ColDef<EquipmentRow> {
+  const hasPrevious = (data: EquipmentRow | undefined) =>
+    computePreviousValue(data, previousField) != null;
+  return {
+    ...colDef,
+    cellClassRules: { 'equipment-revised': ({ data }) => hasPrevious(data) },
+    cellRendererSelector: ({ data }) =>
+      hasPrevious(data) ? { component: RevisedCell, params: { previousField } } : undefined,
+  };
 }
 
 /** Describes a column group; its colour level comes from how deeply it is nested. */
@@ -89,20 +107,8 @@ export function createEquipmentColumns(): EquipmentColumn[] {
         cellClassRules: { 'equipment-revision-changed': ({ data }) => data?.changed ?? false },
       },
       { field: 'deviceType', headerName: 'Device Type', width: 140 },
-      {
-        field: 'ward',
-        headerName: 'Ward',
-        width: 190,
-        cellRenderer: EquipmentChangeCell,
-        cellClassRules: { 'equipment-changed': ({ data }) => data?.previousWard != null },
-      },
-      {
-        field: 'wardCode',
-        headerName: 'Ward Code',
-        width: 140,
-        cellRenderer: EquipmentChangeCell,
-        cellClassRules: { 'equipment-changed': ({ data }) => data?.previousWardCode != null },
-      },
+      revisedColumn({ field: 'ward', headerName: 'Ward', width: 190 }, 'previousWard'),
+      revisedColumn({ field: 'wardCode', headerName: 'Ward Code', width: 140 }, 'previousWardCode'),
       { field: 'room', headerName: 'Room', width: 140, cellClass: 'equipment-cell-muted' },
       { field: 'owner', headerName: 'Biomed Owner', width: 140, cellClass: 'equipment-cell-muted' },
       group({

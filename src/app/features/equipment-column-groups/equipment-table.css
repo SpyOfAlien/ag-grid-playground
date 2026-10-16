@@ -94,7 +94,7 @@ app-equipment-column-groups {
   .equipment-cell-muted {
     color: var(--color-gray-700);
   }
-  .equipment-changed {
+  .equipment-revised {
     background: var(--color-error-bg);
   }
   .equipment-revision-changed {

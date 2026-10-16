@@ -120,6 +120,16 @@ test('expanded groups can resize while collapsed strips stay fixed', async ({ pa
     .toBeGreaterThan(initialWidth + 60);
 });
 
+test('only revised cells use the revised renderer', async ({ page }) => {
+  const ward = (row: number) => page.locator(`.ag-row[row-id="${row}"] .ag-cell[col-id="ward"]`);
+  await expect(page.locator('app-revised-cell')).toHaveCount(6);
+  await expect(ward(3).locator('app-revised-cell')).toContainText('Step-down Unit');
+  await expect(ward(3)).toHaveClass(/\bequipment-revised\b/);
+  await expect(ward(7).locator('app-revised-cell')).toHaveCount(0);
+  await expect(ward(7)).toHaveText('ICU North');
+  await expect(ward(7)).not.toHaveClass(/\bequipment-revised\b/);
+});
+
 test('filters and sorting operate on equipment data', async ({ page }) => {
   const filter = page.locator('.ag-floating-filter[col-id="deviceType"] input');
   await filter.fill('Infusion Pump');

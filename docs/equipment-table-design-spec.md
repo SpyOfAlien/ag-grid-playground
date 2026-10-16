@@ -118,4 +118,4 @@ Colours are chosen to meet WCAG AA (4.5:1) for text:
 
 - Changed cell old value uses `#535862` and the new value `#b42318`; the lighter `#717680` and `#d92d20` fall below 4.5:1 on `#fef3f2`.
 - The changed revision uses `--color-error-solid` `#d92d20` on white (4.8:1).
-- The changed-cell renderer adds screen-reader-only "Previous value:" / "New value:" labels.
+- `RevisedCell` (used only for changed cells, via `cellRendererSelector`) adds screen-reader-only "Previous value:" / "New value:" labels.
