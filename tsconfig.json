@@ -13,7 +13,11 @@
     "experimentalDecorators": true,
     "importHelpers": true,
     "target": "ES2022",
-    "module": "preserve"
+    "module": "preserve",
+    "paths": {
+      "@grid-cells": ["./src/app/shared/grid-cells/public-api.ts"],
+      "@grid-cells/composition": ["./src/app/shared/grid-cells/composition-api.ts"]
+    }
   },
   "angularCompilerOptions": {
     "enableI18nLegacyMessageIdFormat": false,

@@ -1,7 +1,7 @@
 import type { GridApi } from 'ag-grid-community';
 import { DemoGridUpdates, type DemoClientStrategy } from './demo-grid-updates';
 import { DestroyRef, Injectable, inject, signal } from '@angular/core';
-import { EditorHostService } from '../../shared/grid-cells/editing/editor-host/public-api';
+import { EditorHostService } from '@grid-cells';
 import type { DemoDatasetUpdate } from './api/demo-api.model';
 import { createDemoRows, DEFAULT_ROW_COUNT } from './demo-fixtures';
 import type { DemoRow, DemoPersistenceMode } from './demo-row.model';

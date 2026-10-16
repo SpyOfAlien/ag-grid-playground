@@ -7,12 +7,11 @@ import {
   type NumberCellParams,
   type ToggleCellParams,
   type DropdownCellParams,
-  type PopoverCellParams,
-  type DialogCellParams,
+  type EditCellParams,
   type InputEditorData,
   type CellRule,
-} from '../src/app/shared/grid-cells/public-api';
-import type { EditCommand } from '../src/app/shared/grid-cells/editing/edit-command.model';
+} from '@grid-cells/composition';
+import type { EditCommand } from '@grid-cells';
 import type { PopoverOptions } from '../src/app/shared/popover/popover.model';
 interface Row {
   id: string;
@@ -53,17 +52,20 @@ const popover = {
         save: async () => undefined,
       }),
 
-      popover: ({ trigger }) => ({
-        anchor: { kind: 'element', element: trigger },
-        placement: 'bottomLeft',
-        width: 320,
-      }),
+      presentation: {
+        kind: 'popover',
+        options: ({ trigger }) => ({
+          anchor: { kind: 'element', element: trigger },
+          placement: 'bottomLeft',
+          width: 320,
+        }),
+      },
     },
   },
   content: {
     number: { decimals: 2, unit: ({ data }) => (data?.active ? 'kg' : null) },
   },
-} satisfies PopoverCellParams<Row, number, InputEditorData<number>>;
+} satisfies EditCellParams<Row, number, InputEditorData<number>>;
 const dialog = {
   content: {
     number: popover.content.number,
@@ -72,10 +74,10 @@ const dialog = {
     editor: {
       component: popover.action.editor.component,
       data: popover.action.editor.data,
-      dialog: { width: '70vw', height: 400 },
+      presentation: { kind: 'dialog', options: { width: '70vw', height: 400 } },
     },
   },
-} satisfies DialogCellParams<Row, number, InputEditorData<number>>;
+} satisfies EditCellParams<Row, number, InputEditorData<number>>;
 const nullableNumberPopover = {
   content: {
     number: { decimals: 2, unit: ({ value }) => (value === 0 ? 'kg' : null) },
@@ -83,8 +85,8 @@ const nullableNumberPopover = {
   action: {
     editor: popover.action.editor,
   },
-} satisfies PopoverCellParams<Row, number | null, InputEditorData<number>>;
-const badTextPopover: PopoverCellParams<Row, string, InputEditorData<string>> = {
+} satisfies EditCellParams<Row, number | null, InputEditorData<number>>;
+const badTextPopover: EditCellParams<Row, string, InputEditorData<string>> = {
   content: {
     // @ts-expect-error Numeric formatting requires a numeric cell value.
     number: { unit: 'kg' },
@@ -100,7 +102,7 @@ const badTextPopover: PopoverCellParams<Row, string, InputEditorData<string>> = 
     },
   },
 };
-const badTextDialog: DialogCellParams<Row, string, InputEditorData<string>> = {
+const badTextDialog: EditCellParams<Row, string, InputEditorData<string>> = {
   content: {
     // @ts-expect-error Numeric formatting requires a numeric cell value.
     number: { decimals: 2 },
@@ -109,7 +111,7 @@ const badTextDialog: DialogCellParams<Row, string, InputEditorData<string>> = {
     editor: badTextPopover.action!.editor,
   },
 };
-const removedDisplay: PopoverCellParams<Row, number, InputEditorData<number>> = {
+const removedDisplay: EditCellParams<Row, number, InputEditorData<number>> = {
   // @ts-expect-error Custom text belongs in content.text.
   display: () => 'Amount',
   action: {
@@ -118,19 +120,19 @@ const removedDisplay: PopoverCellParams<Row, number, InputEditorData<number>> = 
 };
 const displayOnlyPopover = {
   content: { number: { decimals: 2, unit: 'kg' } },
-} satisfies PopoverCellParams<Row, number, InputEditorData<number>>;
+} satisfies EditCellParams<Row, number, InputEditorData<number>>;
 const displayOnlyDialog = {
   content: { text: 'Amount' },
-} satisfies DialogCellParams<Row, number, InputEditorData<number>>;
+} satisfies EditCellParams<Row, number, InputEditorData<number>>;
 const oldTopLevelNumber: NumberCellParams<Row> = {
   // @ts-expect-error Numeric configuration belongs in content.number.
   number: { decimals: 2 },
 };
-const oldTopLevelEditor: PopoverCellParams<Row, number, InputEditorData<number>> = {
+const oldTopLevelEditor: EditCellParams<Row, number, InputEditorData<number>> = {
   // @ts-expect-error Editor configuration belongs in action.editor.
   editor: popover.action.editor,
 };
-const missingActionEditor: PopoverCellParams<Row, number, InputEditorData<number>> = {
+const missingActionEditor: EditCellParams<Row, number, InputEditorData<number>> = {
   // @ts-expect-error A configured editing action requires its typed editor.
   action: { tooltip: 'Edit amount' },
 };
@@ -148,17 +150,35 @@ const badNumber: NumberCellParams<Row> = {
   // @ts-expect-error Number display cells cannot configure dropdowns.
   dropdown: dropdown.dropdown,
 };
-const badPopover: PopoverCellParams<Row, number, InputEditorData<number>> = {
+const badPopover: EditCellParams<Row, number, InputEditorData<number>> = {
   action: {
-    // @ts-expect-error Popover editor config cannot use dialog options.
-    editor: { ...popover.action.editor, dialog: { width: 300 } },
+    editor: {
+      ...popover.action.editor,
+      presentation: {
+        kind: 'dialog',
+        options: {
+          // @ts-expect-error Dialog presentations cannot use popover placement.
+          placement: 'top',
+        },
+      },
+    },
   },
 };
-const badDialog: DialogCellParams<Row, number, InputEditorData<number>> = {
+const badDialog: EditCellParams<Row, number, InputEditorData<number>> = {
   action: {
-    // @ts-expect-error Dialog editor config cannot use popover options.
-    editor: { ...popover.action.editor, popover: { placement: 'top' } },
+    editor: {
+      ...popover.action.editor,
+      presentation: {
+        // @ts-expect-error Presentation kinds must be registered in EditorPresentations.
+        kind: 'panel',
+      },
+    },
   },
+};
+const toggleIgnoresActions: ToggleCellParams<Row> = {
+  toggle: { save: async () => undefined },
+  // @ts-expect-error Toggles use `editable` or `toggle.permission`, not another control's action.
+  action: { permission: { allowed: true } },
 };
 // @ts-expect-error Direct toggle configuration requires its save action.
 const missingToggle: ToggleCellParams<Row> = { toggle: {} };
@@ -213,6 +233,7 @@ void [
   badNumber,
   badPopover,
   badDialog,
+  toggleIgnoresActions,
   missingToggle,
   badQuery,
   escapeOptions,

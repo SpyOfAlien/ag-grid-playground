@@ -5,7 +5,7 @@ import {
   withCellKeyboardColumns,
   type GridContext,
   type NumberCellParams,
-} from '../src/app/shared/grid-cells/public-api';
+} from '@grid-cells';
 interface Row {
   id: string;
   amount: number;

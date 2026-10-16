@@ -2,15 +2,16 @@ import { TestbedHarnessEnvironment } from '@angular/cdk/testing/testbed';
 import { MatSelectionListHarness } from '@angular/material/list/testing';
 import { TestBed } from '@angular/core/testing';
 import { signal } from '@angular/core';
-import { EditorRef, type EditorHostService } from '../editing/editor-host/public-api';
-import { ToggleCell } from './toggle/toggle-cell';
-import { DropdownCell } from './dropdown/dropdown-cell';
-import { DropdownOptions } from './dropdown/dropdown-options';
-import { DropdownOptionsEditor } from './dropdown/dropdown-options-editor';
-import type { DropdownEditorData } from './dropdown/dropdown-editor-data.model';
-import type { ToggleCellParams } from './toggle/toggle-cell-params.model';
-import type { DropdownCellParams } from './dropdown/dropdown-cell-params.model';
-import type { CellContext } from '../core/cell-context.model';
+import { LiveAnnouncer } from '@angular/cdk/a11y';
+import { EditorRef } from '../editing/editor-host/editor-ref';
+import { CellOperations } from '../capabilities/save';
+import type { EditorHostService } from '../editing/editor-host/editor-host-service';
+import { ToggleCell, type ToggleCellParams } from './toggle-cell';
+import { DropdownCell, type DropdownCellParams } from './dropdown-cell';
+import { DropdownOptions } from './dropdown-options';
+import { DropdownOptionsEditor } from './dropdown-options-editor';
+import type { DropdownEditorData } from '../capabilities/dropdown';
+import type { CellContext } from '../core/cell-context';
 import { rendererParams } from '../../../../../test-utils/renderer-params';
 interface Row {
   active: boolean;
@@ -182,7 +183,7 @@ describe('Direct controls', () => {
     expect(selected).toHaveBeenCalledOnce();
   });
 
-  it('dropdown editor rejects disabled/unchanged choices, guards pending repeats, and retries failure', async () => {
+  it('dropdown editor rejects disabled choices, guards pending repeats, and retries failure', async () => {
     const close = vi.fn();
     TestBed.configureTestingModule({ providers: [{ provide: EditorRef, useValue: { close } }] });
     const fixture = TestBed.createComponent<DropdownOptionsEditor<string>>(DropdownOptionsEditor);
@@ -204,7 +205,6 @@ describe('Direct controls', () => {
     } satisfies DropdownEditorData<string>);
     await fixture.whenStable();
     const editor = fixture.componentInstance;
-    await editor.choose('kg');
     await editor.choose('lb');
     expect(save).not.toHaveBeenCalled();
     const pending = editor.choose('t');
@@ -222,5 +222,108 @@ describe('Direct controls', () => {
     await editor.choose('t');
     expect(close).toHaveBeenCalledOnce();
     expect(save).toHaveBeenLastCalledWith('t');
+  });
+
+  it('dropdown editor closes without saving when the committed value is chosen again', async () => {
+    const close = vi.fn();
+    TestBed.configureTestingModule({ providers: [{ provide: EditorRef, useValue: { close } }] });
+    const fixture = TestBed.createComponent<DropdownOptionsEditor<string>>(DropdownOptionsEditor);
+    const save = vi.fn().mockResolvedValue(undefined);
+    fixture.componentRef.setInput('data', {
+      initialValue: 'kg',
+      options: [
+        { value: 'kg', label: 'kg' },
+        { value: 't', label: 't' },
+      ],
+      save,
+    } satisfies DropdownEditorData<string>);
+    await fixture.whenStable();
+    const list =
+      await TestbedHarnessEnvironment.loader(fixture).getHarness(MatSelectionListHarness);
+    const [selected] = await list.getItems();
+    await (await selected.host()).click();
+    expect(close).toHaveBeenCalledOnce();
+    expect(save).not.toHaveBeenCalled();
+  });
+
+  it('toggle shows the denial reason even when content has its own tooltip', async () => {
+    const fixture = TestBed.createComponent<ToggleCell<Row>>(ToggleCell);
+    const config = {
+      content: { tooltip: 'Content tip' },
+      toggle: {
+        save: () => Promise.reject(new Error('Server failure')),
+        permission: ({ data }) =>
+          data?.locked ? { allowed: false, reason: 'Locked' } : { allowed: true },
+      },
+    } satisfies ToggleCellParams<Row>;
+    const params = rendererParams({ ...row, locked: true }, true, config, {});
+    fixture.componentInstance.agInit(params);
+    await fixture.whenStable();
+    const root = fixture.nativeElement as HTMLElement;
+    const button = root.querySelector('button')!;
+    expect(button.title).toBe('Locked');
+    expect(root.querySelector('.grid-cell-content')?.getAttribute('title')).toBe('Content tip');
+    expect(button.hasAttribute('class') && button.classList.contains('grid-cell-content')).toBe(
+      false,
+    );
+    params.data!.locked = false;
+    fixture.componentInstance.refresh(params);
+    await fixture.whenStable();
+    expect(button.title).toBe('Content tip');
+    button.click();
+    await fixture.whenStable();
+    expect(button.title).toBe('Server failure');
+  });
+
+  it('toggle announces failures and keeps a pending save across renderer recreation', async () => {
+    const announce = vi.fn().mockResolvedValue(undefined);
+    TestBed.configureTestingModule({
+      providers: [CellOperations, { provide: LiveAnnouncer, useValue: { announce } }],
+    });
+    const cellOperations = TestBed.inject(CellOperations);
+    let fail!: (error: Error) => void;
+    const save = vi.fn(
+      () =>
+        new Promise<void>((_resolve, reject) => {
+          fail = reject;
+        }),
+    );
+    const config = { toggle: { save } } satisfies ToggleCellParams<Row>;
+    const create = async () => {
+      const fixture = TestBed.createComponent<ToggleCell<Row>>(ToggleCell);
+      const params = rendererParams({ ...row }, true, config, { cellOperations });
+      params.colDef = { colId: 'active', headerName: 'Active' };
+      fixture.componentInstance.agInit(params);
+      await fixture.whenStable();
+      return fixture;
+    };
+    const first = await create();
+    (first.nativeElement as HTMLElement).querySelector('button')!.click();
+    first.destroy();
+    // The grid recycled the renderer while the save is still running.
+    const second = await create();
+    const button = (second.nativeElement as HTMLElement).querySelector('button')!;
+    expect(button.getAttribute('aria-label')).toBe('Active');
+    expect(button.getAttribute('aria-busy')).toBe('true');
+    button.click();
+    expect(save).toHaveBeenCalledOnce();
+    fail(new Error('Rejected'));
+    await vi.waitFor(() =>
+      expect(cellOperations.state({ rowId: 'row-1', columnId: 'active' }).error).toBe('Rejected'),
+    );
+    await second.whenStable();
+    expect(button.title).toBe('Rejected');
+    expect(button.getAttribute('aria-busy')).toBe('false');
+    expect(announce).toHaveBeenCalledWith('Rejected', 'assertive');
+  });
+
+  it('dropdown requires an editor host when the grid first renders it', () => {
+    const fixture = TestBed.createComponent<DropdownCell<Row, string>>(DropdownCell);
+    const config = {
+      dropdown: { options: [{ value: 'kg', label: 'Kilograms' }], save: async () => undefined },
+    } satisfies DropdownCellParams<Row, string>;
+    expect(() =>
+      fixture.componentInstance.agInit(rendererParams({ ...row }, 'kg', config, {})),
+    ).toThrow('Provide editorHost in grid context.');
   });
 });

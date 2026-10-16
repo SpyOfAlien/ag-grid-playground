@@ -2,9 +2,12 @@ import { TestBed } from '@angular/core/testing';
 import { signal } from '@angular/core';
 import { ToggleNumberCell } from './toggle-number-cell';
 import type { ToggleNumberCellParams } from './toggle-number-cell-params.model';
-import { InputEditor } from '../../../../shared/grid-cells/editing/editors/input/input-editor';
-import type { InputEditorData } from '../../../../shared/grid-cells/editing/editors/input/input-editor-config.model';
-import type { EditorHostService } from '../../../../shared/grid-cells/editing/editor-host/public-api';
+import {
+  InputEditor,
+  type CellContext,
+  type EditorHostService,
+  type InputEditorData,
+} from '@grid-cells';
 import { rendererParams } from '../../../../../../test-utils/renderer-params';
 interface Row {
   amount: number | null;
@@ -15,15 +18,7 @@ type Config = InputEditorData<number>;
 function setup(value: number | null = 0) {
   const fixture = TestBed.createComponent<ToggleNumberCell<Row, Config>>(ToggleNumberCell);
   const submit = vi
-    .fn<
-      (
-        value: boolean,
-        cell: import('../../../../shared/grid-cells/core/cell-context.model').CellContext<
-          Row,
-          number
-        >,
-      ) => Promise<void>
-    >()
+    .fn<(value: boolean, cell: CellContext<Row, number>) => Promise<void>>()
     .mockResolvedValue();
   const open = vi.fn().mockReturnValue({ close: vi.fn() });
   const permission = ({ data }: { data: Readonly<Row> | undefined }) =>
@@ -53,7 +48,10 @@ function setup(value: number | null = 0) {
           save: async () => undefined,
         }),
 
-        popover: ({ trigger }) => ({ anchor: { kind: 'element', element: trigger }, width: 320 }),
+        presentation: {
+          kind: 'popover',
+          options: ({ trigger }) => ({ anchor: { kind: 'element', element: trigger }, width: 320 }),
+        },
       },
     },
   } satisfies ToggleNumberCellParams<Row>;
@@ -129,7 +127,7 @@ describe('ToggleNumberCell composition', () => {
     submit.mockImplementation(() => new Promise((resolve) => (finish = resolve)));
     await fixture.whenStable();
     const root = fixture.nativeElement as HTMLElement;
-    const toggle = root.querySelector<HTMLButtonElement>('.toggle')!;
+    const toggle = root.querySelector<HTMLButtonElement>('.grid-cell-toggle')!;
     const pen = root.querySelector<HTMLButtonElement>('.grid-cell-action')!;
     toggle.click();
     toggle.click();
@@ -145,14 +143,14 @@ describe('ToggleNumberCell composition', () => {
     expect(root.querySelector('span.grid-cell-content')!.textContent).toBe('1,234.50 kg');
     finish();
     await fixture.whenStable();
-    expect(fixture.componentInstance.saving()).toBe(false);
+    expect(fixture.componentInstance.cellSave().pending).toBe(false);
   });
   it('omits number and unit text for empty values and leaves committed state intact after failure', async () => {
     const { fixture, submit } = setup(null);
     submit.mockRejectedValue(new Error('Rejected'));
     await fixture.whenStable();
     const root = fixture.nativeElement as HTMLElement;
-    const toggle = root.querySelector<HTMLButtonElement>('.toggle')!;
+    const toggle = root.querySelector<HTMLButtonElement>('.grid-cell-toggle')!;
     expect(root.querySelector('span.grid-cell-content')!.textContent).toBe('');
     toggle.click();
     await fixture.whenStable();

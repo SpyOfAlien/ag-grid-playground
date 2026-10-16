@@ -1,54 +1,63 @@
-// Supported integration and composition entry point. Internal mounting details stay private.
-export { suppressCellControlKeyboard } from './core/suppress-cell-control-keyboard';
-export { BaseCell } from './core/base-cell';
-export type * from './core/cell-context.model';
-export type { CellFacts } from './core/cell-context';
-export { toCellContext } from './core/cell-context';
-export { evaluateCellRule } from './core/evaluate-cell-rule';
-export type * from './core/grid-context.model';
-export type * from './core/renderer-params.model';
-export type * from './capabilities/content/content.model';
-export { CellContent } from './capabilities/content/cell-content';
-export { computeContent } from './capabilities/content/compute-content';
-export { computeValueContent } from './capabilities/content/compute-value-content';
-export { computeTextContent } from './capabilities/content/compute-text-content';
-export type * from './capabilities/marker/marker.model';
-export { CellMarker } from './capabilities/marker/cell-marker';
-export { computeMarker } from './capabilities/marker/compute-marker';
-export type * from './capabilities/action/action.model';
-export { CellEditAction } from './capabilities/action/cell-edit-action';
-export { computeAction } from './capabilities/action/compute-action';
-export { computePermission } from './capabilities/action/compute-permission';
-export type * from './capabilities/number/number.model';
-export { formatNumber } from './capabilities/number/format-number';
-export { computeNumberContent } from './capabilities/number/compute-number-content';
-export type * from './capabilities/toggle/toggle.model';
-export { computeToggle } from './capabilities/toggle/compute-toggle';
-export type * from './capabilities/dropdown/dropdown.model';
-export { computeDropdown } from './capabilities/dropdown/compute-dropdown';
-export { TextCell } from './renderers/text/text-cell';
-export type * from './renderers/text/text-cell-params.model';
-export { NumberCell } from './renderers/number/number-cell';
-export type * from './renderers/number/number-cell-params.model';
-export { PopoverCell } from './renderers/popover/popover-cell';
-export type * from './renderers/popover/popover-cell-params.model';
-export { DialogCell } from './renderers/dialog/dialog-cell';
-export type * from './renderers/dialog/dialog-cell-params.model';
-export { ToggleCell } from './renderers/toggle/toggle-cell';
-export type * from './renderers/toggle/toggle-cell-params.model';
-export { DropdownCell } from './renderers/dropdown/dropdown-cell';
-export type * from './renderers/dropdown/dropdown-cell-params.model';
-export { DropdownOptions } from './renderers/dropdown/dropdown-options';
-export type * from './editing/edit-command.model';
-export { withCellKeyboard, withCellKeyboardColumns } from './integration/cell-keyboard';
-export { bindCellRenderer, type CellRendererConfig } from './integration/bind-cell-renderer';
-export * from './editing/editor-host/public-api';
-export { InputEditor } from './editing/editors/input/input-editor';
-export type * from './editing/editors/input/input-editor-config.model';
-export { TextareaEditor } from './editing/editors/textarea/textarea-editor';
-export type * from './editing/editors/textarea/textarea-editor-config.model';
-export type * from './editing/editors/value-editor.model';
-export type * from './editing/editors/field-editor-config.model';
-export type { DropdownEditorData } from './renderers/dropdown/dropdown-editor-data.model';
+// Column wiring entry point (`@grid-cells`). Custom renderer authors use `@grid-cells/composition`.
 
-export type * from './editing/editors/editor-presentation.model';
+// Renderers and their configuration
+export { TextCell, type TextCellParams } from './renderers/text-cell';
+export { NumberCell, type NumberCellParams } from './renderers/number-cell';
+export { EditCell, type EditCellParams } from './renderers/edit-cell';
+export { ToggleCell, type ToggleCellParams } from './renderers/toggle-cell';
+export { DropdownCell, type DropdownCellParams } from './renderers/dropdown-cell';
+export type * from './capabilities/content';
+export type * from './capabilities/marker';
+export type * from './capabilities/action';
+export type * from './capabilities/toggle';
+export type * from './capabilities/dropdown';
+export type { NumberConfig, NumberContentState } from './capabilities/number';
+export type { EditPermission, EditablePart } from './capabilities/permission';
+export type { CellContext, CellRule, CellOpenContext } from './core/cell-context';
+export type { GridContext, RendererParams } from './core/grid-context';
+export { formatNumber } from './capabilities/number';
+
+// Column definitions
+export {
+  bindCellRenderer,
+  bindPlainCell,
+  cellColumn,
+  type CellColumn,
+  type CellRendererConfig,
+  type CellRendererValue,
+} from './integration/bind-cell-renderer';
+export {
+  suppressCellControlKeyboard,
+  withCellKeyboard,
+  withCellKeyboardColumns,
+} from './integration/keyboard';
+
+// Feature services and configuration
+export { CellOperations, type SaveState, type SaveOutcome } from './capabilities/save';
+export {
+  GRID_CELL_LABELS,
+  DEFAULT_GRID_CELL_LABELS,
+  provideGridCellLabels,
+  type GridCellLabels,
+} from './core/labels';
+export {
+  GRID_CELL_MARKERS,
+  DEFAULT_MARKER_DEFINITIONS,
+  provideGridCellMarkers,
+} from './capabilities/marker';
+
+// Editing
+export * from './editing/editor-host/public-api';
+export type * from './editing/edit-command.model';
+export type * from './editing/cell-editor';
+export {
+  InputEditor,
+  type InputEditorConfig,
+  type InputEditorData,
+} from './editing/editors/input-editor';
+export {
+  TextareaEditor,
+  type TextareaEditorConfig,
+  type TextareaEditorData,
+} from './editing/editors/textarea-editor';
+export type { FieldEditorConfig } from './editing/editors/field-editor';

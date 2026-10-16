@@ -17,7 +17,7 @@ The host manages presentation. It neither authorizes a business save nor applies
 ## Rendering and refresh
 
 1. AG Grid calls [BaseCell.agInit](../src/app/shared/grid-cells/core/base-cell.ts), or refresh on an existing renderer. Both shallow-copy the params into its signal. Refresh returns true.
-2. Each renderer's explicit computed signals call the pure category functions, such as [computeMarker](../src/app/shared/grid-cells/capabilities/marker/compute-marker.ts) and [computeNumberContent](../src/app/shared/grid-cells/capabilities/number/compute-number-content.ts).
+2. Each renderer's explicit computed signals call the pure category functions, such as [computeMarker](../src/app/shared/grid-cells/capabilities/marker.ts) and [computeNumberContent](../src/app/shared/grid-cells/capabilities/number.ts).
 3. Angular updates the existing content, marker and action elements. A metadata-only refresh can change permission or marker while retaining the content span and renderer instance.
 
 Presentation rules can read application signals inside these computed calculations. A settings change invalidates only the dependent computations and Angular updates their templates; it does not require a grid refresh or new column definitions. The [integration guide](cell-kit-integration.md) explains dependency tracking and keyboard setup.
@@ -26,15 +26,15 @@ Row commits have a separate owner. Connected feature updates refresh affected ro
 
 ## Opening a popover from a pen
 
-| File and method                                                                                   | What happens                                                                                                                                                          |
-| ------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| [CellEditAction](../src/app/shared/grid-cells/capabilities/action/cell-edit-action.ts)            | Guards disabled activation and emits the native mouse event                                                                                                           |
-| [PopoverCell.open](../src/app/shared/grid-cells/renderers/popover/popover-cell.ts)                | Reads current params/action, captures the button trigger, calls action.editor.data(cell), evaluates action.editor.popover options, then calls context.editorHost.open |
-| [EditorHostService.open](../src/app/shared/grid-cells/editing/editor-host/editor-host-service.ts) | Rejects a busy/destroyed owner or disconnected trigger; creates a child injector containing this opening's EditorRef                                                  |
-| EditorHostService.openPopover                                                                     | Delegates to the app popover, supplies editor backdrop defaults and connects presentation closure                                                                     |
-| [PopoverService.open](../src/app/shared/popover/popover-service.ts)                               | Creates the CDK overlay, position/arrow, focus trap, scroll strategy and content component                                                                            |
-| [bindEditorData](../src/app/shared/grid-cells/editing/editor-host/bind-editor-data.ts)            | Sets the signal input using Angular's declared public input name before first render and ngOnInit                                                                     |
-| [InputEditor.ngOnInit](../src/app/shared/grid-cells/editing/editors/input/input-editor.ts)        | Initializes the field and configured validators from the opening data                                                                                                 |
+| File and method                                                                                                                                | What happens                                                                                                                                                              |
+| ---------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [CellEditAction](../src/app/shared/grid-cells/capabilities/action.ts)                                                                          | Guards disabled activation and emits the native mouse event                                                                                                               |
+| [EditCell.open](../src/app/shared/grid-cells/renderers/edit-cell.ts) and [openCellEditor](../src/app/shared/grid-cells/capabilities/action.ts) | Reads current params/action, captures the button trigger, calls action.editor.data(cell), resolves action.editor.presentation options, then calls context.editorHost.open |
+| [EditorHostService.open](../src/app/shared/grid-cells/editing/editor-host/editor-host-service.ts)                                              | Rejects a busy/destroyed owner or disconnected trigger; creates a child injector containing this opening's EditorRef                                                      |
+| [PopoverEditorPresentation](../src/app/shared/grid-cells/editing/editor-host/presentations.ts)                                                 | The host looks up the adapter for the presentation kind. This one delegates to the app popover, supplies editor backdrop defaults and connects presentation closure       |
+| [PopoverService.open](../src/app/shared/popover/popover-service.ts)                                                                            | Creates the CDK overlay, position/arrow, focus trap, scroll strategy and content component                                                                                |
+| [bindEditorData](../src/app/shared/grid-cells/editing/editor-host/bind-editor-data.ts)                                                         | Sets the signal input using Angular's declared public input name before first render and ngOnInit                                                                         |
+| [InputEditor.ngOnInit](../src/app/shared/grid-cells/editing/editors/input-editor.ts)                                                           | Initializes the field and configured validators from the opening data                                                                                                     |
 
 The default anchor is the pen trigger. A popover config factory receives CellOpenContext so it can choose another element anchor or an explicit point. Grid editor opening carries no clickPoint. The standalone app popover supports click-point fallback for other application uses.
 
@@ -42,7 +42,7 @@ The opening data is the editor's initial draft. Persistence looks up the current
 
 ## Opening a dialog
 
-[DialogCell.open](../src/app/shared/grid-cells/renderers/dialog/dialog-cell.ts) follows the same renderer flow but supplies `{ kind: 'dialog', options: params.action.editor.dialog }`. EditorHostService.openDialog uses Angular Material MatDialog and its focus trap. [DialogEditorPanel](../src/app/shared/grid-cells/editing/editor-host/dialog-editor-panel/dialog-editor-panel.ts) mounts the configured editor. It has no common Save/Cancel footer.
+With `presentation: { kind: 'dialog' }`, [EditCell.open](../src/app/shared/grid-cells/renderers/edit-cell.ts) follows the same renderer flow and passes `{ kind: 'dialog', options }` to the host. [DialogEditorPresentation](../src/app/shared/grid-cells/editing/editor-host/presentations.ts) uses Angular Material MatDialog and its focus trap. [DialogEditorPanel](../src/app/shared/grid-cells/editing/editor-host/dialog-editor-panel/dialog-editor-panel.ts) mounts the configured editor. It has no common Save/Cancel footer.
 
 The host binds the same HostedEditor data contract and provides the same EditorRef in both presentations. DialogOptions configures title, dimensions and backdrop dismissal. A dialog does not require a live anchor after opening and can remain open when the original cell disappears.
 
@@ -57,7 +57,7 @@ InputEditor.save or TextareaEditor.save
   -> editor's EditorRef.close
 ```
 
-[InputEditor.save](../src/app/shared/grid-cells/editing/editors/input/input-editor.ts) marks the control touched, rejects invalid/pending validation or duplicate saves, captures its value, and awaits the configured callback. [TextareaEditor.save](../src/app/shared/grid-cells/editing/editors/textarea/textarea-editor.ts) uses the same contract for a string draft.
+[InputEditor.save](../src/app/shared/grid-cells/editing/editors/input-editor.ts) marks the control touched, rejects invalid/pending validation or duplicate saves, captures its value, and awaits the configured callback. [TextareaEditor.save](../src/app/shared/grid-cells/editing/editors/textarea-editor.ts) uses the same contract for a string draft.
 
 The callback is created by the column's editor data factory. [Demo columns](../src/app/features/grid-demo/demo-columns.ts) bind cell identity and column query params directly to a named feature action. No host service participates in payload construction or persistence.
 
@@ -114,9 +114,9 @@ If a client commit fails, the private grid implementation restores mutated snaps
 
 ## Toggle and dropdown
 
-[ToggleCell.activate](../src/app/shared/grid-cells/renderers/toggle/toggle-cell.ts) guards permission and pending state, then calls toggle.save(nextBoolean, currentCellContext). The feature binds the context to EditCommand and commits. The displayed value remains committed until refresh. There is no popup or pen for this control.
+The [cellToggle](../src/app/shared/grid-cells/capabilities/toggle.ts) directive guards permission and pending state and emits the next value. [ToggleCell.change](../src/app/shared/grid-cells/renderers/toggle-cell.ts) runs toggle.save(nextBoolean, currentCellContext) through `trackSave`, which keeps the pending and failed state in the grid context's `CellOperations` when one is provided, and announces a failure. The feature binds the context to EditCommand and commits. The displayed value remains committed until refresh. There is no popup or pen for this control.
 
-[DropdownCell.open](../src/app/shared/grid-cells/renderers/dropdown/dropdown-cell.ts) captures current options and value, constructs typed DropdownEditorData, and opens the shared host's popover. [DropdownOptionsEditor.choose](../src/app/shared/grid-cells/renderers/dropdown/dropdown-options-editor.ts) checks the option, ignores an unchanged selection, awaits its save callback and closes on success. Failed saves preserve the open options and committed selection. Its error is displayed. The dropdown has no Cancel button or radio decoration.
+[DropdownCell.open](../src/app/shared/grid-cells/renderers/dropdown-cell.ts) captures current options and value, constructs typed DropdownEditorData, and opens the shared host's popover. [DropdownOptionsEditor.choose](../src/app/shared/grid-cells/renderers/dropdown-options-editor.ts) checks the option, closes without saving for an unchanged selection, awaits its save callback and closes on success. Failed saves preserve the open options and committed selection. Its error is displayed. The dropdown has no Cancel button or radio decoration.
 
 [ToggleNumberCell](../src/app/features/grid-demo/cells/toggle-number/toggle-number-cell.ts) composes a native switch and number content with a pen. Its switch can permit a review change while its number permission denies editing. The feature routes an amount command from toggle-number to metric 7, independently from the ordinary metric-2 action.
 

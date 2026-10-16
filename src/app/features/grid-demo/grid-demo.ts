@@ -14,9 +14,13 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { AgGridAngular } from 'ag-grid-angular';
 import { type GridOptions, type GridReadyEvent, themeQuartz } from 'ag-grid-community';
-import { withCellKeyboardColumns, type GridContext } from '../../shared/grid-cells/public-api';
+import {
+  CellOperations,
+  EditorHostService,
+  withCellKeyboardColumns,
+  type GridContext,
+} from '@grid-cells';
 import { MatCheckboxModule } from '@angular/material/checkbox';
-import { EditorHostService } from '../../shared/grid-cells/editing/editor-host/public-api';
 import { provideDemoEditing } from './demo-editing-providers';
 import { DemoClientPersistence } from './demo-client-persistence';
 import { DemoServerPersistence } from './demo-server-persistence';
@@ -50,6 +54,7 @@ export class GridDemo {
   private readonly client = inject(DemoClientPersistence);
   private readonly server = inject(DemoServerPersistence);
   readonly editors = inject(EditorHostService);
+  readonly cellOperations = inject(CellOperations);
   readonly apiScenarios = inject(DemoApiScenarios);
   readonly tableState = inject(DemoTableState);
 
@@ -61,7 +66,10 @@ export class GridDemo {
   readonly persistence = computed(() => (this.mode() === 'server' ? this.server : this.client));
   readonly pendingCount = computed(() => this.client.pending() + this.server.pending());
   readonly controlsDisabled = computed(() => this.pendingCount() > 0 || this.editors.active());
-  readonly applicationContext = { editorHost: this.editors } satisfies GridContext;
+  readonly applicationContext = {
+    editorHost: this.editors,
+    cellOperations: this.cellOperations,
+  } satisfies GridContext;
 
   private readonly isUserEdited = createDemoUserEditedPredicate();
   readonly columns = withCellKeyboardColumns(

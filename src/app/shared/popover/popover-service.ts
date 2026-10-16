@@ -118,7 +118,8 @@ export class PopoverService {
       );
       resources.add(
         overlay.backdropClick().subscribe(() => {
-          if (options.closeOnBackdropClick ?? true) ref.close('backdrop');
+          if ((options.closeOnBackdropClick ?? true) && (request.canCloseOnBackdrop?.() ?? true))
+            ref.close('backdrop');
         }),
       );
       resources.add(overlay.detachments().subscribe(() => ref.close()));

@@ -7,10 +7,7 @@ import {
   type TestRequest,
 } from '@angular/common/http/testing';
 import { OverlayContainer } from '@angular/cdk/overlay';
-import {
-  EditorHostService,
-  type HostedEditor,
-} from '../../shared/grid-cells/editing/editor-host/public-api';
+import { EditorHostService, type HostedEditor } from '@grid-cells';
 import { provideDemoServerEditing } from './demo-editing-providers';
 import { DemoServerPersistence } from './demo-server-persistence';
 import { DemoTableState } from './demo-table-state';

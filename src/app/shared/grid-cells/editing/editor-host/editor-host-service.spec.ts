@@ -1,6 +1,7 @@
 import {
   ChangeDetectionStrategy,
   Component,
+  computed,
   DestroyRef,
   InjectionToken,
   inject,
@@ -12,9 +13,18 @@ import {
 import { TestBed } from '@angular/core/testing';
 import { OverlayContainer } from '@angular/cdk/overlay';
 import { MatDialog } from '@angular/material/dialog';
+import { Subject } from 'rxjs';
 import { EditorHostService } from './editor-host-service';
 import { EditorRef } from './editor-ref';
-import type { HostedEditor } from './editor-host.model';
+import type { EditorPresentationAdapter, HostedEditor } from './editor-host.model';
+import { provideEditorPresentations } from './presentations';
+import { provideGridCellLabels } from '../../core/labels';
+
+declare module './editor-host.model' {
+  interface EditorPresentations {
+    panel: { readonly side: 'start' | 'end' };
+  }
+}
 
 interface EditorData {
   readonly label: string;
@@ -92,6 +102,17 @@ class ThrowingEditor implements HostedEditor<EditorData>, OnInit {
   ngOnInit(): void {
     throw new Error('Editor initialization failed.');
   }
+}
+
+@Component({
+  selector: 'test-dirty-editor',
+  template: '<input aria-label="Draft" />',
+  changeDetection: ChangeDetectionStrategy.OnPush,
+})
+class DirtyEditor implements HostedEditor<EditorData> {
+  readonly data = input.required<EditorData>();
+  readonly changed = signal(true);
+  readonly dirty = computed(() => this.changed());
 }
 
 @Component({
@@ -301,5 +322,82 @@ describe('EditorHostService', () => {
     expect(owner.host.open(definition, { kind: 'popover' }, { trigger })).toBeDefined();
     owner.host.close();
     await expectDisposed(container);
+  });
+
+  for (const kind of ['popover', 'dialog'] as const) {
+    it(`${kind} discards unsaved changes on backdrop click by default`, async () => {
+      const { fixture, owner, trigger, container } = await setup();
+      owner.host.open({ component: DirtyEditor, data: definition.data }, { kind }, { trigger });
+      await fixture.whenStable();
+      container.querySelector<HTMLElement>('.cdk-overlay-backdrop')!.click();
+      await fixture.whenStable();
+      await expectDisposed(container);
+    });
+
+    it(`${kind} keeps unsaved changes open with 'when-clean'; Escape still discards`, async () => {
+      const { fixture, owner, trigger, container } = await setup();
+      owner.host.open(
+        { component: DirtyEditor, data: definition.data },
+        { kind, options: { closeOnBackdropClick: 'when-clean' } },
+        { trigger },
+      );
+      await fixture.whenStable();
+      const backdrop = container.querySelector<HTMLElement>('.cdk-overlay-backdrop')!;
+      backdrop.click();
+      await fixture.whenStable();
+      expect(container.querySelector('.cdk-overlay-pane')).not.toBeNull();
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+      await fixture.whenStable();
+      await expectDisposed(container);
+    });
+
+    it(`${kind} closes a clean editor on backdrop click with 'when-clean'`, async () => {
+      const { fixture, owner, trigger, container } = await setup();
+      owner.host.open(
+        definition,
+        { kind, options: { closeOnBackdropClick: 'when-clean' } },
+        { trigger },
+      );
+      await fixture.whenStable();
+      container.querySelector<HTMLElement>('.cdk-overlay-backdrop')!.click();
+      await fixture.whenStable();
+      await expectDisposed(container);
+    });
+  }
+
+  it('delegates an augmented presentation kind to its registered adapter', async () => {
+    const opened = vi.fn();
+    const adapter: EditorPresentationAdapter<{ readonly side: 'start' | 'end' }> = {
+      open: (request) => {
+        opened(request.options, request.label);
+        request.attach(() => undefined, new Subject<unknown>());
+        request.addResource(() => opened('closed'));
+      },
+    };
+    TestBed.configureTestingModule({
+      providers: [
+        provideEditorPresentations(() => ({ panel: adapter })),
+        provideGridCellLabels({ editor: 'Éditeur' }),
+      ],
+    });
+    const { owner, trigger } = await setup();
+    const ref = owner.host.open(
+      definition,
+      { kind: 'panel', options: { side: 'end' } },
+      { trigger },
+    );
+    expect(opened).toHaveBeenCalledWith({ side: 'end' }, 'Éditeur');
+    expect(owner.host.active()).toBe(true);
+    ref!.close();
+    expect(opened).toHaveBeenLastCalledWith('closed');
+    expect(owner.host.active()).toBe(false);
+  });
+
+  it('rejects a presentation kind without an adapter and stays usable', async () => {
+    const { owner, trigger } = await setup();
+    expect(() => owner.host.open(definition, { kind: 'panel' }, { trigger })).toThrow(
+      'No editor presentation is registered for "panel".',
+    );
+    expect(owner.host.active()).toBe(false);
   });
 });

@@ -4,10 +4,8 @@ import {
   DropdownCell,
   type ToggleCellParams,
   type DropdownCellParams,
-  PopoverCell,
-  DialogCell,
-  type PopoverCellParams,
-  type DialogCellParams,
+  EditCell,
+  type EditCellParams,
   InputEditor,
   TextareaEditor,
   type InputEditorData,
@@ -19,7 +17,7 @@ import {
   NumberCell,
   bindCellRenderer,
   type NumberCellParams,
-} from '../../shared/grid-cells/public-api';
+} from '@grid-cells';
 import type { DemoTablePersistence } from './demo-persistence.model';
 import { DemoEditError } from './demo-persistence.model';
 import { ToggleNumberCell } from './cells/toggle-number/toggle-number-cell';
@@ -111,15 +109,18 @@ export function createCustomDemoColumns(
             }),
         }),
 
-        popover: ({ trigger }) => ({
-          anchor: { kind: 'element', element: trigger },
-          placement: 'bottom',
-          title: 'Edit material name',
-          width: 320,
-        }),
+        presentation: {
+          kind: 'popover',
+          options: ({ trigger }) => ({
+            anchor: { kind: 'element', element: trigger },
+            placement: 'bottom',
+            title: 'Edit material name',
+            width: 320,
+          }),
+        },
       },
     },
-  } satisfies PopoverCellParams<DemoRow, string, InputEditorData<string>>;
+  } satisfies EditCellParams<DemoRow, string, InputEditorData<string>>;
   const amountParams = {
     content: {
       alignment: 'end',
@@ -154,15 +155,18 @@ export function createCustomDemoColumns(
             }),
         }),
 
-        popover: ({ trigger }) => ({
-          anchor: { kind: 'element', element: trigger },
-          placement: 'bottom',
-          title: 'Edit measurement',
-          width: 320,
-        }),
+        presentation: {
+          kind: 'popover',
+          options: ({ trigger }) => ({
+            anchor: { kind: 'element', element: trigger },
+            placement: 'bottom',
+            title: 'Edit measurement',
+            width: 320,
+          }),
+        },
       },
     },
-  } satisfies PopoverCellParams<DemoRow, number, InputEditorData<number>>;
+  } satisfies EditCellParams<DemoRow, number, InputEditorData<number>>;
   const notesParams = {
     content: { tooltip: ({ value }) => value || null },
     action: {
@@ -187,17 +191,20 @@ export function createCustomDemoColumns(
             }),
         }),
 
-        dialog: { title: 'Edit notes', width: 480, maxHeight: 600, backdrop: true },
+        presentation: {
+          kind: 'dialog',
+          options: { title: 'Edit notes', width: 480, maxHeight: 600, backdrop: true },
+        },
       },
     },
-  } satisfies DialogCellParams<DemoRow, string, TextareaEditorData>;
+  } satisfies EditCellParams<DemoRow, string, TextareaEditorData>;
   return DEMO_COLUMNS.map((column, position): ColDef<DemoRow> => {
     if (position < 2) {
       return {
         ...column,
         cellClass: 'grid-kit-cell',
         ...(position === 1
-          ? bindCellRenderer(PopoverCell<DemoRow, string, InputEditorData<string>>, nameParams)
+          ? bindCellRenderer(EditCell<DemoRow, string, InputEditorData<string>>, nameParams)
           : bindCellRenderer(TextCell<DemoRow>, {})),
       };
     }
@@ -219,6 +226,7 @@ export function createCustomDemoColumns(
           warning: { when: ({ data }) => !data?.metadata.reviewed, tooltip: 'Review required' },
         },
         toggle: {
+          label: 'Review measurement',
           permission: { allowed: true },
           checked: ({ data }) => data?.metadata.reviewed ?? false,
           save: (value, cell) =>
@@ -252,12 +260,15 @@ export function createCustomDemoColumns(
                 }),
             }),
 
-            popover: ({ trigger }) => ({
-              anchor: { kind: 'element', element: trigger },
-              placement: 'bottom',
-              title: 'Edit composite measurement',
-              width: 320,
-            }),
+            presentation: {
+              kind: 'popover',
+              options: ({ trigger }) => ({
+                anchor: { kind: 'element', element: trigger },
+                placement: 'bottom',
+                title: 'Edit composite measurement',
+                width: 320,
+              }),
+            },
           },
         },
       } satisfies ToggleNumberCellParams<DemoRow>;
@@ -290,7 +301,7 @@ export function createCustomDemoColumns(
         ...column,
         valueFormatter: undefined,
         cellClass: 'grid-kit-cell',
-        ...bindCellRenderer(PopoverCell<DemoRow, number, InputEditorData<number>>, amountParams),
+        ...bindCellRenderer(EditCell<DemoRow, number, InputEditorData<number>>, amountParams),
       };
     if (index === 3)
       return {
@@ -302,7 +313,7 @@ export function createCustomDemoColumns(
         valueGetter: ({ data }) => data?.notes ?? '',
         valueFormatter: undefined,
         cellClass: 'grid-kit-cell',
-        ...bindCellRenderer(DialogCell<DemoRow, string, TextareaEditorData>, notesParams),
+        ...bindCellRenderer(EditCell<DemoRow, string, TextareaEditorData>, notesParams),
       };
     if (index === 4) {
       const detailsParams = {
@@ -330,10 +341,13 @@ export function createCustomDemoColumns(
               };
             },
 
-            dialog: { title: 'Edit row details', width: 520, maxHeight: 650, backdrop: true },
+            presentation: {
+              kind: 'dialog',
+              options: { title: 'Edit row details', width: 520, maxHeight: 650, backdrop: true },
+            },
           },
         },
-      } satisfies DialogCellParams<DemoRow, string, DetailsEditorData>;
+      } satisfies EditCellParams<DemoRow, string, DetailsEditorData>;
       return {
         ...column,
         colId: 'details',
@@ -344,7 +358,7 @@ export function createCustomDemoColumns(
         valueFormatter: undefined,
         width: 160,
         cellClass: 'grid-kit-cell',
-        ...bindCellRenderer(DialogCell<DemoRow, string, DetailsEditorData>, detailsParams),
+        ...bindCellRenderer(EditCell<DemoRow, string, DetailsEditorData>, detailsParams),
       };
     }
     const params = {

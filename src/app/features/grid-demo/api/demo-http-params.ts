@@ -1,5 +1,5 @@
 import { HttpParams } from '@angular/common/http';
-import type { HttpQueryParams } from '../../../shared/grid-cells/editing/edit-command.model';
+import type { HttpQueryParams } from '@grid-cells';
 
 export function demoHttpParams(query: HttpQueryParams): HttpParams {
   let params = new HttpParams();

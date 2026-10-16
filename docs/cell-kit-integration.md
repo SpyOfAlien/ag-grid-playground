@@ -41,7 +41,7 @@ Existing number locale/decimals/grouping options remain static. The migration do
 
 ## Keyboard configuration
 
-[withCellKeyboardColumns](../src/app/shared/grid-cells/integration/cell-keyboard.ts) walks the column array and nested groups. It combines the kit's control behavior with application keyboard callbacks. Apply it once when building definitions, including when a schema change creates a new array.
+[withCellKeyboardColumns](../src/app/shared/grid-cells/integration/keyboard.ts) walks the column array and nested groups. It combines the kit's control behavior with application keyboard callbacks. Apply it once when building definitions, including when a schema change creates a new array.
 
 ```ts
 readonly defaults = withCellKeyboard<Row>({

@@ -11,7 +11,7 @@
     "prestart": "node scripts/prepare-runtime-config.mjs",
     "prebuild": "node scripts/prepare-runtime-config.mjs",
     "test:unit": "ng test --watch=false",
-    "test:types": "tsc -p tsconfig.type-tests.json && ngc -p type-tests/docs/tsconfig.json",
+    "test:types": "node scripts/check-grid-cells-imports.mjs && tsc -p tsconfig.type-tests.json && ngc -p type-tests/docs/tsconfig.json",
     "test:e2e": "playwright test"
   },
   "private": true,

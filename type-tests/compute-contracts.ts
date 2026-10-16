@@ -1,13 +1,13 @@
-import type { RendererParams } from '../src/app/shared/grid-cells/core/renderer-params.model';
-import type { NumberCellParams } from '../src/app/shared/grid-cells/renderers/number/number-cell-params.model';
-import type { ToggleCellParams } from '../src/app/shared/grid-cells/renderers/toggle/toggle-cell-params.model';
-import type { DropdownCellParams } from '../src/app/shared/grid-cells/renderers/dropdown/dropdown-cell-params.model';
-import { computeContent } from '../src/app/shared/grid-cells/capabilities/content/compute-content';
-import { computeMarker } from '../src/app/shared/grid-cells/capabilities/marker/compute-marker';
-import { computeAction } from '../src/app/shared/grid-cells/capabilities/action/compute-action';
-import { computeNumberContent } from '../src/app/shared/grid-cells/capabilities/number/compute-number-content';
-import { computeToggle } from '../src/app/shared/grid-cells/capabilities/toggle/compute-toggle';
-import { computeDropdown } from '../src/app/shared/grid-cells/capabilities/dropdown/compute-dropdown';
+import type { RendererParams } from '@grid-cells';
+import type { NumberCellParams } from '@grid-cells';
+import type { ToggleCellParams } from '@grid-cells';
+import type { DropdownCellParams } from '@grid-cells';
+import { computeContent } from '@grid-cells/composition';
+import { computeMarker } from '@grid-cells/composition';
+import { computeAction } from '@grid-cells/composition';
+import { computeNumberContent } from '@grid-cells/composition';
+import { computeToggle } from '@grid-cells/composition';
+import { computeDropdown } from '@grid-cells/composition';
 
 interface Row {
   amount: number;

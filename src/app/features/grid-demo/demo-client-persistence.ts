@@ -1,5 +1,5 @@
 import { DestroyRef, Injectable, inject, signal } from '@angular/core';
-import type { EditCommand } from '../../shared/grid-cells/editing/edit-command.model';
+import type { EditCommand } from '@grid-cells';
 import { DemoTableState } from './demo-table-state';
 import { authorizeDemoEdit, buildDemoPayload, type DemoEdit } from './demo-edit-intent';
 import { normalizeDemoResponse } from './api/demo-api.model';

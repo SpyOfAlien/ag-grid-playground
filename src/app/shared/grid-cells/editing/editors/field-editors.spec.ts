@@ -1,11 +1,12 @@
 import { TestBed } from '@angular/core/testing';
 import { Validators } from '@angular/forms';
 import { Subject } from 'rxjs';
-import { EditorRef } from '../editor-host/public-api';
-import { InputEditor } from './input/input-editor';
-import { TextareaEditor } from './textarea/textarea-editor';
-import type { InputEditorData } from './input/input-editor-config.model';
-import type { TextareaEditorData } from './textarea/textarea-editor-config.model';
+import { EditorRef } from '../editor-host/editor-ref';
+import { provideGridCellLabels } from '../../core/labels';
+import { InputEditor } from './input-editor';
+import { TextareaEditor } from './textarea-editor';
+import type { InputEditorData } from './input-editor';
+import type { TextareaEditorData } from './textarea-editor';
 
 describe('Built-in field editors', () => {
   function setupRef() {
@@ -149,5 +150,30 @@ describe('Built-in field editors', () => {
     fixture.componentInstance.control.setValue('Edited\nNotes');
     await fixture.componentInstance.save();
     expect(save).toHaveBeenCalledWith('Edited\nNotes');
+  });
+
+  it('uses provided labels for its actions and validation message', async () => {
+    TestBed.configureTestingModule({
+      providers: [
+        { provide: EditorRef, useValue: { close: vi.fn() } },
+        provideGridCellLabels({
+          save: 'Enregistrer',
+          cancel: 'Annuler',
+          invalid: 'Valeur invalide',
+        }),
+      ],
+    });
+    const fixture = TestBed.createComponent<InputEditor<string>>(InputEditor);
+    fixture.componentRef.setInput('data', {
+      initialValue: 'A',
+      config: { label: 'Nom', mode: 'text' },
+      save: async () => undefined,
+    } satisfies InputEditorData<string>);
+    await fixture.whenStable();
+    const buttons = Array.from(
+      (fixture.nativeElement as HTMLElement).querySelectorAll('button'),
+      (button) => button.textContent?.trim(),
+    );
+    expect(buttons).toEqual(['Enregistrer', 'Annuler']);
   });
 });

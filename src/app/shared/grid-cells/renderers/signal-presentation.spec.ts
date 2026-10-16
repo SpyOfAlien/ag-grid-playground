@@ -1,12 +1,9 @@
 import { ChangeDetectionStrategy, Component, inject, signal, viewChild } from '@angular/core';
-import { EditorHostService } from '../editing/editor-host/public-api';
+import { EditorHostService } from '../editing/editor-host/editor-host-service';
 import { TestBed } from '@angular/core/testing';
-import { NumberCell } from './number/number-cell';
-import { PopoverCell } from './popover/popover-cell';
-import { InputEditor } from '../editing/editors/input/input-editor';
-import type { InputEditorData } from '../editing/editors/input/input-editor-config.model';
-import type { NumberCellParams } from './number/number-cell-params.model';
-import type { PopoverCellParams } from './popover/popover-cell-params.model';
+import { NumberCell, type NumberCellParams } from './number-cell';
+import { EditCell, type EditCellParams } from './edit-cell';
+import { InputEditor, type InputEditorData } from '../editing/editors/input-editor';
 import { rendererParams } from '../../../../../test-utils/renderer-params';
 
 interface Row {
@@ -121,11 +118,14 @@ describe('Signal-driven renderer presentation', () => {
           }),
         },
       },
-    } satisfies PopoverCellParams<Row, string, InputEditorData<string>>;
+    } satisfies EditCellParams<Row, string, InputEditorData<string>>;
     const fixture =
-      TestBed.createComponent<PopoverCell<Row, string, InputEditorData<string>>>(PopoverCell);
+      TestBed.createComponent<EditCell<Row, string, InputEditorData<string>>>(EditCell);
     const open = vi.fn();
-    fixture.componentInstance.agInit(rendererParams({ unit: 'kg' }, 'Example', config, {}));
+    const editorHost = {} as EditorHostService;
+    fixture.componentInstance.agInit(
+      rendererParams({ unit: 'kg' }, 'Example', config, { editorHost }),
+    );
     fixture.componentInstance.open = open;
     await fixture.whenStable();
     const root = fixture.nativeElement as HTMLElement;

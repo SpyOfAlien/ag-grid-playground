@@ -1,5 +1,5 @@
 // Compile-only feature actions use the production command and persistence contracts.
-import type { EditCommand } from '../../src/app/shared/grid-cells/editing/edit-command.model';
+import type { EditCommand } from '@grid-cells';
 import {
   DEMO_TABLE_PERSISTENCE,
   type DemoAmountEdit,

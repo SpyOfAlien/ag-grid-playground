@@ -9,7 +9,7 @@ async function composite(page: Page) {
   return {
     cell,
     toggle: cell.getByRole('switch'),
-    pen: cell.getByRole('button', { name: 'Edit value' }),
+    pen: cell.getByRole('button', { name: 'Edit Review + amount' }),
     number: cell.locator('span.grid-cell-content'),
   };
 }

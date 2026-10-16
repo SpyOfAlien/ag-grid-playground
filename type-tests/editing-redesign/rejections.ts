@@ -1,7 +1,7 @@
-import type { CellContext } from '../../src/app/shared/grid-cells/core/cell-context.model';
+import type { CellContext } from '@grid-cells';
 import type {
   CellOpenContext,
-  DialogCellParams,
+  EditCellParams,
   DropdownCellParams,
   EditCommand,
   EditorDefinition,
@@ -11,10 +11,9 @@ import type {
   GridContext,
   InputEditorConfig,
   InputEditorData,
-  PopoverCellParams,
   TextareaEditorData,
   ValueEditorData,
-} from '../../src/app/shared/grid-cells/public-api';
+} from '@grid-cells';
 import {
   amountParams,
   detailsParams,
@@ -61,7 +60,7 @@ editorHost.open(
   { kind: 'popover' },
   { trigger },
 );
-const wrongFactory: PopoverCellParams<Row, number, InputEditorData<number>> = {
+const wrongFactory: EditCellParams<Row, number, InputEditorData<number>> = {
   action: {
     editor: {
       component: amountParams.action.editor.component,
@@ -120,36 +119,41 @@ const clickPoint: CellOpenContext<Row, number> = {
   // @ts-expect-error Point anchoring belongs to the app popover, not grid opening context.
   clickPoint: { x: 1, y: 2 },
 };
-const wrongRendererOptions: DialogCellParams<Row, string, DetailsEditorData> = {
+const wrongRendererOptions: EditCellParams<Row, string, DetailsEditorData> = {
   ...detailsParams,
   // @ts-expect-error Dialog renderer params cannot configure a popover.
   popover: { placement: 'bottom' },
 };
-const topLevelPopover: PopoverCellParams<Row, number, InputEditorData<number>> = {
+const topLevelPopover: EditCellParams<Row, number, InputEditorData<number>> = {
   ...amountParams,
   // @ts-expect-error Presentation settings belong under editor.
   popover: { width: 320 },
 };
-const topLevelDialog: DialogCellParams<Row, string, DetailsEditorData> = {
+const topLevelDialog: EditCellParams<Row, string, DetailsEditorData> = {
   ...detailsParams,
   // @ts-expect-error Presentation settings belong under editor.
   dialog: { width: 640 },
 };
-const wrongNestedPopover: PopoverCellParams<Row, number, InputEditorData<number>> = {
+const wrongNestedPopover: EditCellParams<Row, number, InputEditorData<number>> = {
   action: {
     editor: {
       ...amountParams.action.editor,
-      // @ts-expect-error A popover editor cannot configure a dialog.
-      dialog: { width: 640 },
+      presentation: {
+        kind: 'dialog',
+        options: {
+          // @ts-expect-error Dialog options do not include a popover anchor.
+          anchor: { kind: 'point', x: 0, y: 0 },
+        },
+      },
     },
   },
 };
-const wrongNestedDialog: DialogCellParams<Row, string, DetailsEditorData> = {
+const wrongNestedDialog: EditCellParams<Row, string, DetailsEditorData> = {
   action: {
     editor: {
       ...detailsParams.action.editor,
-      // @ts-expect-error A dialog editor cannot configure a popover.
-      popover: { placement: 'bottom' },
+      // @ts-expect-error Presentations name their kind.
+      presentation: { options: { width: 640 } },
     },
   },
 };

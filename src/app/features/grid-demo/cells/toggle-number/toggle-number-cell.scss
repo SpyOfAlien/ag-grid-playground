@@ -4,33 +4,7 @@
   gap: 8px;
   min-width: 0;
 }
-.toggle {
+.grid-cell-toggle {
   flex: 0 0 34px;
   height: 24px;
-  padding: 0;
-  border: 0;
-  background: transparent;
-  cursor: pointer;
-}
-.toggle::before {
-  content: '';
-  display: block;
-  width: 32px;
-  height: 18px;
-  border: 1px solid #5f6368;
-  border-radius: 12px;
-  background: radial-gradient(circle at 8px 50%, #fff 6px, transparent 7px), #5f6368;
-}
-.toggle[aria-checked='true']::before {
-  background: radial-gradient(circle at 24px 50%, #fff 6px, transparent 7px), #17675b;
-}
-.toggle[aria-disabled='true'] {
-  cursor: default;
-}
-.toggle[aria-disabled='true']::before {
-  opacity: 0.6;
-}
-.toggle:focus-visible {
-  outline: 2px solid #17675b;
-  outline-offset: 1px;
 }

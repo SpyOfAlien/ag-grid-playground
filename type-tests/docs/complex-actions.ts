@@ -1,8 +1,4 @@
-import type {
-  EditCommand,
-  EditorRef,
-  HttpQueryParams,
-} from '../../src/app/shared/grid-cells/public-api';
+import type { EditCommand, EditorRef, HttpQueryParams } from '@grid-cells';
 interface Draft {
   name: string;
   amount: number | null;

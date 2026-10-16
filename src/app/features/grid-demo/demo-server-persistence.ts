@@ -2,7 +2,7 @@ import { authorizeDemoEdit, buildDemoPayload, type DemoEdit } from './demo-edit-
 import { DestroyRef, Injectable, inject, signal } from '@angular/core';
 import { HttpClient, HttpContext, HttpErrorResponse } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
-import type { EditCommand } from '../../shared/grid-cells/editing/edit-command.model';
+import type { EditCommand } from '@grid-cells';
 import { DemoTableState } from './demo-table-state';
 import {
   DemoEditError,

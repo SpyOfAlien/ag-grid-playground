@@ -4,8 +4,8 @@ import {
   type InputEditorConfig,
   type InputEditorData,
   type TextareaEditorData,
-} from '../src/app/shared/grid-cells/public-api';
-import type { EditorDefinition } from '../src/app/shared/grid-cells/editing/editor-host/public-api';
+} from '@grid-cells';
+import type { EditorDefinition } from '@grid-cells';
 const numeric: EditorDefinition<InputEditorData<number>> = {
   component: InputEditor<number>,
   data: {

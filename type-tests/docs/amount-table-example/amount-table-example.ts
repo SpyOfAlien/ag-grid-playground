@@ -6,10 +6,10 @@ import {
   withCellKeyboardColumns,
   EditorHostService,
   InputEditor,
-  PopoverCell,
+  EditCell,
   type InputEditorData,
-  type PopoverCellParams,
-} from '../../../src/app/shared/grid-cells/public-api';
+  type EditCellParams,
+} from '@grid-cells';
 import { ApiExample } from '../api-example';
 import { RowState, type Row } from '../row-state';
 
@@ -60,19 +60,22 @@ export class AmountTableExample {
           };
         },
 
-        popover: ({ trigger }) => ({
-          anchor: { kind: 'element', element: trigger },
-          placement: 'bottom',
-          width: 320,
-        }),
+        presentation: {
+          kind: 'popover',
+          options: ({ trigger }) => ({
+            anchor: { kind: 'element', element: trigger },
+            placement: 'bottom',
+            width: 320,
+          }),
+        },
       },
     },
-  } satisfies PopoverCellParams<Row, number, InputEditorData<number>>;
+  } satisfies EditCellParams<Row, number, InputEditorData<number>>;
   readonly columns = withCellKeyboardColumns<Row>([
     {
       field: 'amount',
       cellClass: 'grid-kit-cell',
-      cellRendererSelector: () => ({ component: PopoverCell, params: this.amountParams }),
+      cellRendererSelector: () => ({ component: EditCell, params: this.amountParams }),
     },
   ]);
 

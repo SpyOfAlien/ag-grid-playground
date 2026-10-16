@@ -1,10 +1,10 @@
 import { InjectionToken, type InputSignal, type Provider, type Type } from '@angular/core';
 import { Validators } from '@angular/forms';
 import type { GridApi } from 'ag-grid-community';
-import type { CellContext } from '../../src/app/shared/grid-cells/core/cell-context.model';
+import type { CellContext } from '@grid-cells';
 import {
   EditorHostService,
-  type DialogCellParams,
+  type EditCellParams,
   type DropdownCellParams,
   type DropdownEditorData,
   type EditCommand,
@@ -14,11 +14,10 @@ import {
   type HttpQueryParams,
   type InputEditorData,
   type HostedEditor,
-  type PopoverCellParams,
   type TextareaEditorData,
   type ToggleCellParams,
   type TogglePart,
-} from '../../src/app/shared/grid-cells/public-api';
+} from '@grid-cells';
 
 export interface Row {
   readonly id: string;
@@ -103,14 +102,17 @@ export const amountParams = {
           }),
       }),
 
-      popover: ({ trigger }) => ({
-        anchor: { kind: 'element', element: trigger },
-        placement: 'bottom',
-        width: 320,
-      }),
+      presentation: {
+        kind: 'popover',
+        options: ({ trigger }) => ({
+          anchor: { kind: 'element', element: trigger },
+          placement: 'bottom',
+          width: 320,
+        }),
+      },
     },
   },
-} satisfies PopoverCellParams<Row, number, InputEditorData<number>>;
+} satisfies EditCellParams<Row, number, InputEditorData<number>>;
 
 export const textParams = {
   action: {
@@ -123,7 +125,7 @@ export const textParams = {
       }),
     },
   },
-} satisfies PopoverCellParams<Row, string, InputEditorData<string>>;
+} satisfies EditCellParams<Row, string, InputEditorData<string>>;
 
 export const textareaParams = {
   action: {
@@ -135,10 +137,10 @@ export const textareaParams = {
         save: (value) => persistence.saveNotes({ cell: identity(cell), data: { value } }),
       }),
 
-      dialog: { width: 600, height: 'auto' },
+      presentation: { kind: 'dialog', options: { width: 600, height: 'auto' } },
     },
   },
-} satisfies DialogCellParams<Row, string, TextareaEditorData>;
+} satisfies EditCellParams<Row, string, TextareaEditorData>;
 
 export const detailsParams = {
   action: {
@@ -157,13 +159,13 @@ export const detailsParams = {
         };
       },
 
-      dialog: { title: 'Details', width: 640 },
+      presentation: { kind: 'dialog', options: { title: 'Details', width: 640 } },
     },
   },
-} satisfies DialogCellParams<Row, string, DetailsEditorData>;
+} satisfies EditCellParams<Row, string, DetailsEditorData>;
 
 export const toggleParams = {
-  action: { permission: { allowed: true } },
+  editable: { allowed: true },
   toggle: {
     save: (value, cell) => persistence.saveEnabled({ cell: identity(cell), data: { value } }),
   },
@@ -184,7 +186,7 @@ export const toggleNumberParams = {
     checked: (cell) => cell.data?.enabled ?? false,
     save: (value, cell) => persistence.saveEnabled({ cell: identity(cell), data: { value } }),
   },
-} satisfies PopoverCellParams<Row, number, InputEditorData<number>> & TogglePart<Row, number>;
+} satisfies EditCellParams<Row, number, InputEditorData<number>> & TogglePart<Row, number>;
 
 declare const numberCell: CellContext<Row, number>;
 declare const textCell: CellContext<Row, string>;

@@ -1,5 +1,5 @@
 import { InjectionToken, type Signal } from '@angular/core';
-import type { CellIdentity, EditCommand } from '../../shared/grid-cells/editing/edit-command.model';
+import type { CellIdentity, EditCommand } from '@grid-cells';
 import type { DemoRow } from './demo-row.model';
 
 export interface DemoAmountEdit {

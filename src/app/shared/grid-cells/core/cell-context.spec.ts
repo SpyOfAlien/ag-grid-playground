@@ -1,5 +1,4 @@
-import { toCellContext, type CellFacts } from './cell-context';
-import { evaluateCellRule } from './evaluate-cell-rule';
+import { evaluateCellRule, toCellContext, type CellFacts } from './cell-context';
 
 const row = { name: 'A' };
 const params: CellFacts<typeof row, number> = {
@@ -33,5 +32,16 @@ describe('Cell context and rules', () => {
     const cell = toCellContext(params);
     expect(evaluateCellRule(true, cell)).toBe(evaluateCellRule(({ value }) => value === 0, cell));
     expect(evaluateCellRule(null, cell)).toBeNull();
+  });
+
+  it('shares one context per params snapshot and rebuilds it after in-place changes', () => {
+    const snapshot: { -readonly [K in keyof typeof params]: (typeof params)[K] } = { ...params };
+    const first = toCellContext(snapshot);
+    expect(toCellContext(snapshot)).toBe(first);
+    snapshot.value = 5;
+    const second = toCellContext(snapshot);
+    expect(second).not.toBe(first);
+    expect(second.value).toBe(5);
+    expect(toCellContext({ ...snapshot })).not.toBe(second);
   });
 });

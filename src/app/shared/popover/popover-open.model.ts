@@ -8,6 +8,8 @@ export interface PopoverOpenRequest<T> {
   readonly injector?: Injector;
   readonly owner?: DestroyRef;
   readonly initialize?: (content: ComponentRef<T>) => void;
+  /** Consulted on each backdrop click when `closeOnBackdropClick` allows closing. */
+  readonly canCloseOnBackdrop?: () => boolean;
 }
 
 export type PopoverCloseReason =

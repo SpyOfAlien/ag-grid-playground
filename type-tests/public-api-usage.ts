@@ -1,22 +1,20 @@
 import type { ColDef, GridOptions } from 'ag-grid-community';
 import {
   NumberCell,
-  PopoverCell,
-  DialogCell,
+  EditCell,
   ToggleCell,
   DropdownCell,
   InputEditor,
   TextareaEditor,
   suppressCellControlKeyboard,
   type NumberCellParams,
-  type PopoverCellParams,
-  type DialogCellParams,
+  type EditCellParams,
   type ToggleCellParams,
   type DropdownCellParams,
   type InputEditorData,
   type TextareaEditorData,
-} from '../src/app/shared/grid-cells/public-api';
-import type { EditCommand } from '../src/app/shared/grid-cells/editing/edit-command.model';
+} from '@grid-cells';
+import type { EditCommand } from '@grid-cells';
 export interface Row {
   id: string;
   amount: number | null;
@@ -63,14 +61,17 @@ export function columns(actions: FeatureActions): ColDef<Row>[] {
             }),
         }),
 
-        popover: ({ trigger }) => ({
-          anchor: { kind: 'element', element: trigger },
-          width: 320,
-          backdrop: true,
-        }),
+        presentation: {
+          kind: 'popover',
+          options: ({ trigger }) => ({
+            anchor: { kind: 'element', element: trigger },
+            width: 320,
+            backdrop: true,
+          }),
+        },
       },
     },
-  } satisfies PopoverCellParams<Row, number, InputEditorData<number>>;
+  } satisfies EditCellParams<Row, number, InputEditorData<number>>;
   const notesParams = {
     action: {
       permission,
@@ -83,10 +84,10 @@ export function columns(actions: FeatureActions): ColDef<Row>[] {
           save: (value) => actions.saveNotes({ cell: identity(cell), data: { value } }),
         }),
 
-        dialog: { width: 480, backdrop: true },
+        presentation: { kind: 'dialog', options: { width: 480, backdrop: true } },
       },
     },
-  } satisfies DialogCellParams<Row, string, TextareaEditorData>;
+  } satisfies EditCellParams<Row, string, TextareaEditorData>;
   const toggleParams = {
     toggle: {
       save: (value, cell) => actions.saveEnabled({ cell: identity(cell), data: { value } }),
@@ -112,12 +113,12 @@ export function columns(actions: FeatureActions): ColDef<Row>[] {
     {
       field: 'amount',
       cellClass: 'grid-kit-cell',
-      cellRendererSelector: () => ({ component: PopoverCell, params: inputParams }),
+      cellRendererSelector: () => ({ component: EditCell, params: inputParams }),
     },
     {
       field: 'notes',
       cellClass: 'grid-kit-cell',
-      cellRendererSelector: () => ({ component: DialogCell, params: notesParams }),
+      cellRendererSelector: () => ({ component: EditCell, params: notesParams }),
     },
     {
       field: 'enabled',

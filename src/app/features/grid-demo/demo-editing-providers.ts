@@ -5,7 +5,7 @@ import { DEMO_CLIENT_STRATEGY } from './demo-client-strategy';
 export { DEMO_CLIENT_STRATEGY } from './demo-client-strategy';
 
 import type { Provider } from '@angular/core';
-import { EditorHostService } from '../../shared/grid-cells/editing/editor-host/public-api';
+import { CellOperations, EditorHostService } from '@grid-cells';
 import { DemoTableState } from './demo-table-state';
 import { DEMO_TABLE_PERSISTENCE } from './demo-persistence.model';
 import { DemoServerPersistence } from './demo-server-persistence';
@@ -14,6 +14,7 @@ import { DemoServerPersistence } from './demo-server-persistence';
 export function provideDemoServerEditing(): Provider[] {
   return [
     EditorHostService,
+    CellOperations,
     DemoTableState,
     DemoServerPersistence,
     { provide: DEMO_TABLE_PERSISTENCE, useExisting: DemoServerPersistence },
@@ -24,6 +25,7 @@ export function provideDemoServerEditing(): Provider[] {
 export function provideDemoClientEditing(strategy: DemoClientStrategy = 'transaction'): Provider[] {
   return [
     EditorHostService,
+    CellOperations,
     DemoTableState,
     DemoClientPersistence,
     { provide: DEMO_CLIENT_STRATEGY, useValue: strategy },

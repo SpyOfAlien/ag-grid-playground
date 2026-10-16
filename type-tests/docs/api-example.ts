@@ -1,7 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
-import type { EditCommand } from '../../src/app/shared/grid-cells/public-api';
+import type { EditCommand } from '@grid-cells';
 import { RowState, type Row } from './row-state';
 
 function isRow(value: unknown): value is Row {

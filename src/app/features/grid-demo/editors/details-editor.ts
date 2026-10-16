@@ -12,10 +12,7 @@ import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { toSignal } from '@angular/core/rxjs-interop';
-import {
-  EditorRef,
-  type HostedEditor,
-} from '../../../shared/grid-cells/editing/editor-host/public-api';
+import { EditorRef, errorMessage, type HostedEditor } from '@grid-cells/composition';
 import type { DetailsEditorData } from './details-editor-data.model';
 import { DEMO_TABLE_PERSISTENCE } from '../demo-persistence.model';
 import { DemoServerPersistence } from '../demo-server-persistence';
@@ -152,7 +149,7 @@ export class DetailsEditor implements HostedEditor<DetailsEditorData>, OnInit {
       else await persistence.saveDetails(command);
       this.editorRef.close();
     } catch (error: unknown) {
-      this.error.set(error instanceof Error ? error.message : String(error));
+      this.error.set(errorMessage(error));
     } finally {
       this.saving.set(false);
     }

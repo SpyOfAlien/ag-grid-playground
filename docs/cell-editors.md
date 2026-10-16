@@ -47,17 +47,20 @@ const params = {
         };
       },
 
-      popover: ({ trigger }) => ({
-        anchor: { kind: 'element', element: trigger },
-        placement: 'bottom',
-        width: 320,
-      }),
+      presentation: {
+        kind: 'popover',
+        options: ({ trigger }) => ({
+          anchor: { kind: 'element', element: trigger },
+          placement: 'bottom',
+          width: 320,
+        }),
+      },
     },
   },
-} satisfies PopoverCellParams<Row, number, InputEditorData<number>>;
+} satisfies EditCellParams<Row, number, InputEditorData<number>>;
 ```
 
-Import the field editors, data types and renderer params from `shared/grid-cells/public-api.ts`. PopoverCell and DialogCell have separate param types. Their optional action contains the typed editor; without action they render content only. Popover settings belong to action.editor.popover; dialog settings belong to action.editor.dialog. Both call `editorHost.open` with a component, the data factory's result, explicit presentation options and the current activation trigger. Supply the table-scoped host through grid context. An empty value does not prevent opening an editor when row identity and permission are valid.
+Import the field editors, data types and renderer params from `@grid-cells`. EditCell's optional action contains the typed editor; without action it renders content only. `action.editor.presentation` chooses `{ kind: 'popover' }` (the default) or `{ kind: 'dialog' }` with that kind's options, as an object or a callback receiving the cell and trigger. Both kinds call `editorHost.open` with a component, the data factory's result, explicit presentation options and the current activation trigger. Supply the table-scoped host through grid context. An empty value does not prevent opening an editor when row identity and permission are valid.
 
 Save callbacks resolve after feature persistence commits. The editor then closes its injected EditorRef. A rejected save leaves its draft visible and displays the error for retry. Closing during a submitted save dismisses the presentation; persistence retains responsibility for the eventual commit or failure. An old reference cannot close another editor opened later.
 

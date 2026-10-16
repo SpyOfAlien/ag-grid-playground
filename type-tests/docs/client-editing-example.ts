@@ -5,10 +5,10 @@ import {
   withCellKeyboardColumns,
   EditorHostService,
   InputEditor,
-  PopoverCell,
+  EditCell,
   type InputEditorData,
-  type PopoverCellParams,
-} from '../../src/app/shared/grid-cells/public-api';
+  type EditCellParams,
+} from '@grid-cells';
 import {
   provideDemoServerEditing,
   provideDemoClientEditing,
@@ -54,10 +54,10 @@ export class ClientTableExample {
           };
         },
 
-        popover: { width: 320 },
+        presentation: { kind: 'popover', options: { width: 320 } },
       },
     },
-  } satisfies PopoverCellParams<DemoRow, number, InputEditorData<number>>;
+  } satisfies EditCellParams<DemoRow, number, InputEditorData<number>>;
   readonly gridOptions: GridOptions<DemoRow> = {
     getRowId: ({ data }) => data.id,
     columnDefs: withCellKeyboardColumns<DemoRow>([
@@ -66,7 +66,7 @@ export class ClientTableExample {
         headerName: 'Amount',
         valueGetter: ({ data }) => data?.metrics[2],
         cellClass: 'grid-kit-cell',
-        cellRendererSelector: () => ({ component: PopoverCell, params: this.amountParams }),
+        cellRendererSelector: () => ({ component: EditCell, params: this.amountParams }),
       },
     ]),
   };

@@ -1,10 +1,10 @@
 import { TestBed } from '@angular/core/testing';
-import { EditorRef } from '../../../shared/grid-cells/editing/editor-host/public-api';
+import { EditorRef } from '@grid-cells';
 import { DEMO_TABLE_PERSISTENCE } from '../demo-persistence.model';
 import { DemoTableState } from '../demo-table-state';
 import { DetailsEditor } from './details-editor';
 import type { DetailsEditorData } from './details-editor-data.model';
-import type { EditCommand } from '../../../shared/grid-cells/editing/edit-command.model';
+import type { EditCommand } from '@grid-cells';
 import type { DemoDetailsEdit } from '../demo-persistence.model';
 
 describe('DetailsEditor', () => {

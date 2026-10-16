@@ -58,7 +58,7 @@ src/app/features/grid-demo/
 
 ## 3. Core types and lifecycle
 
-[CellContext and CellRule](../src/app/shared/grid-cells/core/cell-context.model.ts) isolate the row/value information needed by category rules:
+[CellContext and CellRule](../src/app/shared/grid-cells/core/cell-context.ts) isolate the row/value information needed by category rules:
 
 ```ts
 interface CellContext<R, V> {
@@ -102,14 +102,13 @@ There is no combined computed state object for every category and no runtime gri
 
 Category interfaces are combined through intersections. The following table summarizes actual accepted categories; it is not a new universal params type.
 
-| Renderer     | Value type | Configuration                                                           | Resting content                   |
-| ------------ | ---------- | ----------------------------------------------------------------------- | --------------------------------- |
-| TextCell     | string     | ContentPart + MarkerPart                                                | One text span                     |
-| NumberCell   | number     | ContentPart + MarkerPart                                                | One formatted span                |
-| PopoverCell  | generic V  | ContentPart + MarkerPart + ActionPart with optional popover edit action | Text span and optional pen        |
-| DialogCell   | generic V  | ContentPart + MarkerPart + ActionPart with optional dialog edit action  | Text span and optional pen        |
-| ToggleCell   | boolean    | ContentPart + MarkerPart + ActionPart + required TogglePart             | Native switch button              |
-| DropdownCell | generic V  | ContentPart + MarkerPart + ActionPart + required dropdown config        | Native button with selected label |
+| Renderer     | Value type | Configuration                                                             | Resting content                   |
+| ------------ | ---------- | ------------------------------------------------------------------------- | --------------------------------- |
+| TextCell     | string     | ContentPart + MarkerPart                                                  | One text span                     |
+| NumberCell   | number     | ContentPart + MarkerPart                                                  | One formatted span                |
+| EditCell     | generic V  | ContentPart + MarkerPart + EditablePart + ActionPart with optional editor | Text span and optional pen        |
+| ToggleCell   | boolean    | ContentPart + MarkerPart + ActionPart + required TogglePart               | Native switch button              |
+| DropdownCell | generic V  | ContentPart + MarkerPart + ActionPart + required dropdown config          | Native button with selected label |
 
 ToggleCell and DropdownCell accept ActionPart for permission fallback; they do not render a pen or use action.enabled to remove their direct control. Their control-specific permission takes precedence over action.permission.
 
@@ -119,27 +118,27 @@ The feature [ToggleNumberCell](../src/app/features/grid-demo/cells/toggle-number
 
 ContentConfig contains optional number formatting for numeric value types and supports rule-valued text, alignment, highlighted, disabled and tooltip fields; ellipsis is a static boolean. Defaults are start alignment, no highlight, no disabled styling, ellipsis enabled and no tooltip.
 
-[CellContent](../src/app/shared/grid-cells/capabilities/content/cell-content.ts) adds classes, text alignment and a native title attribute to its target. Content disabled means muted styling; it does not independently prevent editing.
+[CellContent](../src/app/shared/grid-cells/capabilities/content.ts) adds classes, text alignment and a native title attribute to its target. Content disabled means muted styling; it does not independently prevent editing.
 
-Text calculation uses content.text when configured, including for null values. Otherwise it returns an empty string for a null/undefined raw value, prefers valueFormatted and falls back to String(value). TextCell, PopoverCell and DialogCell share this calculation. PopoverCell and DialogCell accept content.number for numeric value types and use computeNumberContent when it is configured. Without content.number, they retain the text fallback. Custom text belongs in content.text; the former renderer-level display callback is removed.
+Text calculation uses content.text when configured, including for null values. Otherwise it returns an empty string for a null/undefined raw value, then uses content.format, then valueFormatted, and falls back to String(value). TextCell and EditCell share this calculation. EditCell accepts content.number for numeric value types and use computeNumberContent when it is configured. Without content.number, they retain the text fallback. Custom text belongs in content.text; the former renderer-level display callback is removed.
 
-NumberConfig supports static locale, decimals and grouping, plus a rule-valued unit. [computeNumberContent](../src/app/shared/grid-cells/capabilities/number/compute-number-content.ts) rejects non-number and non-finite values as empty, does not evaluate their unit and preserves zero as a value. Valid values use Intl.NumberFormat and append a nonempty unit with a space. An explicit content.text overrides the resulting numeric text; invalid numeric values remain empty. NumberCell, numeric PopoverCell and numeric DialogCell share this behavior. Editors always receive the raw value. [formatNumber](../src/app/shared/grid-cells/capabilities/number/format-number.ts) caches at most 128 formatter instances.
+NumberConfig supports static locale, decimals and grouping, plus a rule-valued unit. [computeNumberContent](../src/app/shared/grid-cells/capabilities/number.ts) rejects non-number and non-finite values as empty, does not evaluate their unit and preserves zero as a value. Valid values use Intl.NumberFormat and append a nonempty unit with a space. An explicit content.text overrides the text for every value, including invalid numeric values, as in text cells. Decimals are clamped to 0–100 and an invalid locale falls back to the runtime locale. NumberCell and numeric EditCell share this behavior. Editors always receive the raw value. [formatNumber](../src/app/shared/grid-cells/capabilities/number.ts) caches at most 128 formatter instances.
 
 ### 4.2 Marker
 
-Markers are a partial record of kind to a when rule and optional tooltip rule. [computeMarker](../src/app/shared/grid-cells/capabilities/marker/compute-marker.ts) stops at the first active marker:
+Markers are a partial record of kind to a when rule and optional tooltip rule. [computeMarker](../src/app/shared/grid-cells/capabilities/marker.ts) orders active markers by the registered priority, which defaults to:
 
 ```text
 error > warning > userEdited > systemGenerated > info > special
 ```
 
-Only the selected marker and its tooltip are returned. Marker symbols use CSS pseudo-elements: red error, yellow warning, blue user-edited dot, purple system-generated dot, information symbol and black special-case square. CellMarker adds role=img, a descriptive aria-label and native title tooltip. The kit does not infer whether a value was edited or system-generated; configured rules decide.
+The highest-priority marker is drawn; the others are returned as `additional` and included in the accessible label and tooltip. Kinds are augmentable through `MarkerKinds`, with order and labels from `provideGridCellMarkers`. Marker symbols use CSS pseudo-elements: red error, yellow warning, blue user-edited dot, purple system-generated dot, information symbol and black special-case square. CellMarker adds role=img, a descriptive aria-label and native title tooltip. The kit does not infer whether a value was edited or system-generated; configured rules decide.
 
 ### 4.3 Action and permission
 
-EditPermission is `{ allowed: true }` or `{ allowed: false; reason: string }`. [computePermission](../src/app/shared/grid-cells/capabilities/action/compute-permission.ts) denies cells without usable row identity or row data before evaluating the supplied rule; otherwise it defaults to allowed.
+EditPermission is `{ allowed: true }` or `{ allowed: false; reason: string }`. [computePermission](../src/app/shared/grid-cells/capabilities/permission.ts) denies cells without usable row identity or row data before evaluating the supplied rule; otherwise it defaults to allowed.
 
-ActionPart groups enabled, permission, tooltip and the renderer-specific editor under action. PopoverCell, DialogCell and ToggleNumberCell require action.editor whenever action is configured. Omitting action gives a display-only cell. Direct controls keep their own save callbacks. An absent action or enabled=false gives a hidden pen. A denied permission leaves a disabled pen with the denial reason as its tooltip. CellEditAction uses aria-disabled rather than the native disabled attribute, keeps the button keyboard-focusable and guards activation. The renderer repeats the activation check before opening.
+ActionPart groups enabled, permission, tooltip, label and the renderer-specific editor under action. A control's own permission replaces the cell-wide `editable` rule for that control only. EditCell and ToggleNumberCell require action.editor whenever action is configured. Omitting action gives a display-only cell. Direct controls keep their own save callbacks. An absent action or enabled=false gives a hidden pen. A denied permission leaves a disabled pen with the denial reason as its tooltip. CellEditAction uses aria-disabled rather than the native disabled attribute, keeps the button keyboard-focusable and guards activation. The renderer repeats the activation check before opening.
 
 Permission shown by a renderer is UI state. Feature persistence must authorize again against current data before saving.
 
@@ -151,7 +150,7 @@ The marker box is 16px wide. The pen button is 16px wide and 24px high. The pen 
 
 Tooltips use native title attributes; no Material tooltip overlay is created per resting cell. Native title alone is not a custom keyboard/touch tooltip interaction contract. Marker aria-labels and pen labels provide separate accessibility information.
 
-[withCellKeyboardColumns](../src/app/shared/grid-cells/integration/cell-keyboard.ts) is called when definitions are built. It recursively composes leaf callbacks without mutating input definitions. Its optional defaultColDef argument supplies inherited application callbacks to leaves without explicit callbacks. withCellKeyboard can configure a default definition alone. Already composed callbacks carry a private Symbol marker, preventing repeated wrapping.
+[withCellKeyboardColumns](../src/app/shared/grid-cells/integration/keyboard.ts) is called when definitions are built. It recursively composes leaf callbacks without mutating input definitions. Its optional defaultColDef argument supplies inherited application callbacks to leaves without explicit callbacks. withCellKeyboard can configure a default definition alone. Already composed callbacks carry a private Symbol marker, preventing repeated wrapping.
 
 Application suppression and kit suppression combine with logical OR; the application callback executes once even if the kit handles the key. Explicit column callbacks override application default callbacks rather than combining both application callbacks.
 
@@ -195,7 +194,7 @@ type EditorPresentation =
   | { readonly kind: 'dialog'; readonly options?: DialogOptions };
 ```
 
-CellEditorConfig stores a component and a data factory taking CellContext. PopoverEditorConfig adds optional popover options or a factory taking CellOpenContext. DialogEditorConfig adds static dialog options. Editor opening constructs concrete data from the current cell; it is not automatically synchronized with later row/config changes.
+CellEditorConfig stores a component, a data factory taking CellContext and an optional presentation `{ kind, options }`. Options are an object or a factory taking CellOpenContext. Kinds come from the augmentable EditorPresentations interface, each served by a registered adapter. Editor opening constructs concrete data from the current cell; it is not automatically synchronized with later row/config changes.
 
 EditorHostService is provided on the table/feature owner, not on virtualized cells. open(definition, presentation, { trigger }) returns an EditorRef or undefined if the owner is destroyed, its editor is already open, or the trigger is disconnected. Each service instance allows one active editor; different owners can open independently.
 
@@ -244,7 +243,7 @@ Application presentation signals can enter directly at category-rule evaluation 
 ```text
 Native pen click
   -> CellEditAction guards and emits activation
-  -> PopoverCell/DialogCell checks current action and params
+  -> EditCell checks current action and params
   -> renderer evaluates editor data and presentation configuration
   -> context.editorHost.open mounts the editor
   -> editor initializes its draft and validators
@@ -270,7 +269,7 @@ An opened editor receives an options reference rather than a reactive options fa
 
 ### 8.5 Dismissal and pending saves
 
-EditorRef.close, Cancel, Escape and configured backdrop clicks discard an unsubmitted draft. The shared host does not ask for dirty-discard confirmation. Closing a presentation does not cancel an already-started feature save. Feature lifetime/dataset-generation policy determines whether a later response can commit. Popover trigger removal closes the presentation; dialog trigger removal alone does not.
+EditorRef.close, Cancel, Escape and configured backdrop clicks discard an unsubmitted draft. The shared host does not ask for dirty-discard confirmation. With `closeOnBackdropClick: 'when-clean'`, a backdrop click is ignored while the editor's optional `dirty` signal is true. Closing a presentation does not cancel an already-started feature save. Feature lifetime/dataset-generation policy determines whether a later response can commit. Popover trigger removal closes the presentation; dialog trigger removal alone does not.
 
 ## 9. Persistence contract and feature implementation
 
@@ -366,21 +365,24 @@ readonly amountParams = {
             }),
         };
       },
-      popover: ({ trigger }) => ({
-        anchor: { kind: 'element', element: trigger },
-        placement: 'bottom',
-        width: 320,
-        title: 'Edit amount',
-      }),
+      presentation: {
+        kind: 'popover',
+        options: ({ trigger }) => ({
+          anchor: { kind: 'element', element: trigger },
+          placement: 'bottom',
+          width: 320,
+          title: 'Edit amount',
+        }),
+      },
     },
   },
   content: {
     number: { decimals: 2, unit: 'kg' },
   },
-} satisfies PopoverCellParams<Row, number, InputEditorData<number>>;
+} satisfies EditCellParams<Row, number, InputEditorData<number>>;
 ```
 
-For this example Row has reviewed:boolean. The owner must define the persistence dependency; the shared host does not provide it. Set the amount column's renderer selector to PopoverCell with these params, configure grid-kit-cell and use keyboard-composed definitions. DialogCell instead requires DialogCellParams and action.editor.dialog.
+For this example Row has reviewed:boolean. The owner must define the persistence dependency; the shared host does not provide it. Bind EditCell with these params, configure grid-kit-cell and use keyboard-composed definitions. A dialog uses `presentation: { kind: 'dialog', options }` instead.
 
 The executable [AmountTableExample](../type-tests/docs/amount-table-example/amount-table-example.ts) provides the complete provider/template/action wiring. [SignalPresentationExample](../type-tests/docs/signal-presentation-example.ts) demonstrates stable columns and signal-reading rules.
 
@@ -452,12 +454,12 @@ Two documentation qualifications and three implementation concerns follow. P2 me
 ### 13.2 Specification qualifications, incorporated
 
 1. **P2. Section 9 overstated rollback coverage.** The original statement that failed commits restore prior grid/data state applies to the guarded client commit path, not every update path. [DemoGridUpdates.replace](../src/app/features/grid-demo/demo-grid-updates.ts#L36) sets grid data and then refreshes cells without a catch or rollback. [DemoTableState.publishRows](../src/app/features/grid-demo/demo-table-state.ts#L41) publishes canonical rows only after that operation returns. Both replacement and upsert server responses use this path. The documented guarantee is now narrowed to client transaction/mutation commits, with replacement failure behavior described explicitly.
-2. **P2. Section 8.4's unchanged-selection guarantee excluded nullish values.** [DropdownOptionsEditor.choose](../src/app/shared/grid-cells/renderers/dropdown/dropdown-options-editor.ts#L43) performs the unchanged check only when the initial value is neither null nor undefined. The generic option contract does not exclude those values. The specification now describes null and undefined as no selection and qualifies the unchanged-selection behavior.
+2. **P2. Section 8.4's unchanged-selection guarantee excluded nullish values.** [DropdownOptionsEditor.choose](../src/app/shared/grid-cells/renderers/dropdown-options-editor.ts#L43) performs the unchanged check only when the initial value is neither null nor undefined. The generic option contract does not exclude those values. The specification now describes null and undefined as no selection and qualifies the unchanged-selection behavior.
 
 ### 13.3 Architectural and implementation concerns
 
 1. **P2. Server replacement can leave grid data ahead of canonical state after a refresh failure.** In [DemoGridUpdates.replace](../src/app/features/grid-demo/demo-grid-updates.ts#L42), setGridOption('rowData', ...) precedes refreshCells. If the latter throws, the grid already has replacement rows, but [publishRows](../src/app/features/grid-demo/demo-table-state.ts#L41) never updates rowsSource. Subsequent authorization reads old canonical rows while the grid holds replacement data. This is a concrete failure path, not a claim that ordinary refreshes fail. Give replacement operations an explicit atomicity or recovery policy, and cover a failure after grid replacement with an existing persistence test. The client path provides a local precedent at [commit's catch block](../src/app/features/grid-demo/demo-grid-updates.ts#L95).
-2. **P2. Dropdown types and selection semantics disagree about nullish option values.** [DropdownOption](../src/app/shared/grid-cells/capabilities/dropdown/dropdown.model.ts#L6) permits DropdownOption<string | null>. However, [computeDropdown](../src/app/shared/grid-cells/capabilities/dropdown/compute-dropdown.ts#L19) skips matching a nullish current value, and [DropdownOptions.selectedIndex](../src/app/shared/grid-cells/renderers/dropdown/dropdown-options.ts#L56) treats it as absent. An enabled { value: null, label: 'None' } option can be submitted, but its committed label will not appear. Selecting it again can submit another save because both unchanged-value guards bypass nullish values. Choose one contract: either reserve nullish values for absence and reject them as option values, or represent absence separately and compare valid nullish options normally. Apply that decision consistently to display, selected state and repeat-save prevention.
+2. **P2. Dropdown types and selection semantics disagree about nullish option values.** [DropdownOption](../src/app/shared/grid-cells/capabilities/dropdown.ts#L6) permits DropdownOption<string | null>. However, [computeDropdown](../src/app/shared/grid-cells/capabilities/dropdown.ts#L19) skips matching a nullish current value, and [DropdownOptions.selectedIndex](../src/app/shared/grid-cells/renderers/dropdown-options.ts#L56) treats it as absent. An enabled { value: null, label: 'None' } option can be submitted, but its committed label will not appear. Selecting it again can submit another save because both unchanged-value guards bypass nullish values. Choose one contract: either reserve nullish values for absence and reject them as option values, or represent absence separately and compare valid nullish options normally. Apply that decision consistently to display, selected state and repeat-save prevention.
 3. **P3. Hosted popovers have two focus-restoration owners.** [PopoverService](../src/app/shared/popover/popover-service.ts#L76) restores focus synchronously during ordinary closure. [EditorHostService.dismiss](../src/app/shared/grid-cells/editing/editor-host/editor-host-service.ts#L127) also schedules restoration through [restoreFocus](../src/app/shared/grid-cells/editing/editor-host/editor-host-service.ts#L141). The host adds owner-lifetime and active-editor checks that the standalone popover path does not share. Normal closure can run two restoration policies, and future changes must account for both implementations. This is split ownership; this review did not reproduce a focus failure. Prefer one restoration owner for hosted presentations, while retaining standalone popover restoration as its own supported behavior.
 
 ### 13.4 Areas consistent with the implementation

@@ -4,10 +4,10 @@ import {
   NumberCell,
   ToggleCell,
   DropdownCell,
-  PopoverCell,
+  EditCell,
   InputEditor,
   type InputEditorData,
-} from '../src/app/shared/grid-cells/public-api';
+} from '@grid-cells';
 import { ToggleNumberCell } from '../src/app/features/grid-demo/cells/toggle-number/toggle-number-cell';
 
 interface Row {
@@ -29,7 +29,7 @@ const dropdown = bindCellRenderer(DropdownCell<Row, Row['unit']>, {
     },
   },
 });
-const popover = bindCellRenderer(PopoverCell<Row, number, InputEditorData<number>>, {
+const popover = bindCellRenderer(EditCell<Row, number, InputEditorData<number>>, {
   action: {
     editor: {
       component: InputEditor<number>,
@@ -64,7 +64,7 @@ bindCellRenderer(DropdownCell<Row, Row['unit']>, {
     save: async () => undefined,
   },
 });
-bindCellRenderer(PopoverCell<Row, number, InputEditorData<number>>, {
+bindCellRenderer(EditCell<Row, number, InputEditorData<number>>, {
   action: {
     editor: {
       // @ts-expect-error The editor must accept the declared opening data.

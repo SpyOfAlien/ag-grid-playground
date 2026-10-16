@@ -1,8 +1,8 @@
 import { ChangeDetectionStrategy, Component, computed } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import type { GridApi, IRowNode } from 'ag-grid-community';
-import type { NumberCellParams } from '../renderers/number/number-cell-params.model';
-import type { RendererParams } from './renderer-params.model';
+import type { NumberCellParams } from '../renderers/number-cell';
+import type { RendererParams } from './grid-context';
 import { BaseCell } from './base-cell';
 
 interface Row {

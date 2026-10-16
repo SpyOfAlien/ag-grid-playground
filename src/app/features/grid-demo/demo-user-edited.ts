@@ -1,4 +1,4 @@
-import type { CellContext } from '../../shared/grid-cells/core/cell-context.model';
+import type { CellContext } from '@grid-cells';
 
 /** Create once per table. The placeholder is replaceable by the application's rule. */
 export function createDemoUserEditedPredicate(random: () => number = Math.random) {

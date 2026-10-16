@@ -7,11 +7,7 @@ import {
   input,
   viewChild,
 } from '@angular/core';
-import {
-  EditorHostService,
-  EditorRef,
-  type HostedEditor,
-} from '../../src/app/shared/grid-cells/editing/editor-host/public-api';
+import { EditorHostService, EditorRef, type HostedEditor } from '@grid-cells';
 
 interface EditorData {
   readonly label: string;

@@ -1,11 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, inject, input } from '@angular/core';
 import { AgGridAngular } from 'ag-grid-angular';
-import { EditorHostService } from '../../../src/app/shared/grid-cells/editing/editor-host/public-api';
-import {
-  bindCellRenderer,
-  NumberCell,
-  type NumberCellParams,
-} from '../../../src/app/shared/grid-cells/public-api';
+import { EditorHostService } from '@grid-cells';
+import { bindCellRenderer, NumberCell, type NumberCellParams } from '@grid-cells';
 import { columns, options, type Row, type FeatureActions } from '../../public-api-usage';
 const numberParams = {
   content: {

@@ -1,5 +1,5 @@
 import type { ToggleNumberCellParams } from '../src/app/features/grid-demo/cells/toggle-number/toggle-number-cell-params.model';
-import { InputEditor } from '../src/app/shared/grid-cells/editing/editors/input/input-editor';
+import { InputEditor } from '@grid-cells';
 interface Row {
   amount: number | null;
   active: boolean;

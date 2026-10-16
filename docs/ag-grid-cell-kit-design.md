@@ -27,47 +27,45 @@ A hosted editor inherits its owner's injector. Provide EditorHostService on the 
 src/app/shared/
   grid-cells/
     public-api.ts
+    public-api.ts                 @grid-cells: column wiring
+    composition-api.ts            @grid-cells/composition: custom renderer building blocks
     core/
       base-cell.ts
-      cell-context.model.ts       CellContext, CellOpenContext, CellRule
-      cell-context.ts             CellFacts, toCellContext
-      grid-context.model.ts       optional editorHost
-      renderer-params.model.ts
-      evaluate-cell-rule.ts
-      suppress-cell-control-keyboard.ts
+      cell-context.ts             CellContext, CellRule, CellFacts, toCellContext, evaluateCellRule
+      grid-context.ts             GridContext (editorHost, cellOperations), RendererParams
+      labels.ts                   GRID_CELL_LABELS, provideGridCellLabels
     capabilities/
-      content/                    config/state, computeContent, computeTextContent, CellContent
-      marker/                     priority rules, computeMarker, CellMarker
-      action/                     permissions, computeAction, CellEditAction
-      number/                     formatting, units, computeNumberContent
-      toggle/                     save callback, computeToggle
-      dropdown/                   options, save callback, computeDropdown
+      content.ts                  config/state, formatters, computeContent, CellContent
+      number.ts                   formatting, units, computeNumberContent, computeValueContent
+      marker.ts                   kind registry, computeMarker, CellMarker
+      permission.ts               EditPermission, editable, computePermission
+      action.ts                   computeAction, CellEditAction, openCellEditor
+      toggle.ts                   computeToggle, CellToggle
+      dropdown.ts                 options, computeDropdown, CellDropdown
+      save.ts                     CellOperations, trackSave
+    integration/
+      bind-cell-renderer.ts       bindCellRenderer, cellColumn, bindPlainCell
+      keyboard.ts                 suppressCellControlKeyboard, withCellKeyboard
     renderers/
-      text/                       TextCell, TextCellParams
-      number/                     NumberCell, NumberCellParams
-      popover/                    PopoverCell, PopoverCellParams
-      dialog/                     DialogCell, DialogCellParams
-      toggle/                     ToggleCell, ToggleCellParams
-      dropdown/                   DropdownCell, on-demand Material options editor
+      text-cell.ts, number-cell.ts, edit-cell.ts, toggle-cell.ts, dropdown-cell.ts
+      dropdown-options.ts, dropdown-options-editor.ts
     editing/
       edit-command.model.ts       EditCommand<T>, CellIdentity, HTTP query types
+      cell-editor.ts              CellEditorConfig, CellPresentation, ValueEditorData
       editor-host/
         public-api.ts
-        editor-host.model.ts           HostedEditor, EditorDefinition, EditorPresentation
+        editor-host.model.ts           HostedEditor, EditorPresentations, adapter contract
         editor-host-service.ts
+        presentations.ts               popover and dialog adapters, EDITOR_PRESENTATIONS
         editor-ref.ts
         bind-editor-data.ts            private signal input binding
-        dialog-options.model.ts
         dialog-editor-panel/           private Material dialog mounting panel
       editors/
-        value-editor.model.ts     typed data factory and save callbacks
-        editor-presentation.model.ts  popover/dialog editor config
-        field-editor-config.model.ts
-        input/                    InputEditor and its data/config
-        textarea/                 TextareaEditor and its data/config
-    integration/
-      cell-keyboard.ts            withCellKeyboard, withCellKeyboardColumns
-    styles/cell-layout.scss
+        field-editor.ts           FieldEditor base, FieldEditorConfig
+        field-editor.scss         shared editor layout
+        input-editor.ts           InputEditor and its data/config
+        textarea-editor.ts        TextareaEditor and its data/config
+    styles/cell-layout.scss       layout, control styles and theme custom properties
   popover/
     public-api.ts                  app popover, independent of the grid
     popover-service.ts
@@ -128,15 +126,14 @@ GridContext is table-level context. Applications extend it with their own typed 
 
 Each category has its own config, state and calculation. Renderer params compose only the categories that renderer supports.
 
-| Renderer         | Params categories                                                   | Editor behavior                                         |
-| ---------------- | ------------------------------------------------------------------- | ------------------------------------------------------- |
-| TextCell         | ContentPart, MarkerPart                                             | Display only                                            |
-| NumberCell       | ContentPart, MarkerPart                                             | Display only                                            |
-| PopoverCell      | ContentPart, MarkerPart, ActionPart with popover editor             | Pen opens custom popover                                |
-| DialogCell       | ContentPart, MarkerPart, ActionPart with dialog editor              | Pen opens Material dialog                               |
-| ToggleCell       | ContentPart, MarkerPart, ActionPart, TogglePart                     | Native switch calls configured save                     |
-| DropdownCell     | ContentPart, MarkerPart, ActionPart, dropdown                       | Native trigger opens Material options in custom popover |
-| ToggleNumberCell | ContentPart, MarkerPart, ActionPart with popover editor, TogglePart | Independent switch and number pen                       |
+| Renderer         | Params categories                                             | Editor behavior                                         |
+| ---------------- | ------------------------------------------------------------- | ------------------------------------------------------- |
+| TextCell         | ContentPart, MarkerPart                                       | Display only                                            |
+| NumberCell       | ContentPart, MarkerPart                                       | Display only                                            |
+| EditCell         | ContentPart, MarkerPart, EditablePart, ActionPart with editor | Pen opens the editor in its configured presentation     |
+| ToggleCell       | ContentPart, MarkerPart, EditablePart, TogglePart             | Native switch calls configured save                     |
+| DropdownCell     | ContentPart, MarkerPart, EditablePart, DropdownPart           | Native trigger opens Material options in custom popover |
+| ToggleNumberCell | ContentPart, MarkerPart, EditablePart, ActionPart, TogglePart | Independent switch and number pen                       |
 
 ```ts
 interface ContentPart<R, V> {
@@ -219,7 +216,7 @@ interface ValueEditorData<V, C> {
 }
 ```
 
-PopoverCellParams and ToggleNumberCellParams use PopoverEditorConfig under editor. DialogCellParams uses DialogEditorConfig. Presentation options belong to action.editor.popover or action.editor.dialog. Field config remains independent of presentation, so InputEditor and complex components can be hosted in either presentation.
+EditCellParams and ToggleNumberCellParams use CellEditorConfig under editor. Presentation belongs to action.editor.presentation as `{ kind, options }`; the kinds come from the augmentable EditorPresentations interface. Field config remains independent of presentation, so InputEditor and complex components can be hosted in either presentation.
 
 `D` is the editor's opening data, not a mandatory session object. Generic field editors use ValueEditorData. InputEditorData<number> carries number-or-null values and number mode; InputEditorData<string> carries string-or-null values and text mode. TextareaEditorData carries a string, rows and optional maxLength. Field config requires a label and accepts optional synchronous and asynchronous validators.
 

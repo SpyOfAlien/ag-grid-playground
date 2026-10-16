@@ -13,7 +13,7 @@ Cells combine optional marker, content, and edit action regions. Renderer-specif
 - [Editor host and lifetime](docs/editor-host.md)
 - [Feature persistence and update strategies](docs/feature-persistence.md)
 
-Import supported kit code from `src/app/shared/grid-cells/public-api.ts` and standalone floating UI from `src/app/shared/popover/public-api.ts`. Reusable editor presentation has its own entry point at `src/app/shared/grid-cells/editing/editor-host/public-api.ts`. Internal mounting and geometry helpers remain private.
+Import supported kit code from `@grid-cells` (`src/app/shared/grid-cells/public-api.ts`), and building blocks for custom renderers from `@grid-cells/composition`. Standalone floating UI comes from `src/app/shared/popover/public-api.ts`. Internal mounting and geometry helpers remain private; `npm run test:types` rejects deep imports into the kit.
 
 ## Integration
 

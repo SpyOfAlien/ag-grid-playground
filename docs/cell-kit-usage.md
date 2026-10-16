@@ -1,6 +1,6 @@
 # Cell kit usage
 
-Import grid renderers, category types, editors and EditorHostService from [public-api.ts](../src/app/shared/grid-cells/public-api.ts). The reusable [editor host](../src/app/shared/grid-cells/editing/editor-host/public-api.ts) and standalone [app popover](../src/app/shared/popover/public-api.ts) also have separate entry points.
+Import grid renderers, category types, editors and EditorHostService from `@grid-cells` ([public-api.ts](../src/app/shared/grid-cells/public-api.ts)). Custom renderers and editors also use `@grid-cells/composition` ([composition-api.ts](../src/app/shared/grid-cells/composition-api.ts)), which re-exports the public API and adds BaseCell, the `compute*` functions, the capability directives and save tracking. `npm run test:types` rejects imports of internal kit paths from outside the kit. The standalone [app popover](../src/app/shared/popover/public-api.ts) has its own entry point.
 
 [Design](ag-grid-cell-kit-design.md) explains ownership and types. [Flows](cell-kit-flows.md) traces opening and save methods. Examples linked below are checked by npm run test:types, including Angular templates. They are consumer fixtures, not routed application pages.
 
@@ -66,7 +66,20 @@ const columns: ColDef<Row>[] = [
 
 NumberCell omits the unit for empty/non-finite values and includes it for zero. TextCell accepts ContentPart and MarkerPart, without numeric formatting or edit actions. Content ellipsis defaults to true; set content.ellipsis=false only where overflow is intentional. A tooltip is configured separately and does not require a marker.
 
-Import `bindCellRenderer` from the public entry point. It infers the configuration from the chosen renderer's `agInit` params, including custom renderers. Specialize generic components with your row and value types, such as `NumberCell<Row>` or `DropdownCell<Row, Row['unit']>`. Inline callbacks then receive those types without a separate `satisfies` declaration. The helper checks renderer configuration; AG Grid still owns the column's field and value getter contract.
+Import `bindCellRenderer` from the public entry point. It infers the configuration from the chosen renderer's `agInit` params, including custom renderers. Specialize generic components with your row and value types, such as `NumberCell<Row>` or `DropdownCell<Row, Row['unit']>`. Inline callbacks then receive those types without a separate `satisfies` declaration. The helper checks renderer configuration only.
+
+To also check that the column's `field` or `valueGetter` produces the renderer's value type, use `cellColumn`:
+
+```ts
+const column = cellColumn<Row>();
+const amount = column(NumberCell<Row>, {
+  field: 'amount', // a string field is a type error for NumberCell
+  cellClass: 'grid-kit-cell',
+  params: { content: { number: { decimals: 2 } } },
+});
+```
+
+A read-only text or number column with no markers can skip the Angular renderer with `bindPlainCell(content)`, which supplies `valueFormatter`, `cellClassRules`, `cellStyle` and `tooltipValueGetter`. AG Grid evaluates those callbacks itself, so a rule that reads an application signal needs `api.refreshCells()` when the signal changes. Measure before switching; the renderer path is not slow at the measured sizes.
 
 Use a fixed binding when the renderer is the same for every row. It creates the binding once per column without a selector callback or selector-result allocation per cell. Use `cellRendererSelector` when the renderer actually varies by row. Leave ordinary columns on AG Grid's normal rendering path. Keep column definitions/configs stable instead of rebuilding them on every render.
 
@@ -84,9 +97,24 @@ const markers = {
 } satisfies MarkerPart<Row, number>['markers'];
 ```
 
-`isUserEdited` is application logic. Only the highest matching marker appears, with Error, Warning, userEdited, systemGenerated, Info, then special priority. The demo's cached placeholder predicate is not a production audit policy.
+`isUserEdited` is application logic. The highest matching marker is drawn, with Error, Warning, userEdited, systemGenerated, Info, then special priority. Every matching marker is included in the marker's accessible label and tooltip. The demo's cached placeholder predicate is not a production audit policy.
 
-For a pen editor, add action config explicitly:
+Marker kinds and priority are configurable. Add a kind by augmenting `MarkerKinds`, then register the order and labels:
+
+```ts
+declare module '@grid-cells' {
+  interface MarkerKinds {
+    stale: true;
+  }
+}
+providers: [
+  provideGridCellMarkers([{ kind: 'stale', label: 'Stale value' }, ...DEFAULT_MARKER_DEFINITIONS]),
+];
+```
+
+Add a CSS rule for `.grid-cell-marker[data-kind='stale']` to draw it.
+
+Set `editable` once for every control in a cell. A control's own `permission` (`action.permission`, `toggle.permission` or `dropdown.permission`) replaces it for that control only; controls never borrow each other's rules. For a pen editor, add action config explicitly:
 
 ```ts
 const action = {
@@ -98,7 +126,7 @@ const action = {
 } satisfies ActionPart<Row, number>['action'];
 ```
 
-Without action, a pen renderer has no pen. Setting action.enabled=false removes it. Denied permission keeps a disabled pen with its reason, and activation is guarded. Content disabled styling is independent from permission. Persistence must also authorize against its current rows.
+Without action, a pen renderer has no pen. Setting action.enabled=false removes it. Denied permission keeps a disabled pen with its reason, and activation is guarded. The pen's accessible name is "Edit <column header>"; set `action.label` to override it. Content disabled styling is independent from permission. Persistence must also authorize against its current rows.
 
 ## A small editable table
 
@@ -115,7 +143,7 @@ The complete [AmountTableExample](../type-tests/docs/amount-table-example/amount
 />
 ```
 
-The context is `{ editorHost: this.host }`, and getRowId returns data.id. Columns use withCellKeyboardColumns for keyboard composition. An explicit onRowsUpdated handler force-refreshes rendered rows for metadata-only changes after a bound dataset update. There is no runtime integration directive. The example's amount configuration is:
+The context is `{ editorHost: this.host }` (add `cellOperations` when the table has direct toggles or dropdowns), and getRowId returns data.id. Columns use withCellKeyboardColumns for keyboard composition. An explicit onRowsUpdated handler force-refreshes rendered rows for metadata-only changes after a bound dataset update. There is no runtime integration directive. The example's amount configuration is:
 
 ```ts
 readonly amountParams = {
@@ -144,33 +172,38 @@ readonly amountParams = {
         };
       },
 
-      popover: ({ trigger }) => ({
-        anchor: { kind: 'element', element: trigger },
-        placement: 'bottom',
-        width: 320,
-      }),
+      presentation: {
+        kind: 'popover',
+        options: ({ trigger }) => ({
+          anchor: { kind: 'element', element: trigger },
+          placement: 'bottom',
+          width: 320,
+        }),
+      },
     },
   },
-} satisfies PopoverCellParams<Row, number, InputEditorData<number>>;
+} satisfies EditCellParams<Row, number, InputEditorData<number>>;
 ```
 
-Select PopoverCell with these params on the amount column. The pen opens the host, the editor initializes its Material field, and Save calls ApiExample.saveAmount. That action checks the current row permission, constructs an HTTP payload/query, validates the complete returned rows and publishes RowState. The rowData binding updates the grid; the editor closes after the save promise fulfills. A rejected request leaves the draft open for retry.
+Select EditCell with these params on the amount column. The pen opens the host, the editor initializes its Material field, and Save calls ApiExample.saveAmount. That action checks the current row permission, constructs an HTTP payload/query, validates the complete returned rows and publishes RowState. The rowData binding updates the grid; the editor closes after the save promise fulfills. A rejected request leaves the draft open for retry.
 
 This small HTTP example illustrates the binding path. The feature implementation below supplies dataset reset protection, serialized requests, revisions and durable feedback for tables with those requirements. Use only one synchronization path per table.
 
 ## Field editor and presentation choices
 
-| Choice       | Configuration                                                                                                     |
-| ------------ | ----------------------------------------------------------------------------------------------------------------- |
-| Text input   | InputEditor<string> with InputEditorData<string>, initialValue string or null, config.mode='text'                 |
-| Number input | InputEditor<number> with InputEditorData<number>, initialValue number or null, config.mode='number'               |
-| Textarea     | TextareaEditor with TextareaEditorData, initialValue string, optional rows/maxLength                              |
-| Popover      | PopoverCellParams<R,V,D>, action.editor component/data factory, optional action.editor.popover options or factory |
-| Dialog       | DialogCellParams<R,V,D>, action.editor component/data factory, optional action.editor.dialog options              |
+| Choice       | Configuration                                                                                                       |
+| ------------ | ------------------------------------------------------------------------------------------------------------------- |
+| Text input   | InputEditor<string> with InputEditorData<string>, initialValue string or null, config.mode='text'                   |
+| Number input | InputEditor<number> with InputEditorData<number>, initialValue number or null, config.mode='number'                 |
+| Textarea     | TextareaEditor with TextareaEditorData, initialValue string, optional rows/maxLength                                |
+| Popover      | EditCellParams<R,V,D>, action.editor component/data factory; presentation omitted or `{ kind: 'popover', options }` |
+| Dialog       | EditCellParams<R,V,D>, action.editor component/data factory, `presentation: { kind: 'dialog', options }`            |
+
+Presentation options can be an object or a callback receiving the cell and its trigger. To add a kind, such as a side panel, augment `EditorPresentations` and register an adapter with `provideEditorPresentations`.
 
 Field config requires a label. Validators and asyncValidators are optional. Invalid or pending validation blocks Save. Generic editors use Material fields/buttons; the host adds no action footer.
 
-PopoverCell and DialogCell accept the same content.number configuration as NumberCell when their value type is numeric:
+EditCell accepts the same content.number configuration as NumberCell when their value type is numeric:
 
 ```ts
 content: {
@@ -180,13 +213,13 @@ content: {
 
 The displayed text includes the unit, while the editor receives the raw number. Unit rules can read signals and update the existing cell without a grid refresh. Missing or non-finite numeric values display empty text and skip the unit rule.
 
-Without content.number configuration, these cells prefer valueFormatted and fall back to String(value). For custom text or an object summary, use content.text, a string or a callback receiving CellContext. This replaces the former display callback and also works in TextCell and NumberCell. In numeric content, content.text skips numeric formatting for finite values; missing or non-finite values remain empty. The unit rule still supplies the unit field in NumberContentState for consumers that render it separately.
+Without content.number configuration, these cells use content.format when set, then valueFormatted, then String(value). `format` receives the present value and the cell, so dates, currencies or object summaries need no kit change. For fixed text use content.text, a string or a callback receiving CellContext. content.text replaces the text for every value, including missing ones, in every renderer; handle null in the callback when needed. The unit rule still supplies the unit field in NumberContentState for consumers that render it separately. `decimals` is clamped to 0–100, and an invalid locale falls back to the runtime locale.
 
 Popover options include element/point anchor, twelve placements, title, width/height and maximum dimensions. Numeric dimensions mean pixels. The pen is the default grid anchor. App popovers support click-point fallback separately; grid editor configuration does not need it.
 
-Editor popovers default to a dismissible backdrop and blocked background scrolling. Set action.editor.popover.scrollable=true to allow scrolling and repositioning. Set backdrop=false for no backdrop or closeOnBackdropClick=false for a persistent backdrop. Escape always closes. Dialogs accept title/dimensions/backdrop options and always block background scrolling. Both presentations allow internal content scrolling and trap focus.
+Editor popovers default to a dismissible backdrop and blocked background scrolling. Set the popover option scrollable=true to allow scrolling and repositioning. Set backdrop=false for no backdrop or closeOnBackdropClick=false for a persistent backdrop. Escape always closes. Dialogs accept title/dimensions/backdrop options and always block background scrolling. Both presentations allow internal content scrolling and trap focus.
 
-Cancel, Escape and dismissible backdrop clicks discard unsubmitted drafts without a common confirmation prompt. Closing after submission does not cancel the feature action. See [editor host](editor-host.md) for focus, lifetime and failure behavior.
+Cancel, Escape and dismissible backdrop clicks discard unsubmitted drafts without a common confirmation prompt. Set `closeOnBackdropClick: 'when-clean'` to keep an editor open on a backdrop click while its optional `dirty` signal is true; the built-in field editors provide it. Closing after submission does not cancel the feature action. See [editor host](editor-host.md) for focus, lifetime and failure behavior.
 
 ## Inline toggle and dropdown
 
@@ -212,9 +245,9 @@ const dropdown = {
 
 Here identity validates rowId and returns rowId/columnId. The complete callbacks and row types are in [public-api-usage.ts](../type-tests/public-api-usage.ts).
 
-ToggleCell uses one native switch button and saves immediately. DropdownCell uses one native trigger and opens Material options on demand in the custom popover. Selection saves and closes on success. It retains the committed selection during pending work or failure. Outside click and Escape close the dropdown; it has no Cancel button or trailing radio button.
+ToggleCell uses one native switch button and saves immediately. A failed save shows in the switch's tooltip and is announced through the CDK LiveAnnouncer. Provide `CellOperations` on the owning component and pass it as `cellOperations` in the grid context so a pending or failed save survives renderer recycling; without it, that state is lost when the row scrolls out of view. DropdownCell uses one native trigger and opens Material options on demand in the custom popover. Selection saves and closes on success; choosing the committed option again closes without saving. It retains the committed selection during pending work or failure. Outside click and Escape close the dropdown; it has no Cancel button or trailing radio button.
 
-Control permission can be configured in toggle.permission or dropdown.permission and overrides action.permission. Content styling remains separate. Object-valued dropdown options can provide equals; options can be individually disabled.
+Control permission comes from `editable`, or from toggle.permission or dropdown.permission for that control. Content styling remains separate. Object-valued dropdown options can provide equals; options can be individually disabled.
 
 ## Feature client/server setup
 
@@ -260,7 +293,9 @@ Implement HostedEditor<D> with a required data signal input. Define your own ope
 
 [ExampleOwner](../type-tests/docs/editor-host-example.ts) demonstrates opening a typed editor outside a renderer with the same host. [complex-actions.ts](../type-tests/docs/complex-actions.ts) checks feature action commands and successful close.
 
-For a new composite renderer, extend BaseCell with a specific intersection of param categories. Declare independent cellContent, cellMarker, cellToggle and cellAction computed state and apply capability directives to its native elements. [ToggleNumberCell](../src/app/features/grid-demo/cells/toggle-number/toggle-number-cell.ts) combines a switch and number pen without nesting renderer components. [Its params](../src/app/features/grid-demo/cells/toggle-number/toggle-number-cell-params.model.ts) reuse ContentPart, TogglePart and ActionPart with a typed PopoverEditorConfig.
+For a new composite renderer, import from `@grid-cells/composition` and extend BaseCell with a specific intersection of param categories. Declare independent cellContent, cellMarker, cellToggle and cellAction computed state and apply the capability directives (`cellContent`, `cellMarker`, `cellEditAction`, `cellToggle`, `cellDropdown`) to native elements. Behavior is shared too: `openCellEditor`, `openDropdownEditor` and `trackSave` with `cellSaveTarget` replace per-renderer launch and save code. Put `cellContent` on a span or wrapper, not on a control, so each element has one tooltip owner. [ToggleNumberCell](../src/app/features/grid-demo/cells/toggle-number/toggle-number-cell.ts) combines a switch and number pen without nesting renderer components. [Its params](../src/app/features/grid-demo/cells/toggle-number/toggle-number-cell-params.model.ts) reuse ContentPart, EditablePart, TogglePart and ActionPart with a typed CellEditorConfig.
+
+Kit text such as "Saving…", "Cancel" and marker labels comes from `GRID_CELL_LABELS`; translate it with `provideGridCellLabels`. Colors are CSS custom properties documented at the top of [cell-layout.scss](../src/app/shared/grid-cells/styles/cell-layout.scss).
 
 ## Signal-driven presentation
 
@@ -281,6 +316,6 @@ The renderer's cellContent computation tracks this read. Changing currency updat
 
 Run npm run test:types after changing public types or consumer examples. It checks positive examples, expected type rejections and Angular templates. Build validates the application. Unit/browser suites cover presentation, persistence and renderer behavior.
 
-If a pen is missing, check action presence/enabled state. If activation throws, check that context.editorHost comes from the owner component. If metadata is stale after direct mutation, force-refresh the affected row nodes. If a client save rejects as out of sync, check getRowId, the connected grid and whether a second rowData binding replaced canonical references.
+If a pen is missing, check action presence/enabled state. In development builds, a renderer with an editor throws "Provide editorHost in grid context." when the grid first renders it; pass `editorHost` from the owner component. If metadata is stale after direct mutation, force-refresh the affected row nodes. If a client save rejects as out of sync, check getRowId, the connected grid and whether a second rowData binding replaced canonical references.
 
 Keep dated baseline reports unchanged. [Historical measurements](measurements.md) indexes their environments and recorded results; they are not current production performance guarantees.

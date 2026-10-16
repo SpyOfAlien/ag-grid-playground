@@ -1,7 +1,4 @@
-import type {
-  CellIdentity,
-  HttpQueryParams,
-} from '../../../shared/grid-cells/editing/edit-command.model';
+import type { CellIdentity, HttpQueryParams } from '@grid-cells';
 import type { DemoDetailsEdit } from '../demo-persistence.model';
 export interface DetailsEditorData {
   readonly cell: CellIdentity;

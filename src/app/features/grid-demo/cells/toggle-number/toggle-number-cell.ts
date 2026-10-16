@@ -1,19 +1,27 @@
-import { ChangeDetectionStrategy, Component, computed, signal } from '@angular/core';
-import { BaseCell } from '../../../../shared/grid-cells/core/base-cell';
-import type { RendererParams } from '../../../../shared/grid-cells/core/renderer-params.model';
+import { LiveAnnouncer } from '@angular/cdk/a11y';
+import { ChangeDetectionStrategy, Component, computed, inject, isDevMode } from '@angular/core';
+import {
+  BaseCell,
+  CellContent,
+  CellEditAction,
+  CellMarker,
+  CellToggle,
+  cellSaveTarget,
+  computeAction,
+  computeMarker,
+  computeNumberContent,
+  computeToggle,
+  openCellEditor,
+  requireEditorHost,
+  toCellContext,
+  trackSave,
+  type RendererParams,
+} from '@grid-cells/composition';
 import type { ToggleNumberCellParams } from './toggle-number-cell-params.model';
-import { CellContent } from '../../../../shared/grid-cells/capabilities/content/cell-content';
-import { CellMarker } from '../../../../shared/grid-cells/capabilities/marker/cell-marker';
-import { CellEditAction } from '../../../../shared/grid-cells/capabilities/action/cell-edit-action';
-import { computeNumberContent } from '../../../../shared/grid-cells/capabilities/number/compute-number-content';
-import { computeToggle } from '../../../../shared/grid-cells/capabilities/toggle/compute-toggle';
-import { computeMarker } from '../../../../shared/grid-cells/capabilities/marker/compute-marker';
-import { computeAction } from '../../../../shared/grid-cells/capabilities/action/compute-action';
-import { toCellContext } from '../../../../shared/grid-cells/core/cell-context';
 
 @Component({
   selector: 'app-toggle-number-cell',
-  imports: [CellContent, CellMarker, CellEditAction],
+  imports: [CellContent, CellMarker, CellEditAction, CellToggle],
   host: { class: 'grid-cell' },
   template: `
     @if (cellMarker(); as marker) {
@@ -23,15 +31,9 @@ import { toCellContext } from '../../../../shared/grid-cells/core/cell-context';
       <div class="grid-cell-content composite-content">
         @if (cellToggle(); as toggle) {
           <button
-            class="toggle"
-            type="button"
-            role="switch"
-            aria-label="Review measurement"
-            [attr.aria-checked]="toggle.checked"
-            [attr.aria-disabled]="toggle.disabled || saving()"
-            [attr.aria-busy]="saving()"
-            [attr.title]="toggle.disabled ? toggle.tooltip : error() || toggle.tooltip"
-            (click)="changeToggle($event)"
+            [cellToggle]="toggle"
+            [cellToggleSave]="cellSave()"
+            (toggled)="changeToggle($event)"
           ></button>
         }
         <span [cellContent]="content">{{ content.text }}</span>
@@ -49,63 +51,42 @@ import { toCellContext } from '../../../../shared/grid-cells/core/cell-context';
 export class ToggleNumberCell<R, D> extends BaseCell<
   RendererParams<R, number, ToggleNumberCellParams<R, D>>
 > {
-  readonly saving = signal(false);
-  readonly error = signal('');
+  private readonly announcer = inject(LiveAnnouncer);
+
+  private readonly save = trackSave(() => cellSaveTarget(this.params()));
+  readonly cellSave = this.save.state;
 
   readonly cellContent = computed(() => computeNumberContent(this.params()));
-  readonly cellToggle = computed(() => computeToggle(this.params()));
-  readonly cellMarker = computed(() => computeMarker(this.params()));
+  readonly cellToggle = computed(() => computeToggle(this.params(), undefined, this.labels));
+  readonly cellMarker = computed(() =>
+    computeMarker(this.params(), undefined, this.markerDefinitions),
+  );
   readonly cellAction = computed(() => {
-    const action = computeAction(this.params());
-    return action && this.saving()
+    const action = computeAction(this.params(), undefined, this.labels);
+    return action && this.cellSave().pending
       ? { ...action, disabled: true, tooltip: 'Saving review status.' }
       : action;
   });
 
-  async changeToggle(event: MouseEvent): Promise<void> {
-    event.stopPropagation();
+  async changeToggle(next: boolean): Promise<void> {
     const params = this.params();
-    const state = this.cellToggle();
-    if (!params || !state || state.disabled || this.saving()) return;
-    this.saving.set(true);
-    this.error.set('');
-    try {
-      await params.toggle.save(!state.checked, toCellContext(params));
-    } catch (error: unknown) {
-      this.error.set(error instanceof Error ? error.message : String(error));
-    } finally {
-      this.saving.set(false);
-    }
+    if (!params || this.cellToggle()?.disabled) return;
+    const cell = toCellContext(params);
+    const outcome = await this.save.run(() => params.toggle.save(next, cell));
+    if (outcome === 'failed') void this.announcer.announce(this.cellSave().error, 'assertive');
   }
 
   open(event: MouseEvent): void {
     const params = this.params();
     const action = this.cellAction();
     const trigger = event.currentTarget;
-    if (
-      !params?.action ||
-      !action?.visible ||
-      action.disabled ||
-      this.saving() ||
-      !(trigger instanceof HTMLElement)
-    )
-      return;
-    const hosts = params.context.editorHost;
-    if (!hosts) throw new Error('Provide editorHost in grid context.');
-    const cell = {
-      ...toCellContext(params),
-      trigger,
-    };
-    hosts.open(
-      { component: params.action.editor.component, data: params.action.editor.data(cell) },
-      {
-        kind: 'popover',
-        options:
-          typeof params.action.editor.popover === 'function'
-            ? params.action.editor.popover(cell)
-            : params.action.editor.popover,
-      },
-      { trigger },
-    );
+    if (!params || !action?.visible || action.disabled || !(trigger instanceof HTMLElement)) return;
+    openCellEditor(params, trigger);
+  }
+
+  protected override validate(
+    params: RendererParams<R, number, ToggleNumberCellParams<R, D>>,
+  ): void {
+    if (isDevMode() && params.action?.editor) requireEditorHost(params.context);
   }
 }

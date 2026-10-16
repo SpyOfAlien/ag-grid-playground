@@ -1,4 +1,4 @@
-import type { EditCommand } from '../../shared/grid-cells/editing/edit-command.model';
+import type { EditCommand } from '@grid-cells';
 import type { DemoRow } from './demo-row.model';
 import { demoReviewPermission } from './demo-edit-permission';
 import { DemoEditError, type DemoEditAction, type DemoActionData } from './demo-persistence.model';

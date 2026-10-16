@@ -1,4 +1,11 @@
 // Add grid-kit-cell to ColDef.cellClass when using the renderer layout.
+// Theme the kit by setting these custom properties on any ancestor, for example :root.
+//   --grid-cell-accent           focus ring and checked toggle
+//   --grid-cell-action           pen color
+//   --grid-cell-muted            muted text, disabled pen and unchecked toggle
+//   --grid-cell-highlight        highlighted content background
+//   --grid-cell-toggle-thumb     toggle thumb
+//   --grid-cell-marker-*         marker colors by kind
 .ag-cell.grid-kit-cell {
   padding-inline: 0;
 }
@@ -22,10 +29,10 @@
   text-overflow: ellipsis;
 }
 .grid-cell-highlighted {
-  background: #fff0be;
+  background: var(--grid-cell-highlight, #fff0be);
 }
 .grid-cell-muted {
-  color: #5f6368;
+  color: var(--grid-cell-muted, #5f6368);
 }
 .grid-cell-marker {
   position: absolute;
@@ -47,13 +54,13 @@
   border-radius: 50%;
 }
 .grid-cell-marker[data-kind='userEdited']::before {
-  background: #1565c0;
+  background: var(--grid-cell-marker-user-edited, #1565c0);
 }
 .grid-cell-marker[data-kind='systemGenerated']::before {
-  background: #7030a0;
+  background: var(--grid-cell-marker-system-generated, #7030a0);
 }
 .grid-cell-marker[data-kind='special']::before {
-  background: #111;
+  background: var(--grid-cell-marker-special, #111);
   border-radius: 0;
 }
 .grid-cell-marker[data-kind='error']::before,
@@ -64,12 +71,12 @@
   text-align: center;
   font-size: 10px;
   font-weight: bold;
-  background: #b3261e;
-  color: #fff;
+  background: var(--grid-cell-marker-error, #b3261e);
+  color: var(--grid-cell-marker-symbol, #fff);
 }
 .grid-cell-marker[data-kind='info']::before {
   content: 'i';
-  background: #155e75;
+  background: var(--grid-cell-marker-info, #155e75);
 }
 .grid-cell-marker[data-kind='warning']::before {
   content: '!';
@@ -81,8 +88,8 @@
   font-weight: bold;
   border-radius: 0;
   clip-path: polygon(50% 0, 100% 100%, 0 100%);
-  background: #f5c242;
-  color: #312600;
+  background: var(--grid-cell-marker-warning, #f5c242);
+  color: var(--grid-cell-marker-warning-symbol, #312600);
 }
 .grid-cell-action {
   position: absolute;
@@ -97,7 +104,7 @@
   border-radius: 2px;
   padding: 0;
   background: transparent;
-  color: #24584f;
+  color: var(--grid-cell-action, #24584f);
   opacity: 0;
   pointer-events: none;
   cursor: pointer;
@@ -116,10 +123,71 @@
   pointer-events: auto;
 }
 .grid-cell-action[aria-disabled='true'] {
-  color: #5f6368;
+  color: var(--grid-cell-muted, #5f6368);
   cursor: default;
 }
 .grid-cell-action:focus-visible {
-  outline: 2px solid #17675b;
+  outline: 2px solid var(--grid-cell-accent, #17675b);
+  outline-offset: 1px;
+}
+.grid-cell-toggle {
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  padding: 0;
+  min-height: 24px;
+  overflow: visible;
+  vertical-align: middle;
+}
+.grid-cell-toggle::before {
+  content: '';
+  display: inline-block;
+  vertical-align: middle;
+  width: 32px;
+  height: 18px;
+  border: 1px solid var(--grid-cell-muted, #5f6368);
+  border-radius: 12px;
+  background:
+    radial-gradient(circle at 8px 50%, var(--grid-cell-toggle-thumb, #fff) 6px, transparent 7px),
+    var(--grid-cell-muted, #5f6368);
+}
+.grid-cell-toggle[aria-checked='true']::before {
+  background:
+    radial-gradient(circle at 24px 50%, var(--grid-cell-toggle-thumb, #fff) 6px, transparent 7px),
+    var(--grid-cell-accent, #17675b);
+}
+.grid-cell-toggle[aria-disabled='true'] {
+  cursor: default;
+}
+.grid-cell-toggle[aria-disabled='true']::before {
+  opacity: 0.6;
+}
+.grid-cell-dropdown {
+  position: relative;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  padding: 0 18px 0 0;
+  min-height: 24px;
+  cursor: pointer;
+}
+.grid-cell-dropdown::after {
+  content: '▾';
+  position: absolute;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+}
+.grid-cell-dropdown[aria-disabled='true'] {
+  cursor: default;
+}
+.grid-cell-toggle:focus-visible,
+.grid-cell-dropdown:focus-visible {
+  outline: 2px solid var(--grid-cell-accent, #17675b);
   outline-offset: 1px;
 }
