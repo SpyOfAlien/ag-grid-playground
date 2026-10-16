@@ -1,0 +1,17 @@
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "types": []
+  },
+  "files": [
+    "usage-example/usage-example.ts",
+    "editor-host-example.ts",
+    "client-editing-example.ts",
+    "signal-presentation-example.ts",
+    "api-example.ts",
+    "amount-table-example/amount-table-example.ts"
+  ],
+  "include": [],
+  "references": []
+}

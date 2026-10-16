@@ -1,0 +1,49 @@
+{
+  "version": 1,
+  "projects": {
+    "table-system": {
+      "projectType": "application",
+      "root": "",
+      "sourceRoot": ".",
+      "architect": {
+        "build": {
+          "builder": "@angular/build:application",
+          "options": {
+            "browser": "main.ts",
+            "index": "index.html",
+            "tsConfig": "tsconfig.app.json",
+            "styles": [
+              "../../node_modules/@angular/cdk/overlay-prebuilt.css",
+              "../../src/app/shared/table-system/styles/table-system.css"
+            ],
+            "outputPath": "dist"
+          },
+          "configurations": {
+            "production": {
+              "outputHashing": "all"
+            },
+            "development": {
+              "optimization": false,
+              "sourceMap": true
+            }
+          },
+          "defaultConfiguration": "production"
+        },
+        "serve": {
+          "builder": "@angular/build:dev-server",
+          "options": {
+            "buildTarget": "table-system:build:development",
+            "port": 4301
+          }
+        },
+        "test": {
+          "builder": "@angular/build:unit-test",
+          "options": {
+            "tsConfig": "tsconfig.spec.json",
+            "include": ["angular-tests/**/*.spec.ts"]
+          }
+        }
+      }
+    }
+  }
+}

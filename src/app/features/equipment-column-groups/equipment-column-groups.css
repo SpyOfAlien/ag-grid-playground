@@ -1,0 +1,89 @@
+app-equipment-column-groups {
+  /* Design tokens: see docs/equipment-table-design-spec.md. */
+  --color-brand-900: #511c10;
+  --color-brand-700: #7c2d12;
+  --color-brand-600: #b93815;
+  --color-brand-50-alt: #fdead7;
+  --color-brand-primary-alt: #fef6ee;
+  --color-gray-900: #181d27;
+  --color-gray-800: #252b37;
+  --color-gray-700: #414651;
+  --color-gray-400: #a4a7ae;
+  --color-gray-100: #f5f5f5;
+  --color-gray-50: #fafafa;
+  --color-bg-primary: #ffffff;
+  --color-border-primary: #d5d7da;
+  --color-border-secondary: #e9eaeb;
+  --color-row-divider: rgba(33, 33, 33, 0.12);
+  --color-error-solid: #d92d20;
+  --color-error-bg: #fef3f2;
+  --alpha-white-10: rgba(255, 255, 255, 0.1);
+  --alpha-black-10: rgba(0, 0, 0, 0.1);
+  --spacing-xxs: 2px;
+  --spacing-xs: 4px;
+  --spacing-sm: 6px;
+  --spacing-md: 8px;
+  --spacing-lg: 12px;
+  --spacing-xl: 16px;
+  --radius-xs: 4px;
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --font-family-body: 'Inter', sans-serif;
+
+  display: block;
+  color: var(--color-gray-900);
+  background: var(--color-bg-primary);
+  font-family: var(--font-family-body);
+
+  .equipment-demo {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    font-size: 14px;
+    line-height: 20px;
+  }
+  .equipment-grid {
+    flex: 1;
+    min-height: 0;
+  }
+
+  /* Expand all / Collapse all */
+  .equipment-toolbar {
+    display: flex;
+    justify-content: flex-end;
+    gap: var(--spacing-lg);
+    padding: var(--spacing-sm) var(--spacing-lg);
+    border-bottom: 1px solid var(--color-border-secondary);
+  }
+  .equipment-button {
+    display: inline-flex;
+    align-items: center;
+    min-height: 32px;
+    padding: var(--spacing-xs) var(--spacing-lg);
+    border: 1px solid var(--color-border-primary);
+    border-radius: var(--radius-md);
+    background: var(--color-bg-primary);
+    color: var(--color-gray-800);
+    font: inherit;
+    font-size: 12px;
+    line-height: 18px;
+    font-weight: 600;
+    cursor: pointer;
+
+    &:hover {
+      background: var(--color-gray-50);
+    }
+    &:focus-visible {
+      outline: 2px solid var(--color-brand-600);
+      outline-offset: 2px;
+    }
+  }
+  /* Page title and status messages for screen readers. */
+  .equipment-sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+  }
+}

@@ -1,0 +1,60 @@
+main {
+  max-width: 840px;
+  margin: 120px auto;
+  padding: 24px;
+}
+a {
+  color: #145c50;
+}
+h1 {
+  font-size: 28px;
+}
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  padding: 16px;
+  border: 1px solid #d7e0db;
+  border-radius: 8px;
+  background: #fff;
+}
+label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+input[type='number'] {
+  width: 80px;
+  padding: 4px;
+}
+.placements {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin: 32px 100px;
+}
+button {
+  border: 1px solid #788780;
+  border-radius: 6px;
+  background: #fff;
+  color: #24584f;
+  padding: 8px 12px;
+  font: inherit;
+  cursor: pointer;
+}
+.anchor-examples {
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+}
+.edge {
+  position: fixed;
+}
+.top-left {
+  top: 12px;
+  left: 12px;
+}
+.bottom-right {
+  bottom: 12px;
+  right: 12px;
+}

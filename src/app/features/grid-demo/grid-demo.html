@@ -1,0 +1,67 @@
+<main>
+  <header>
+    <h1>Cell editor showcase</h1>
+    <p>One table, {{ rows().length }} rows, all edit types. Hover a cell to show its pen.</p>
+  </header>
+  <section class="controls" aria-label="Demo controls">
+    <mat-form-field class="mode-control" appearance="outline" subscriptSizing="dynamic">
+      <mat-label>Persistence mode</mat-label>
+      <select
+        #modeSelect
+        matNativeControl
+        [value]="mode()"
+        [disabled]="controlsDisabled()"
+        (change)="setMode(modeSelect.value)"
+      >
+        <option value="client">Client</option>
+        <option value="server">Server (mock API)</option>
+      </select>
+    </mat-form-field>
+    @if (mode() === 'server') {
+      <mat-form-field appearance="outline" subscriptSizing="dynamic">
+        <mat-label>API response</mat-label>
+        <select
+          #outcome
+          matNativeControl
+          [value]="apiScenarios.outcome()"
+          [disabled]="controlsDisabled()"
+          (change)="setOutcome(outcome.value)"
+        >
+          <option value="success">Success</option>
+          <option value="failure">Failure</option>
+        </select>
+      </mat-form-field>
+    }
+    <button mat-stroked-button (click)="reset()" [disabled]="controlsDisabled()">Reset demo</button>
+    <mat-checkbox [checked]="showUnits()" (change)="showUnits.set($event.checked)"
+      >Show units</mat-checkbox
+    >
+  </section>
+  <p class="activity">
+    <span data-testid="edit-pending">Pending edits: {{ pendingCount() }}</span> ·
+    <span data-testid="demo-api-calls">Demo API calls: {{ apiScenarios.calls() }}</span>
+  </p>
+  <p class="status" role="status">{{ message() }}</p>
+  <div class="grid-container">
+    <ag-grid-angular
+      [context]="applicationContext"
+      [gridOptions]="options"
+      (gridReady)="onGridReady($event)"
+    />
+  </div>
+  <p class="hint">
+    Scroll horizontally to see every column. Unreviewed rows disable some edits; switch Reviewed on
+    to enable them.
+  </p>
+  <ul aria-label="Edit types">
+    <li>Text and number: input editors in popovers.</li>
+    <li>Notes: textarea editor in a Material dialog.</li>
+    <li>Details: a complex form with Save details and Save and approve actions.</li>
+    <li>Reviewed and Unit: direct toggle and dropdown controls.</li>
+    <li>Review + amount: a toggle and number editor composed in one cell.</li>
+  </ul>
+  <nav aria-label="Other demos">
+    <a routerLink="/column-group-demo">Column grouping demo</a>
+    <a routerLink="/popover-demo">Standalone popover demo</a>
+  </nav>
+</main>

@@ -1,0 +1,26 @@
+{
+  "resting": {
+    "hosts": 297,
+    "directChildren": 675,
+    "descendants": 729
+  },
+  "observations": [
+    {
+      "kind": "popover",
+      "elements": 35
+    },
+    {
+      "kind": "dialog",
+      "elements": 36
+    },
+    {
+      "kind": "details",
+      "elements": 71
+    },
+    {
+      "kind": "dropdown",
+      "elements": 36
+    }
+  ],
+  "remainingOverlays": 0
+}

@@ -1,0 +1,126 @@
+{
+  "browser": "154.0.8037.93",
+  "viewport": {
+    "width": 1440,
+    "height": 1000
+  },
+  "cycles": 4,
+  "presentations": 16,
+  "initialGridElements": 2005,
+  "measurements": [
+    {
+      "kind": "popover",
+      "cycle": 0,
+      "openEditorElements": 37,
+      "closedGridElements": 2005,
+      "renderedCells": 351
+    },
+    {
+      "kind": "dialog",
+      "cycle": 0,
+      "openEditorElements": 39,
+      "closedGridElements": 2009,
+      "renderedCells": 352
+    },
+    {
+      "kind": "dropdown",
+      "cycle": 0,
+      "openEditorElements": 39,
+      "closedGridElements": 2005,
+      "renderedCells": 351
+    },
+    {
+      "kind": "composite",
+      "cycle": 0,
+      "openEditorElements": 37,
+      "closedGridElements": 2005,
+      "renderedCells": 351
+    },
+    {
+      "kind": "popover",
+      "cycle": 1,
+      "openEditorElements": 37,
+      "closedGridElements": 2005,
+      "renderedCells": 351
+    },
+    {
+      "kind": "dialog",
+      "cycle": 1,
+      "openEditorElements": 39,
+      "closedGridElements": 2009,
+      "renderedCells": 352
+    },
+    {
+      "kind": "dropdown",
+      "cycle": 1,
+      "openEditorElements": 39,
+      "closedGridElements": 2005,
+      "renderedCells": 351
+    },
+    {
+      "kind": "composite",
+      "cycle": 1,
+      "openEditorElements": 37,
+      "closedGridElements": 2005,
+      "renderedCells": 351
+    },
+    {
+      "kind": "popover",
+      "cycle": 2,
+      "openEditorElements": 37,
+      "closedGridElements": 2005,
+      "renderedCells": 351
+    },
+    {
+      "kind": "dialog",
+      "cycle": 2,
+      "openEditorElements": 39,
+      "closedGridElements": 2009,
+      "renderedCells": 352
+    },
+    {
+      "kind": "dropdown",
+      "cycle": 2,
+      "openEditorElements": 39,
+      "closedGridElements": 2005,
+      "renderedCells": 351
+    },
+    {
+      "kind": "composite",
+      "cycle": 2,
+      "openEditorElements": 37,
+      "closedGridElements": 2005,
+      "renderedCells": 351
+    },
+    {
+      "kind": "popover",
+      "cycle": 3,
+      "openEditorElements": 37,
+      "closedGridElements": 2005,
+      "renderedCells": 351
+    },
+    {
+      "kind": "dialog",
+      "cycle": 3,
+      "openEditorElements": 39,
+      "closedGridElements": 2009,
+      "renderedCells": 352
+    },
+    {
+      "kind": "dropdown",
+      "cycle": 3,
+      "openEditorElements": 39,
+      "closedGridElements": 2005,
+      "renderedCells": 351
+    },
+    {
+      "kind": "composite",
+      "cycle": 3,
+      "openEditorElements": 37,
+      "closedGridElements": 2005,
+      "renderedCells": 351
+    }
+  ],
+  "remainingOverlayPanes": 0,
+  "errors": []
+}

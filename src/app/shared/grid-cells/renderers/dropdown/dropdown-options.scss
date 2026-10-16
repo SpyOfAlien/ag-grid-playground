@@ -1,0 +1,17 @@
+:host {
+  display: block;
+}
+mat-selection-list {
+  display: block;
+  max-height: 320px;
+  overflow: auto;
+}
+mat-list-option.selected {
+  background-color: var(--mat-sys-secondary-container);
+  --mat-list-list-item-label-text-color: var(--mat-sys-on-secondary-container);
+  --mat-list-list-item-hover-label-text-color: var(--mat-sys-on-secondary-container);
+  --mat-list-list-item-focus-label-text-color: var(--mat-sys-on-secondary-container);
+}
+.placeholder {
+  padding: 0 16px;
+}

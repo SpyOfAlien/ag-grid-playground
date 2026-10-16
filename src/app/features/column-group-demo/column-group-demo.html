@@ -1,0 +1,86 @@
+<main>
+  <header>
+    <h1>Column grouping demo</h1>
+    <p>Group columns, create nested groups, and combine entire groups using this table.</p>
+  </header>
+  <section class="controls" aria-label="Group columns">
+    <mat-form-field appearance="outline" subscriptSizing="dynamic">
+      <mat-label>Column to group</mat-label>
+      <select #sourceColumn matNativeControl>
+        @for (column of groupingChoices; track column.id) {
+          <option [value]="column.id">{{ column.label }}</option>
+        }
+      </select>
+    </mat-form-field>
+    <mat-form-field appearance="outline" subscriptSizing="dynamic">
+      <mat-label>Group with</mat-label>
+      <select #targetColumn matNativeControl>
+        @for (column of groupingChoices; track column.id) {
+          <option [value]="column.id" [selected]="column.id === 'name'">{{ column.label }}</option>
+        }
+      </select>
+    </mat-form-field>
+    <button mat-stroked-button (click)="groupColumns(sourceColumn.value, targetColumn.value)">
+      Group columns
+    </button>
+    <button mat-stroked-button (click)="ungroupColumns()">Ungroup columns</button>
+    <button mat-stroked-button (click)="resetLayout()">Reset column layout</button>
+    <mat-checkbox
+      [checked]="middleMouseGrouping()"
+      (change)="middleMouseGrouping.set($event.checked)"
+      >Middle mouse grouping</mat-checkbox
+    >
+  </section>
+  @if (groupChoices().length > 1) {
+    <section class="controls" aria-label="Combine column groups">
+      <mat-form-field appearance="outline" subscriptSizing="dynamic">
+        <mat-label>Group to combine</mat-label>
+        <select #sourceGroup matNativeControl>
+          @for (group of groupChoices(); track group.id) {
+            <option [value]="group.id">{{ group.label }}</option>
+          }
+        </select>
+      </mat-form-field>
+      <mat-form-field appearance="outline" subscriptSizing="dynamic">
+        <mat-label>Combine with</mat-label>
+        <select #targetGroup matNativeControl>
+          @for (group of groupChoices(); track group.id) {
+            <option [value]="group.id" [selected]="$index === 1">{{ group.label }}</option>
+          }
+        </select>
+      </mat-form-field>
+      <button mat-stroked-button (click)="combineGroups(sourceGroup.value, targetGroup.value)">
+        Combine groups
+      </button>
+    </section>
+  }
+  <p class="hint">
+    Drag headers to move columns or groups. Hold Shift at any point during a drag to highlight the
+    column or group under the cursor, then release the mouse to group. Release Shift to resume
+    normal movement. Drop on a group header to join it, or on a child column to create a subgroup.
+    Hold Shift and drop a child below the headers to ungroup it. Normal left-drag keeps children
+    together. Use Ungroup in a group header to remove that level. Enable Middle mouse grouping to
+    use middle-drag for the same grouping and ungrouping actions without holding Shift. Drag one
+    group header onto another while grouping to create a parent containing both groups.
+  </p>
+  <p class="status" role="status">{{ message() }}</p>
+  <div class="grid-container">
+    <ag-grid-angular
+      appColumnDragGrouping
+      [middleMouseGrouping]="middleMouseGrouping()"
+      [canGroup]="canGroupColumns"
+      [canCombineGroups]="canCombineColumnGroups"
+      [isSourceGroup]="isSourceGroup"
+      (movementPause)="setColumnMovementPaused($event)"
+      (groupDrop)="groupColumns($event.source, $event.target)"
+      (groupsDrop)="combineGroups($event.source, $event.target)"
+      (columnDrop)="onColumnDrop($event)"
+      [gridOptions]="options"
+      (gridReady)="onGridReady($event)"
+    />
+  </div>
+  <nav aria-label="Other demos">
+    <a routerLink="/grid-demo">Cell system demo</a>
+    <a routerLink="/popover-demo">Standalone popover demo</a>
+  </nav>
+</main>

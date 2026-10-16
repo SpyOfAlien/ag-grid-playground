@@ -1,0 +1,125 @@
+// Add grid-kit-cell to ColDef.cellClass when using the renderer layout.
+.ag-cell.grid-kit-cell {
+  padding-inline: 0;
+}
+.grid-cell {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  padding-inline: 24px;
+}
+.grid-cell-content {
+  display: block;
+  flex: 1;
+  min-width: 0;
+}
+.grid-cell-ellipsis {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.grid-cell-highlighted {
+  background: #fff0be;
+}
+.grid-cell-muted {
+  color: #5f6368;
+}
+.grid-cell-marker {
+  position: absolute;
+  left: 4px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 20px;
+  line-height: 12px;
+}
+.grid-cell-marker::before {
+  content: '';
+  display: block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+.grid-cell-marker[data-kind='userEdited']::before {
+  background: #1565c0;
+}
+.grid-cell-marker[data-kind='systemGenerated']::before {
+  background: #7030a0;
+}
+.grid-cell-marker[data-kind='special']::before {
+  background: #111;
+  border-radius: 0;
+}
+.grid-cell-marker[data-kind='error']::before,
+.grid-cell-marker[data-kind='info']::before {
+  content: '!';
+  width: 12px;
+  height: 12px;
+  text-align: center;
+  font-size: 10px;
+  font-weight: bold;
+  background: #b3261e;
+  color: #fff;
+}
+.grid-cell-marker[data-kind='info']::before {
+  content: 'i';
+  background: #155e75;
+}
+.grid-cell-marker[data-kind='warning']::before {
+  content: '!';
+  width: 14px;
+  height: 14px;
+  line-height: 17px;
+  text-align: center;
+  font-size: 10px;
+  font-weight: bold;
+  border-radius: 0;
+  clip-path: polygon(50% 0, 100% 100%, 0 100%);
+  background: #f5c242;
+  color: #312600;
+}
+.grid-cell-action {
+  position: absolute;
+  right: 4px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: grid;
+  place-items: center;
+  width: 16px;
+  height: 24px;
+  border: 0;
+  border-radius: 2px;
+  padding: 0;
+  background: transparent;
+  color: #24584f;
+  opacity: 0;
+  pointer-events: none;
+  cursor: pointer;
+}
+.grid-cell-action::before {
+  content: '';
+  width: 14px;
+  height: 14px;
+  background: currentColor;
+  mask: url('data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"%3E%3Cpath d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25Zm17.71-10.2a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83Z"/%3E%3C/svg%3E')
+    center / contain no-repeat;
+}
+.ag-cell:hover .grid-cell-action,
+.grid-cell-action:focus-visible {
+  opacity: 1;
+  pointer-events: auto;
+}
+.grid-cell-action[aria-disabled='true'] {
+  color: #5f6368;
+  cursor: default;
+}
+.grid-cell-action:focus-visible {
+  outline: 2px solid #17675b;
+  outline-offset: 1px;
+}

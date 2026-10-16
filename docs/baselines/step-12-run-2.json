@@ -1,0 +1,354 @@
+{
+  "measuredAt": "2026-10-04T01:35:01.444Z",
+  "build": "Angular development server, no CPU/network throttling, headless Chrome",
+  "timing": "Component creation to settled first render, or operation to settled render. Includes at least two animation frames; not CPU-only execution or FPS.",
+  "browser": "154.0.8037.93",
+  "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/154.0.0.0 Safari/537.36",
+  "viewport": {
+    "width": 1440,
+    "height": 1000
+  },
+  "hardware": {
+    "platform": "darwin",
+    "osRelease": "24.6.0",
+    "cpu": "Apple M2",
+    "logicalCpus": 8,
+    "memoryBytes": 17179869184
+  },
+  "dependencies": {
+    "@angular/core": "21.2.25",
+    "@angular/material": "21.2.14",
+    "ag-grid-angular": "36.2.0",
+    "ag-grid-enterprise": "36.2.0"
+  },
+  "stage": "Step 12 mixed renderers and editor integration",
+  "rendererDom": {
+    "hosts": 297,
+    "gridElements": 1795,
+    "descendantElements": 729,
+    "hostTypes": {
+      "app-text-cell": 27,
+      "app-popover-cell": 54,
+      "app-action-preview-cell": 27,
+      "app-number-cell": 54,
+      "app-dialog-cell": 54,
+      "app-toggle-cell": 27,
+      "app-dropdown-cell": 27,
+      "app-toggle-number-cell": 27
+    },
+    "overlayPanes": 0,
+    "directChildren": 675,
+    "maximumChildren": 3,
+    "nestedRenderers": 0,
+    "tooltipTargets": 648
+  },
+  "fixture": {
+    "rows": 1000,
+    "columns": 200,
+    "rowHeight": 32,
+    "rowBuffer": 10,
+    "pinnedColumns": 2
+  },
+  "samples": [
+    {
+      "label": "Initial render",
+      "settledMs": 198.4,
+      "totalRows": 1000,
+      "totalColumns": 200,
+      "renderedRows": 27,
+      "renderedCells": 297,
+      "virtualColumns": 11,
+      "pinnedColumns": 2,
+      "firstRenderedRow": 0,
+      "lastRenderedRow": 26,
+      "viewport": {
+        "width": 1374,
+        "height": 558
+      },
+      "scroll": {
+        "top": 0,
+        "left": 0
+      }
+    },
+    {
+      "label": "Manual snapshot",
+      "settledMs": 44.2,
+      "totalRows": 1000,
+      "totalColumns": 200,
+      "renderedRows": 37,
+      "renderedCells": 407,
+      "virtualColumns": 11,
+      "pinnedColumns": 2,
+      "firstRenderedRow": 490,
+      "lastRenderedRow": 526,
+      "viewport": {
+        "width": 1374,
+        "height": 558
+      },
+      "scroll": {
+        "top": 16000,
+        "left": 0
+      }
+    },
+    {
+      "label": "Manual snapshot",
+      "settledMs": 27.3,
+      "totalRows": 1000,
+      "totalColumns": 200,
+      "renderedRows": 37,
+      "renderedCells": 407,
+      "virtualColumns": 11,
+      "pinnedColumns": 2,
+      "firstRenderedRow": 490,
+      "lastRenderedRow": 526,
+      "viewport": {
+        "width": 1374,
+        "height": 558
+      },
+      "scroll": {
+        "top": 16000,
+        "left": 27606
+      }
+    },
+    {
+      "label": "Metadata changed",
+      "settledMs": 60.5,
+      "totalRows": 1000,
+      "totalColumns": 200,
+      "renderedRows": 27,
+      "renderedCells": 297,
+      "virtualColumns": 11,
+      "pinnedColumns": 2,
+      "firstRenderedRow": 0,
+      "lastRenderedRow": 26,
+      "viewport": {
+        "width": 1374,
+        "height": 558
+      },
+      "scroll": {
+        "top": 0,
+        "left": 0
+      }
+    },
+    {
+      "label": "Rows replaced",
+      "settledMs": 28.5,
+      "totalRows": 1000,
+      "totalColumns": 200,
+      "renderedRows": 27,
+      "renderedCells": 297,
+      "virtualColumns": 11,
+      "pinnedColumns": 2,
+      "firstRenderedRow": 0,
+      "lastRenderedRow": 26,
+      "viewport": {
+        "width": 1374,
+        "height": 558
+      },
+      "scroll": {
+        "top": 0,
+        "left": 0
+      }
+    },
+    {
+      "label": "Refresh 1/10",
+      "settledMs": 26.6,
+      "totalRows": 1000,
+      "totalColumns": 200,
+      "renderedRows": 27,
+      "renderedCells": 297,
+      "virtualColumns": 11,
+      "pinnedColumns": 2,
+      "firstRenderedRow": 0,
+      "lastRenderedRow": 26,
+      "viewport": {
+        "width": 1374,
+        "height": 558
+      },
+      "scroll": {
+        "top": 0,
+        "left": 0
+      }
+    },
+    {
+      "label": "Refresh 2/10",
+      "settledMs": 33.9,
+      "totalRows": 1000,
+      "totalColumns": 200,
+      "renderedRows": 27,
+      "renderedCells": 297,
+      "virtualColumns": 11,
+      "pinnedColumns": 2,
+      "firstRenderedRow": 0,
+      "lastRenderedRow": 26,
+      "viewport": {
+        "width": 1374,
+        "height": 558
+      },
+      "scroll": {
+        "top": 0,
+        "left": 0
+      }
+    },
+    {
+      "label": "Refresh 3/10",
+      "settledMs": 31.8,
+      "totalRows": 1000,
+      "totalColumns": 200,
+      "renderedRows": 27,
+      "renderedCells": 297,
+      "virtualColumns": 11,
+      "pinnedColumns": 2,
+      "firstRenderedRow": 0,
+      "lastRenderedRow": 26,
+      "viewport": {
+        "width": 1374,
+        "height": 558
+      },
+      "scroll": {
+        "top": 0,
+        "left": 0
+      }
+    },
+    {
+      "label": "Refresh 4/10",
+      "settledMs": 33.1,
+      "totalRows": 1000,
+      "totalColumns": 200,
+      "renderedRows": 27,
+      "renderedCells": 297,
+      "virtualColumns": 11,
+      "pinnedColumns": 2,
+      "firstRenderedRow": 0,
+      "lastRenderedRow": 26,
+      "viewport": {
+        "width": 1374,
+        "height": 558
+      },
+      "scroll": {
+        "top": 0,
+        "left": 0
+      }
+    },
+    {
+      "label": "Refresh 5/10",
+      "settledMs": 33.1,
+      "totalRows": 1000,
+      "totalColumns": 200,
+      "renderedRows": 27,
+      "renderedCells": 297,
+      "virtualColumns": 11,
+      "pinnedColumns": 2,
+      "firstRenderedRow": 0,
+      "lastRenderedRow": 26,
+      "viewport": {
+        "width": 1374,
+        "height": 558
+      },
+      "scroll": {
+        "top": 0,
+        "left": 0
+      }
+    },
+    {
+      "label": "Refresh 6/10",
+      "settledMs": 33.1,
+      "totalRows": 1000,
+      "totalColumns": 200,
+      "renderedRows": 27,
+      "renderedCells": 297,
+      "virtualColumns": 11,
+      "pinnedColumns": 2,
+      "firstRenderedRow": 0,
+      "lastRenderedRow": 26,
+      "viewport": {
+        "width": 1374,
+        "height": 558
+      },
+      "scroll": {
+        "top": 0,
+        "left": 0
+      }
+    },
+    {
+      "label": "Refresh 7/10",
+      "settledMs": 32.6,
+      "totalRows": 1000,
+      "totalColumns": 200,
+      "renderedRows": 27,
+      "renderedCells": 297,
+      "virtualColumns": 11,
+      "pinnedColumns": 2,
+      "firstRenderedRow": 0,
+      "lastRenderedRow": 26,
+      "viewport": {
+        "width": 1374,
+        "height": 558
+      },
+      "scroll": {
+        "top": 0,
+        "left": 0
+      }
+    },
+    {
+      "label": "Refresh 8/10",
+      "settledMs": 33.4,
+      "totalRows": 1000,
+      "totalColumns": 200,
+      "renderedRows": 27,
+      "renderedCells": 297,
+      "virtualColumns": 11,
+      "pinnedColumns": 2,
+      "firstRenderedRow": 0,
+      "lastRenderedRow": 26,
+      "viewport": {
+        "width": 1374,
+        "height": 558
+      },
+      "scroll": {
+        "top": 0,
+        "left": 0
+      }
+    },
+    {
+      "label": "Refresh 9/10",
+      "settledMs": 33.2,
+      "totalRows": 1000,
+      "totalColumns": 200,
+      "renderedRows": 27,
+      "renderedCells": 297,
+      "virtualColumns": 11,
+      "pinnedColumns": 2,
+      "firstRenderedRow": 0,
+      "lastRenderedRow": 26,
+      "viewport": {
+        "width": 1374,
+        "height": 558
+      },
+      "scroll": {
+        "top": 0,
+        "left": 0
+      }
+    },
+    {
+      "label": "Refresh 10/10",
+      "settledMs": 32.9,
+      "totalRows": 1000,
+      "totalColumns": 200,
+      "renderedRows": 27,
+      "renderedCells": 297,
+      "virtualColumns": 11,
+      "pinnedColumns": 2,
+      "firstRenderedRow": 0,
+      "lastRenderedRow": 26,
+      "viewport": {
+        "width": 1374,
+        "height": 558
+      },
+      "scroll": {
+        "top": 0,
+        "left": 0
+      }
+    }
+  ]
+}

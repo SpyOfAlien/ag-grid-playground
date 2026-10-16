@@ -1,0 +1,139 @@
+{
+  "timestamp": "2026-10-07T16:35:48.379Z",
+  "environment": {
+    "os": "darwin 24.6.0",
+    "architecture": "arm64",
+    "cpu": "Apple M2",
+    "browser": "154.0.8037.98",
+    "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/154.0.0.0 Safari/537.36",
+    "viewport": {
+      "width": 1700,
+      "height": 1000
+    },
+    "mode": "Angular development server",
+    "fixtureRows": 1000
+  },
+  "baselineLimitation": "Phase 1 historical timings were not captured. The two-column Phase 1 display configuration is reconstructed in the current application; this measures rendering cost, not historical bundle/bootstrap regression.",
+  "sequence": "Navigate, wait first grid cell, 120 requestAnimationFrame scrolling steps of 331 px modulo 36000, return to top, 30 precision signal changes at one per frame; repeat three times per configuration. Then 20 open/Escape cycles.",
+  "runs": [
+    {
+      "configuration": "reconstructed-phase-1-display",
+      "run": 0,
+      "initial": {
+        "elapsedFromNavigationMs": 212.70000000298023,
+        "renderedCells": 46,
+        "visibleCells": 26
+      },
+      "scroll": {
+        "elapsedMs": 1980.2999999970198,
+        "frameP95Ms": 17.80000000447035,
+        "renderedCells": 66,
+        "visibleCells": 0
+      },
+      "signals": {
+        "elapsedMs": 494.8999999985099,
+        "changes": 30
+      }
+    },
+    {
+      "configuration": "reconstructed-phase-1-display",
+      "run": 1,
+      "initial": {
+        "elapsedFromNavigationMs": 113.39999999850988,
+        "renderedCells": 46,
+        "visibleCells": 26
+      },
+      "scroll": {
+        "elapsedMs": 1982.8999999985099,
+        "frameP95Ms": 18,
+        "renderedCells": 66,
+        "visibleCells": 0
+      },
+      "signals": {
+        "elapsedMs": 491.70000000298023,
+        "changes": 30
+      }
+    },
+    {
+      "configuration": "reconstructed-phase-1-display",
+      "run": 2,
+      "initial": {
+        "elapsedFromNavigationMs": 85.89999999850988,
+        "renderedCells": 46,
+        "visibleCells": 26
+      },
+      "scroll": {
+        "elapsedMs": 1994.7999999970198,
+        "frameP95Ms": 17.900000005960464,
+        "renderedCells": 66,
+        "visibleCells": 0
+      },
+      "signals": {
+        "elapsedMs": 490.70000000298023,
+        "changes": 30
+      }
+    },
+    {
+      "configuration": "complete-system",
+      "run": 0,
+      "initial": {
+        "elapsedFromNavigationMs": 98.10000000149012,
+        "renderedCells": 161,
+        "visibleCells": 91
+      },
+      "scroll": {
+        "elapsedMs": 1981.1000000014901,
+        "frameP95Ms": 17.700000002980232,
+        "renderedCells": 231,
+        "visibleCells": 0
+      },
+      "signals": {
+        "elapsedMs": 488.3999999985099,
+        "changes": 30
+      }
+    },
+    {
+      "configuration": "complete-system",
+      "run": 1,
+      "initial": {
+        "elapsedFromNavigationMs": 93.89999999850988,
+        "renderedCells": 161,
+        "visibleCells": 91
+      },
+      "scroll": {
+        "elapsedMs": 1988.3000000044703,
+        "frameP95Ms": 17.899999998509884,
+        "renderedCells": 231,
+        "visibleCells": 0
+      },
+      "signals": {
+        "elapsedMs": 487.1000000014901,
+        "changes": 30
+      }
+    },
+    {
+      "configuration": "complete-system",
+      "run": 2,
+      "initial": {
+        "elapsedFromNavigationMs": 92.60000000149012,
+        "renderedCells": 161,
+        "visibleCells": 91
+      },
+      "scroll": {
+        "elapsedMs": 1991.8000000044703,
+        "frameP95Ms": 17.899999998509884,
+        "renderedCells": 231,
+        "visibleCells": 0
+      },
+      "signals": {
+        "elapsedMs": 487.70000000298023,
+        "changes": 30
+      }
+    }
+  ],
+  "editorCycles": {
+    "count": 20,
+    "elapsedIncludingPlaywrightMs": 729,
+    "remainingPanes": 0
+  }
+}

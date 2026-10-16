@@ -1,0 +1,54 @@
+.tsys-app {
+  font-family: Arial, sans-serif;
+  color: #172b3a;
+  background: #fff;
+  padding: 24px;
+}
+.tsys-grid {
+  display: block;
+  height: 560px;
+  width: 100%;
+  margin-top: 16px;
+}
+.tsys-number {
+  font-variant-numeric: tabular-nums;
+}
+.tsys-app button,
+.tsys-editor button {
+  min-height: 32px;
+  margin: 4px;
+}
+.tsys-app button:focus-visible,
+.tsys-editor :focus-visible {
+  outline: 3px solid #175cd3;
+  outline-offset: 2px;
+}
+.tsys-editor {
+  font-family: Arial, sans-serif;
+  display: block;
+  padding: 16px;
+  color: #172b3a;
+  background: #fff;
+  min-width: 260px;
+}
+.tsys-editor label {
+  display: block;
+  margin: 8px 0;
+}
+.tsys-editor input,
+.tsys-editor textarea,
+.tsys-editor select {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 8px;
+}
+.tsys-error {
+  color: #a21b13;
+}
+.tsys-muted {
+  color: #52616e;
+}
+
+.tsys-choice-control { display: inline-block; max-width: 100%; }
+.tsys-choice-control select { width: 120px; max-width: 100%; min-height: 28px; vertical-align: middle; }

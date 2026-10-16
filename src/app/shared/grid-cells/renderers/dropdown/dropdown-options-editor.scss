@@ -1,0 +1,10 @@
+:host {
+  display: block;
+}
+p {
+  color: var(--mat-sys-error);
+  margin: 8px 0;
+}
+p:empty {
+  display: none;
+}

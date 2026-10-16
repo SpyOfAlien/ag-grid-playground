@@ -1,0 +1,41 @@
+@use '@angular/material' as mat;
+@use './app/shared/grid-cells/styles/cell-layout';
+html {
+  color-scheme: light;
+  @include mat.theme(
+    (
+      color: (
+        primary: mat.$cyan-palette,
+      ),
+      typography: Arial,
+      density: -2,
+    )
+  );
+}
+body {
+  margin: 0;
+  background: #f6f8f5;
+  color: #24342f;
+  font-family: Arial, sans-serif;
+}
+* {
+  box-sizing: border-box;
+}
+.ag-cell.needs-review {
+  color: #744d00;
+  background: #fff6db;
+}
+
+.kit-popover-backdrop {
+  background: transparent;
+}
+
+.ag-header-cell.column-group-destination,
+.ag-header-group-cell.column-group-destination {
+  box-shadow: inset 0 0 0 2px rgb(23 103 91 / 70%);
+}
+
+.column-group-hover .ag-header-highlight-before::after,
+.column-group-hover .ag-header-highlight-after::after {
+  display: none;
+}
