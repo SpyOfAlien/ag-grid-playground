@@ -1,5 +1,4 @@
 import { computed, DestroyRef, inject, signal } from '@angular/core';
-import type { GridApi } from 'ag-grid-community';
 import type { CellRef, Command, CommandOf, EditPersistence, MethodOf, Result } from './persistence';
 
 export type EntryStatus = 'pending' | 'saved' | 'failed';
@@ -16,12 +15,20 @@ export interface Entry<Row, P> {
   readonly error?: string;
 }
 
+/** Something that shows the session's rows, such as a grid. */
+export interface RowsView<Row> {
+  /** Shows the whole table, for example when the view connects. */
+  show(rows: readonly Row[]): void;
+  /** Applies a successful result; `previous` is the table of the previous successful entry. */
+  apply(previous: readonly Row[], result: Result<Row>): void;
+}
+
 export class EditSession<Row, P extends EditPersistence<Row>> {
   private readonly log = signal<readonly Entry<Row, P>[]>([]);
   private readonly lockReason = signal<string | null>(null);
   private nextId = 1;
   private destroyed = false;
-  private readonly grids = new Set<GridApi<Row>>();
+  private readonly views = new Set<RowsView<Row>>();
 
   readonly entries = this.log.asReadonly();
   readonly current = computed(() => latestSaved(this.entries()));
@@ -52,9 +59,10 @@ export class EditSession<Row, P extends EditPersistence<Row>> {
     try {
       const result = await call.call(this.persistence, command);
       if (this.destroyed) throw new Error('The grid is gone.');
+      const previous = this.rows();
       const rows = 'replace' in result ? result.replace : this.merge(result.update);
       this.settle(id, { status: 'saved', rows });
-      this.show(result);
+      for (const view of this.views) view.apply(previous, result);
     } catch (error: unknown) {
       this.settle(id, { status: 'failed', error: errorMessage(error) });
       throw error;
@@ -73,11 +81,11 @@ export class EditSession<Row, P extends EditPersistence<Row>> {
     return null;
   }
 
-  /** Shows the current rows in a grid and keeps it in step; returns the disconnect. */
-  connect(api: GridApi<Row>): () => void {
-    this.grids.add(api);
-    api.setGridOption('rowData', [...this.rows()]);
-    return () => this.grids.delete(api);
+  /** Shows the current rows in a view and keeps it in step; returns the disconnect. */
+  connect(view: RowsView<Row>): () => void {
+    this.views.add(view);
+    view.show(this.rows());
+    return () => this.views.delete(view);
   }
 
   lock(reason: string): void {
@@ -92,20 +100,6 @@ export class EditSession<Row, P extends EditPersistence<Row>> {
     this.log.update((log) =>
       log.map((entry) => (entry.id === id ? { ...entry, ...outcome } : entry)),
     );
-  }
-
-  private show(result: Result<Row>): void {
-    for (const api of this.grids) {
-      if ('replace' in result) {
-        api.setGridOption('rowData', [...result.replace]);
-        // Kept rows are updated in place by id, so they have the same refresh gap as transactions.
-        api.refreshCells({ force: true });
-      } else {
-        const applied = api.applyTransaction({ update: [...result.update] });
-        // A transaction only refreshes cells whose own value changed; rules may read other fields.
-        api.refreshCells({ rowNodes: applied?.update, force: true });
-      }
-    }
   }
 
   /** Rows outside the current table are ignored; adding rows goes through `replace`. */

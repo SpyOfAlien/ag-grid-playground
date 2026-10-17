@@ -24,14 +24,25 @@ export class CellsDemo {
   protected readonly persistence = inject(InventoryPersistence);
   protected readonly session = createEditSession(this.persistence, sku);
 
-  protected readonly inventory = cellGridOptions(this.session, {
-    columnDefs: inventoryColumns(),
-    rowHeight: 40,
-    // Twelve rows: keep every column in the DOM while scrolling sideways.
-    suppressColumnVirtualisation: true,
-    theme,
-    onGridReady: ({ api }) => api.setGridAriaProperty('label', 'Inventory'),
-  });
+  protected readonly inventory = cellGridOptions(
+    this.session,
+    {
+      columnDefs: inventoryColumns(),
+      rowHeight: 40,
+      // Twelve rows: keep every column in the DOM while scrolling sideways.
+      suppressColumnVirtualisation: true,
+      theme,
+      onGridReady: ({ api }) => api.setGridAriaProperty('label', 'Inventory'),
+    },
+    {
+      // Cells whose rules read these fields, though their own value does not change.
+      refreshOnChange: {
+        approved: ['name', 'qty', 'category', 'active', 'reorder'],
+        reorder: ['reorder'],
+        reorderLevel: ['reorder'],
+      },
+    },
+  );
   protected readonly summary = cellGridOptions(this.session, {
     columnDefs: summaryColumns(),
     rowHeight: 32,

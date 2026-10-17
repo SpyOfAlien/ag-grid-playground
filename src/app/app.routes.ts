@@ -37,5 +37,10 @@ export const routes: Routes = [
     loadComponent: () =>
       import('./features/tooltip-perf/tooltip-perf').then((m) => m.TooltipPerf),
   },
+  {
+    path: 'cells-perf',
+    title: 'Cells · Performance',
+    loadComponent: () => import('./features/cells-perf/cells-perf').then((m) => m.CellsPerf),
+  },
   { path: '**', redirectTo: 'grid-demo' },
 ];

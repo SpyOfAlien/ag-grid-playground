@@ -8,7 +8,16 @@ import type {
   EditPersistence,
   MethodOf,
 } from '../session/persistence';
+import { gridView } from './grid-view';
 import { suppressCellKeyboard } from './keyboard';
+import { refreshGraph, type RefreshOnChange } from './refresh-map';
+
+export type { RefreshOnChange } from './refresh-map';
+
+export interface CellGridExtras<Row, Columns extends string = never> {
+  /** Columns to refresh when a field changes even though their own value does not. */
+  readonly refreshOnChange?: RefreshOnChange<Row, Columns>;
+}
 
 /** What renderers need from the session. Column params type-check methods and commands. */
 export interface CellSession {
@@ -26,10 +35,16 @@ export interface CellsContext {
  * The only way to build a cell grid: it cannot exist without a session. Rows come from the
  * session, so `rowData` and `getRowId` are not options.
  */
-export function cellGridOptions<Row, P extends EditPersistence<Row>>(
+export function cellGridOptions<
+  Row,
+  P extends EditPersistence<Row>,
+  Columns extends string = never,
+>(
   session: EditSession<Row, P>,
   options: Omit<GridOptions<Row>, 'context' | 'rowData' | 'getRowId'>,
+  extras: CellGridExtras<Row, NoInfer<Columns>> = {},
 ): GridOptions<Row> {
+  const graph = refreshGraph(extras.refreshOnChange ?? {});
   let disconnect: (() => void) | undefined;
   return {
     ...options,
@@ -37,7 +52,7 @@ export function cellGridOptions<Row, P extends EditPersistence<Row>>(
     getRowId: ({ data }) => session.rowId(data),
     defaultColDef: { suppressKeyboardEvent: suppressCellKeyboard, ...options.defaultColDef },
     onGridReady: (event) => {
-      disconnect = session.connect(event.api);
+      disconnect = session.connect(gridView(event.api, session.rowId, graph));
       options.onGridReady?.(event);
     },
     onGridPreDestroyed: (event) => {

@@ -12,7 +12,8 @@
     "prebuild": "node scripts/prepare-runtime-config.mjs",
     "test:unit": "ng test --watch=false",
     "test:types": "node scripts/check-grid-cells-imports.mjs && tsc -p tsconfig.type-tests.json && ngc -p type-tests/docs/tsconfig.json",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "test:perf": "playwright test -c perf/playwright.config.ts"
   },
   "private": true,
   "packageManager": "npm@11.6.2",

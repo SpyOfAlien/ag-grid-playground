@@ -36,6 +36,43 @@ export class InventoryPage {
 - Several grids can share one session (the demo's summary grid). Each one is disconnected when
   it is destroyed.
 
+## Refreshing only what changed
+
+When rows arrive, each connected grid compares them with the previous successful rows. Rows that
+are the same object are skipped. For changed rows, AG Grid refreshes every cell whose own value
+changed. A cell whose value did not change but whose rules read a changed field must be listed:
+
+```ts
+cellGridOptions(session, options, {
+  refreshOnChange: {
+    approved: ['name', 'qty', 'category', 'active', 'reorder'], // their locks read `approved`
+    reorderLevel: ['reorder'], // a composite cell with no field of its own
+  },
+});
+```
+
+- Keys are row fields (type-checked). To chain through a column with no field of that name,
+  name it in the third type argument: `cellGridOptions<Row, P, 'total'>(…)`.
+- Values are column ids, falling back to a column's field. An unknown name throws in dev mode.
+- List direct dependents only. The chain continues past a dependent only when that dependent's
+  value changed; a dependent whose value stayed the same is force-refreshed once and stops it.
+- Cycles throw when the grid is built. A column listing its own field is a dependency, not a cycle.
+- Columns that are not listed refresh only when their own value changes.
+
+### Measured cost
+
+`npm run test:perf` drives `/cells-perf`: 200 columns × 300 tree rows, a change to one field
+with ten dependent columns. Main-thread time on a dev build in Chrome, median of 10 runs:
+
+| Columns drawn     | Change                  | Before (force whole rows/grid) | `refreshOnChange` |
+| ----------------- | ----------------------- | ------------------------------ | ----------------- |
+| Virtualised (555) | save, one field         | 5.7 ms, 16 refreshes           | 5.2 ms, 4         |
+| Virtualised (555) | reload, one row differs | 7.2 ms, 556 refreshes          | 4.4 ms, 4         |
+| All 200 (≈4,500)  | save, one field         | 16.6 ms, 201 refreshes         | 15.8 ms, 11       |
+| All 200 (≈4,500)  | reload, one row differs | 49.9 ms, 7,401 refreshes       | 16.0 ms, 11       |
+
+The remaining time is AG Grid applying the change itself.
+
 ## Persistence
 
 ```ts

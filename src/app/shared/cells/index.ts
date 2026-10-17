@@ -25,8 +25,10 @@ export { applyChanges } from './session/apply-changes';
 export {
   cellGridOptions,
   cellSession,
+  type CellGridExtras,
   type CellSession,
   type CellsContext,
+  type RefreshOnChange,
 } from './grid/cell-grid-options';
 export { withEmptyState, type EmptyStateColumn } from './grid/empty-state';
 export { suppressCellKeyboard } from './grid/keyboard';

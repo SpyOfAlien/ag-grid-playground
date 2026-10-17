@@ -5,8 +5,6 @@ import {
   ModuleRegistry,
   type ColDef,
   type GridApi,
-  type ICellRendererComp,
-  type ICellRendererParams,
 } from 'ag-grid-community';
 import { createEditSession } from '../session/edit-session';
 import type { Command, EditPersistence, Result, SaveCommand } from '../session/persistence';
@@ -56,21 +54,6 @@ function setup() {
       grids.push(api);
     });
   return { persistence, session, mount, grids };
-}
-
-/** Shows the SKU, but whether it is in stock depends on another field. */
-class StockLabel implements ICellRendererComp<Item> {
-  private readonly gui = document.createElement('span');
-  init(params: ICellRendererParams<Item>): void {
-    this.refresh(params);
-  }
-  getGui(): HTMLElement {
-    return this.gui;
-  }
-  refresh(params: ICellRendererParams<Item>): boolean {
-    this.gui.textContent = `${params.value} ${params.data?.qty ? 'in stock' : 'out'}`;
-    return true;
-  }
 }
 
 function shown(api: GridApi<Item>): Item[] {
@@ -139,41 +122,6 @@ describe('cellGridOptions', () => {
 
     expect(second.getRowNode('B-2')?.data).toEqual({ sku: 'B-2', qty: 3 });
     expect(transactions).not.toHaveBeenCalled();
-  });
-
-  it('refreshes a cell whose display reads a field another edit changed', async () => {
-    const { session, persistence, mount } = setup();
-    const api = await mount([{ field: 'sku', colId: 'label', cellRenderer: StockLabel }]);
-    cleanup.push(() => api.destroy());
-    await session.run('load', {});
-    const label = () =>
-      document.querySelector('[row-id="B-2"] [col-id="label"]')?.textContent?.trim();
-    await vi.waitFor(() => expect(label()).toBe('B-2 out'));
-
-    persistence.saveResult = { update: [{ sku: 'B-2', qty: 4 }] };
-    await session.run('save', { changes: [] });
-
-    await vi.waitFor(() => expect(label()).toBe('B-2 in stock'));
-  });
-
-  it('refreshes dependent cells when a reload replaces the rows', async () => {
-    const { session, persistence, mount } = setup();
-    const api = await mount([{ field: 'sku', colId: 'label', cellRenderer: StockLabel }]);
-    cleanup.push(() => api.destroy());
-    await session.run('load', {});
-    const label = () =>
-      document.querySelector('[row-id="B-2"] [col-id="label"]')?.textContent?.trim();
-    await vi.waitFor(() => expect(label()).toBe('B-2 out'));
-
-    persistence.loadResult = {
-      replace: [
-        { sku: 'A-1', qty: 5 },
-        { sku: 'B-2', qty: 2 },
-      ],
-    };
-    await session.run('load', {});
-
-    await vi.waitFor(() => expect(label()).toBe('B-2 in stock'));
   });
 
   it('lets keys reach controls inside cells by default, keeping the caller defaults', () => {

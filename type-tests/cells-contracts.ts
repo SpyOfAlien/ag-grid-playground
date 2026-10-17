@@ -55,6 +55,12 @@ cellGridOptions(session, { rowData: [] });
 // @ts-expect-error row ids come from the session
 cellGridOptions(session, { getRowId: () => '' });
 
+// refreshOnChange keys are row fields unless extra column ids are named.
+cellGridOptions(session, {}, { refreshOnChange: { active: ['status'] } });
+// @ts-expect-error actve is not a field of Item
+cellGridOptions(session, {}, { refreshOnChange: { actve: ['status'] } });
+cellGridOptions<Item, Inventory, 'status'>(session, {}, { refreshOnChange: { status: ['badge'] } });
+
 // A column's command must match the method it names.
 const approveToggle = {
   method: 'approve',
