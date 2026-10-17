@@ -26,7 +26,7 @@ class NameEditor implements CellEditor<NameData> {
   readonly data = input.required<NameData>();
 }
 
-const NAME: PopoverCellParams<Item, string, FakePersistence, NameData> = {
+const NAME: PopoverCellParams<NameData, FakePersistence> = {
   editor: { component: NameEditor, data: (cell) => ({ hint: `max 60 for ${cell.columnId}` }) },
   popover: { title: 'Edit name' },
 };
@@ -34,7 +34,7 @@ const NAME: PopoverCellParams<Item, string, FakePersistence, NameData> = {
 async function render(config = NAME, persistence = new FakePersistence()) {
   const session = testSession(persistence);
   await session.run('load', {});
-  const fixture = TestBed.createComponent(PopoverCell<Item, string, FakePersistence, NameData>);
+  const fixture = TestBed.createComponent(PopoverCell<NameData, FakePersistence>);
   fixture.componentInstance.agInit(
     rendererParams(session, config, ITEM.name, {
       columnId: 'name',

@@ -9,7 +9,7 @@ import {
   ToggleCell,
   PopoverCell,
   TextCell,
-  withPlaceholder,
+  withEmptyState,
   type DialogCellParams,
   type DropdownCellParams,
   type FieldEditorData,
@@ -24,7 +24,7 @@ import type { InventoryPersistence } from './inventory-persistence';
 import { DEMO_TODAY, type Category, type Item, type Supplier } from './inventory.model';
 
 type P = InventoryPersistence;
-type QtyEditor = FieldEditorData<Item, number>;
+type NumberEditor = FieldEditorData<Item, number>;
 type TextEditor = FieldEditorData<Item, string>;
 
 const unlessApproved = ({ row }: { row: Item }) =>
@@ -67,16 +67,16 @@ export function inventoryColumns(): ColDef<Item>[] {
           }),
         },
         popover: { title: 'Edit name', width: 320 },
-      } satisfies PopoverCellParams<Item, string, P, TextEditor>,
+      } satisfies PopoverCellParams<TextEditor, P>,
     },
     {
       field: 'qty',
       headerName: 'Quantity',
       width: 150,
       cellClass: 'cells-align-end',
-      ...withPlaceholder<Item, number>({
+      ...withEmptyState<Item, number>({
         value: (item) => item.qty,
-        placeholder: (qty, item) => (item.discontinued ? 'NA' : qty == null ? '-' : null),
+        emptyState: (qty, item) => (item.discontinued ? 'NA' : qty == null ? '-' : null),
         renderer: PopoverCell,
         params: {
           format: (qty) => `${qty} pcs`,
@@ -92,7 +92,7 @@ export function inventoryColumns(): ColDef<Item>[] {
             data: () => ({ label: 'Quantity', mode: 'number', validators: [Validators.min(0)] }),
           },
           popover: { title: 'Edit quantity', width: 280 },
-        } satisfies PopoverCellParams<Item, number, P, QtyEditor>,
+        } satisfies PopoverCellParams<NumberEditor, P>,
       }),
     },
     {
@@ -128,7 +128,7 @@ export function inventoryColumns(): ColDef<Item>[] {
           }),
         },
         popover: { title: 'Edit unit price', width: 280 },
-      } satisfies PopoverCellParams<Item, number, P, QtyEditor>,
+      } satisfies PopoverCellParams<NumberEditor, P>,
     },
     {
       field: 'supplier',
@@ -238,7 +238,7 @@ export function inventoryColumns(): ColDef<Item>[] {
           data: () => ({ label: 'Notes', mode: 'multiline' }),
         },
         dialog: { title: 'Edit notes', width: 480 },
-      } satisfies DialogCellParams<Item, string, P, TextEditor, 'save', string | null>,
+      } satisfies DialogCellParams<TextEditor, P>,
     },
     {
       colId: 'details',
@@ -258,7 +258,7 @@ export function inventoryColumns(): ColDef<Item>[] {
             value: draft[field],
           })),
         }),
-      } satisfies DialogCellParams<Item, null, P, ItemDetailsData, 'save', ItemDraft>,
+      } satisfies DialogCellParams<ItemDetailsData, P>,
     },
     {
       colId: 'approved',

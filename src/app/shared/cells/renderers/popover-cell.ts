@@ -17,38 +17,38 @@ import {
   type CellEditor,
   type CellPopoverOptions,
   type EditorData,
+  type EditorNext,
+  type EditorRow,
+  type EditorValue,
 } from '../editors/editor';
 import { EDIT_TEMPLATE } from './display-template';
 
 /** The column's editor: its component and any data beyond the standard `EditorData`. */
-export interface EditorConfig<Row, V, Next, D extends EditorData<Row, V, Next>> {
+export interface EditorConfig<D extends EditorData<unknown, unknown>> {
   component: Type<CellEditor<D>>;
-  data?: (cell: Cell<Row, V>) => Omit<D, keyof EditorData<Row, V, Next>>;
+  data?: (cell: Cell<EditorRow<D>, EditorValue<D>>) => Omit<D, keyof EditorData<unknown, unknown>>;
 }
 
-/** Shared by popover and dialog cells. */
+/**
+ * Shared by popover and dialog cells. The editor's data `D` already says the row, the cell value
+ * and what the editor submits, so only the persistence `P` and a method other than `save` are added.
+ */
 export type EditCellParams<
-  Row,
-  V,
+  D extends EditorData<unknown, unknown>,
   P,
-  D extends EditorData<Row, V, Next>,
   M extends string = 'save',
-  Next = V,
-> = DisplayParams<Row, V> &
-  EditParams<Row, V, P, Next, M> & {
-    editor: EditorConfig<Row, V, Next, D>;
+> = DisplayParams<EditorRow<D>, EditorValue<D>> &
+  EditParams<EditorRow<D>, EditorValue<D>, P, EditorNext<D>, M> & {
+    editor: EditorConfig<D>;
     /** The pen's accessible name; defaults to "Edit {header}". */
-    label?: CellRule<Row, V, string>;
+    label?: CellRule<EditorRow<D>, EditorValue<D>, string>;
   };
 
 export type PopoverCellParams<
-  Row,
-  V,
+  D extends EditorData<unknown, unknown>,
   P,
-  D extends EditorData<Row, V, Next>,
   M extends string = 'save',
-  Next = V,
-> = EditCellParams<Row, V, P, D, M, Next> & { popover?: CellPopoverOptions };
+> = EditCellParams<D, P, M> & { popover?: CellPopoverOptions };
 
 /** The view both editing renderers show: the value and a pen. */
 export function editView<Row, V>(
@@ -80,13 +80,10 @@ export function editView<Row, V>(
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class PopoverCell<
-  Row,
-  V,
+  D extends EditorData<unknown, unknown>,
   P,
-  D extends EditorData<Row, V, Next>,
   M extends string = 'save',
-  Next = V,
-> extends CellBase<Row, V, PopoverCellParams<Row, V, P, D, M, Next>> {
+> extends CellBase<EditorRow<D>, EditorValue<D>, PopoverCellParams<D, P, M>> {
   private readonly injector = inject(Injector);
 
   protected readonly view = computed(() => {
@@ -105,7 +102,11 @@ export class PopoverCell<
       this.injector,
       event.currentTarget as HTMLElement,
       component,
-      (close) => ({ ...cellEditorData<Row, V, Next>(params, cell, close), ...data?.(cell) }) as D,
+      (close) =>
+        ({
+          ...cellEditorData<EditorRow<D>, EditorValue<D>, EditorNext<D>>(params, cell, close),
+          ...data?.(cell),
+        }) as D,
       params.popover,
     );
   }

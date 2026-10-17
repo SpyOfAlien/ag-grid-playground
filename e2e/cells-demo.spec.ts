@@ -16,7 +16,7 @@ async function expectTooltip(page: Page, target: Locator, text: string): Promise
   await expect(page.locator('.cells-tooltip')).toHaveCount(0);
 }
 
-test('loads the inventory into both grids with placeholders and no axe violations', async ({
+test('loads the inventory into both grids with empty states and no axe violations', async ({
   page,
 }) => {
   await page.goto('/cells-demo');
@@ -185,11 +185,11 @@ test('open options, popover and dialog editors have no axe violations', async ({
   expect(await axe()).toEqual([]);
 });
 
-test('placeholders line up with rendered values in the same column', async ({ page }) => {
+test('empty states line up with rendered values in the same column', async ({ page }) => {
   await page.goto('/cells-demo');
   await expect(cell(page, 'SKU-03', 'qty')).toHaveText('-');
 
-  const placeholderRight = await cell(page, 'SKU-03', 'qty').evaluate((element) => {
+  const emptyStateRight = await cell(page, 'SKU-03', 'qty').evaluate((element) => {
     const range = document.createRange();
     range.selectNodeContents(element);
     return range.getBoundingClientRect().right;
@@ -198,7 +198,7 @@ test('placeholders line up with rendered values in the same column', async ({ pa
     .locator('.cells-cell')
     .evaluate((element) => element.getBoundingClientRect().right);
 
-  expect(Math.abs(placeholderRight - renderedRight)).toBeLessThan(2);
+  expect(Math.abs(emptyStateRight - renderedRight)).toBeLessThan(2);
 });
 
 test('tooltips show on hover and keyboard focus, render HTML, and pass axe', async ({ page }) => {

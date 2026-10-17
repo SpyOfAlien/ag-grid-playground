@@ -19,6 +19,13 @@ export interface EditorData<Row, V, Next = V> {
   readonly session: CellSession;
 }
 
+/** The row an editor's data is for. */
+export type EditorRow<D extends EditorData<unknown, unknown>> = D['row'];
+/** The cell value an editor's data is for. */
+export type EditorValue<D extends EditorData<unknown, unknown>> = NonNullable<D['value']>;
+/** What an editor submits. */
+export type EditorNext<D extends EditorData<unknown, unknown>> = Parameters<D['submit']>[0];
+
 export interface CellEditor<D> {
   readonly data: InputSignal<D>;
 }

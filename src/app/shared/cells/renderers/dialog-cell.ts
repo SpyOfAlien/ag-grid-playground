@@ -6,18 +6,18 @@ import {
   openCellDialog,
   type CellDialogOptions,
   type EditorData,
+  type EditorNext,
+  type EditorRow,
+  type EditorValue,
 } from '../editors/editor';
 import { EDIT_TEMPLATE } from './display-template';
 import { editView, type EditCellParams } from './popover-cell';
 
 export type DialogCellParams<
-  Row,
-  V,
+  D extends EditorData<unknown, unknown>,
   P,
-  D extends EditorData<Row, V, Next>,
   M extends string = 'save',
-  Next = V,
-> = EditCellParams<Row, V, P, D, M, Next> & { dialog?: CellDialogOptions };
+> = EditCellParams<D, P, M> & { dialog?: CellDialogOptions };
 
 /** Displays a value and edits it in a modal dialog. */
 @Component({
@@ -28,13 +28,10 @@ export type DialogCellParams<
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class DialogCell<
-  Row,
-  V,
+  D extends EditorData<unknown, unknown>,
   P,
-  D extends EditorData<Row, V, Next>,
   M extends string = 'save',
-  Next = V,
-> extends CellBase<Row, V, DialogCellParams<Row, V, P, D, M, Next>> {
+> extends CellBase<EditorRow<D>, EditorValue<D>, DialogCellParams<D, P, M>> {
   private readonly injector = inject(Injector);
 
   protected readonly view = computed(() => {
@@ -52,7 +49,11 @@ export class DialogCell<
     openCellDialog(
       this.injector,
       component,
-      (close) => ({ ...cellEditorData<Row, V, Next>(params, cell, close), ...data?.(cell) }) as D,
+      (close) =>
+        ({
+          ...cellEditorData<EditorRow<D>, EditorValue<D>, EditorNext<D>>(params, cell, close),
+          ...data?.(cell),
+        }) as D,
       params.dialog,
     );
   }

@@ -33,11 +33,11 @@ describe('DialogCell', () => {
     const persistence = new FakePersistence();
     const session = testSession(persistence);
     await session.run('load', {});
-    const config: DialogCellParams<Item, string, FakePersistence, NotesData> = {
+    const config: DialogCellParams<NotesData, FakePersistence> = {
       editor: { component: NotesEditor },
       dialog: { title: 'Edit notes', width: 480 },
     };
-    const fixture = TestBed.createComponent(DialogCell<Item, string, FakePersistence, NotesData>);
+    const fixture = TestBed.createComponent(DialogCell<NotesData, FakePersistence>);
     fixture.componentInstance.agInit(
       rendererParams(session, config, 'Old', {
         columnId: 'name',

@@ -28,7 +28,7 @@ export {
   type CellSession,
   type CellsContext,
 } from './grid/cell-grid-options';
-export { withPlaceholder, type PlaceholderColumn } from './grid/placeholder';
+export { withEmptyState, type EmptyStateColumn } from './grid/empty-state';
 export { suppressCellKeyboard } from './grid/keyboard';
 
 // Building blocks for custom renderers
@@ -80,6 +80,9 @@ export {
   type CellEditor,
   type CellPopoverOptions,
   type EditorData,
+  type EditorNext,
+  type EditorRow,
+  type EditorValue,
 } from './editors/editor';
 export { FieldEditor, type FieldEditorData } from './editors/field-editor';
 export { DropdownOptions, type DropdownOptionsData } from './editors/dropdown-options';

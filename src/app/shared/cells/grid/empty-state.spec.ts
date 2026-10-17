@@ -6,7 +6,7 @@ import {
   type ICellRendererComp,
   type ICellRendererParams,
 } from 'ag-grid-community';
-import { withPlaceholder } from './placeholder';
+import { withEmptyState } from './empty-state';
 
 ModuleRegistry.registerModules([AllCommunityModule]);
 
@@ -38,9 +38,9 @@ function mount(rows: Item[]) {
       columnDefs: [
         {
           colId: 'qty',
-          ...withPlaceholder<Item, number>({
+          ...withEmptyState<Item, number>({
             value: (item) => item.qty,
-            placeholder: (qty, item) =>
+            emptyState: (qty, item) =>
               item.discontinued ? 'NA' : qty == null || qty === 0 ? '-' : null,
             renderer: QtyRenderer,
             params: { unit: 'pcs' },
@@ -52,10 +52,10 @@ function mount(rows: Item[]) {
   });
 }
 
-describe('withPlaceholder', () => {
+describe('withEmptyState', () => {
   afterEach(() => (document.body.innerHTML = ''));
 
-  it('uses the placeholder as the cell value and skips the renderer', async () => {
+  it('uses the empty state as the cell value and skips the renderer', async () => {
     const api = await mount([
       { sku: 'A-1', qty: 0, discontinued: false },
       { sku: 'B-2', qty: 4, discontinued: true },

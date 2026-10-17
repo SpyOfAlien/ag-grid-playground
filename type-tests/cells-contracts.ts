@@ -3,8 +3,11 @@ import {
   cellGridOptions,
   createEditSession,
   type Command,
+  type DialogCellParams,
+  type EditorData,
   type EditPersistence,
   type MethodOf,
+  type PopoverCellParams,
   type Result,
   type SaveCommand,
   type ToggleCellParams,
@@ -69,4 +72,38 @@ const unknownMethod = {
   method: 'delete',
 } satisfies ToggleCellParams<Item, Inventory, 'delete'>;
 
-export { approveToggle, helper, methods, partial, unknownMethod, wrongCommand };
+// Popover and dialog cells take the row, value and submitted value from the editor's data.
+type CountData = EditorData<Item, number, number | null> & { readonly label: string };
+declare const CountEditor: new () => {
+  readonly data: import('@angular/core').InputSignal<CountData>;
+};
+
+const countPopover = {
+  format: (count) => `${count ?? 0} pcs`,
+  editor: { component: CountEditor, data: () => ({ label: 'Count' }) },
+  command: (next, cell) => ({ changes: [{ rowId: cell.rowId, field: 'active', value: next }] }),
+} satisfies PopoverCellParams<CountData, Inventory>;
+
+const countDialog = {
+  // @ts-expect-error the editor's data needs a label
+  editor: { component: CountEditor, data: () => ({}) },
+} satisfies DialogCellParams<CountData, Inventory>;
+
+const approveDialog = {
+  editor: { component: CountEditor },
+  method: 'approve',
+  // @ts-expect-error next is number | null, not a list of skus
+  command: (next) => ({ skus: next }),
+} satisfies DialogCellParams<CountData, Inventory, 'approve'>;
+
+export {
+  approveDialog,
+  approveToggle,
+  countDialog,
+  countPopover,
+  helper,
+  methods,
+  partial,
+  unknownMethod,
+  wrongCommand,
+};

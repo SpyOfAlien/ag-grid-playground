@@ -78,9 +78,14 @@ Columns are plain `ColDef`s. Renderer params are checked with `satisfies`:
     editable: ({ row }) => (row.approved ? 'Approved items are locked' : true),
     editor: { component: FieldEditor<Item, number>, data: () => ({ label: 'Quantity', mode: 'number' }) },
     popover: { title: 'Edit quantity' },
-  } satisfies PopoverCellParams<Item, number, InventoryPersistence, FieldEditorData<Item, number>>,
+  } satisfies PopoverCellParams<FieldEditorData<Item, number>, InventoryPersistence>,
 }
 ```
+
+`PopoverCellParams` and `DialogCellParams` take the editor's data, the persistence and, when the
+column calls a method other than `save`, that method's name: `DialogCellParams<ItemDetailsData,
+InventoryPersistence, 'approve'>`. The row, the cell value and what the editor submits all come
+from the editor's data.
 
 | Renderer       | Shows                            | Edits                                           |
 | -------------- | -------------------------------- | ----------------------------------------------- |
@@ -104,9 +109,9 @@ or a function of the cell (`{ rowId, columnId, row, value }`).
 - **Disabled and tooltip order.** Session lock or "Saving…" (a pending save keeps the normal
   tooltip), then the `editable` reason, then this cell's last error (the control stays enabled for
   retry), then the normal tooltip.
-- **Placeholders.** `withPlaceholder({ value, placeholder, renderer, params })` decides per cell
-  whether to show text such as `-` or `NA`. The placeholder becomes the cell value, so Excel
-  exports exactly what is shown, and the renderer is skipped for it.
+- **Empty states.** `withEmptyState({ value, emptyState, renderer, params })` decides per cell
+  whether to show text such as `-` or `NA` instead of the value. The empty state becomes the cell
+  value, so Excel exports exactly what is shown, and the renderer is skipped for it.
 - **Alignment** is a column class: `cellClass: 'cells-align-end'`.
 
 ## Tooltips
