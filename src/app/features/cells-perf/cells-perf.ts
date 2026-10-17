@@ -179,6 +179,14 @@ export class CellsPerf {
           );
           return this.session.run('load', {});
         }),
+      /** A server reload: every row is a new object, one of them with a different value. */
+      serverReplace: async () =>
+        this.measure(() => {
+          this.persistence.rows = this.persistence.rows.map((row) =>
+            row.id === 'g0-3' ? { ...row, c0: 3000 + this.counter++ } : { ...row },
+          );
+          return this.session.run('load', {});
+        }),
     };
   }
 

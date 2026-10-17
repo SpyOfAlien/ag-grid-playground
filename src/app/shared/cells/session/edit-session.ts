@@ -1,5 +1,6 @@
 import { computed, DestroyRef, inject, signal } from '@angular/core';
 import type { CellRef, Command, CommandOf, EditPersistence, MethodOf, Result } from './persistence';
+import { rowChanges, type RowChanges } from './row-changes';
 
 export type EntryStatus = 'pending' | 'saved' | 'failed';
 
@@ -12,6 +13,8 @@ export interface Entry<Row, P> {
   readonly status: EntryStatus;
   /** The full table after this entry; set only on success. */
   readonly rows?: readonly Row[];
+  /** What this entry changed compared with the previous successful table; set only on success. */
+  readonly changes?: RowChanges;
   readonly error?: string;
 }
 
@@ -19,8 +22,8 @@ export interface Entry<Row, P> {
 export interface ConnectedGrid<Row> {
   /** Shows the whole table, for example when the grid connects. */
   show(rows: readonly Row[]): void;
-  /** Applies a successful result; `previous` is the table of the previous successful entry. */
-  apply(previous: readonly Row[], result: Result<Row>): void;
+  /** Applies a successful result; `changes` is what it changed in the previous successful table. */
+  apply(result: Result<Row>, changes: RowChanges): void;
 }
 
 export class EditSession<Row, P extends EditPersistence<Row>> {
@@ -61,8 +64,9 @@ export class EditSession<Row, P extends EditPersistence<Row>> {
       if (this.destroyed) throw new Error('The grid is gone.');
       const previous = this.rows();
       const rows = 'replace' in result ? result.replace : this.merge(result.update);
-      this.settle(id, { status: 'saved', rows });
-      for (const grid of this.grids) grid.apply(previous, result);
+      const changes = rowChanges(previous, rows, this.rowId);
+      this.settle(id, { status: 'saved', rows, changes });
+      for (const grid of this.grids) grid.apply(result, changes);
     } catch (error: unknown) {
       this.settle(id, { status: 'failed', error: errorMessage(error) });
       throw error;
@@ -96,7 +100,10 @@ export class EditSession<Row, P extends EditPersistence<Row>> {
     this.lockReason.set(null);
   }
 
-  private settle(id: number, outcome: Pick<Entry<Row, P>, 'status' | 'rows' | 'error'>): void {
+  private settle(
+    id: number,
+    outcome: Pick<Entry<Row, P>, 'status' | 'rows' | 'changes' | 'error'>,
+  ): void {
     this.log.update((log) =>
       log.map((entry) => (entry.id === id ? { ...entry, ...outcome } : entry)),
     );

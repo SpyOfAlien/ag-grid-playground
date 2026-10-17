@@ -20,6 +20,7 @@ export type {
   SaveCommand,
 } from './session/persistence';
 export { applyChanges } from './session/apply-changes';
+export type { RowChanges } from './session/row-changes';
 
 // Grid wiring
 export {

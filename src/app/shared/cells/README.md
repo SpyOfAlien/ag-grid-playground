@@ -38,9 +38,10 @@ export class InventoryPage {
 
 ## Refreshing only what changed
 
-When rows arrive, each connected grid compares them with the previous successful rows. Rows that
-are the same object are skipped. For changed rows, AG Grid refreshes every cell whose own value
-changed. A cell whose value did not change but whose rules read a changed field must be listed:
+When rows arrive, the session compares them once with the previous successful rows and records
+the result on the entry as `changes` (see Session). Each connected grid uses that record: AG Grid
+refreshes every cell whose own value changed, and a cell whose value did not change but whose
+rules read a changed field must be listed:
 
 ```ts
 cellGridOptions(session, options, {
@@ -71,7 +72,10 @@ with ten dependent columns. Main-thread time on a dev build in Chrome, median of
 | All 200 (≈4,500)  | save, one field         | 16.6 ms, 201 refreshes         | 15.8 ms, 11       |
 | All 200 (≈4,500)  | reload, one row differs | 49.9 ms, 7,401 refreshes       | 16.0 ms, 11       |
 
-The remaining time is AG Grid applying the change itself.
+The remaining time is AG Grid applying the change itself. A server reload that returns every row
+as a new object (one with a different value) costs about 16 ms virtualised and 24 ms with all
+columns drawn; comparing the 300 × 200 fields is about 3 ms of that. Keeping unchanged rows as the
+same object makes the comparison free.
 
 ## Persistence
 
@@ -99,6 +103,10 @@ class InventoryPersistence implements EditPersistence<Item> {
 - `entries` is the history. Each entry has `previousId` (the entry just before it) and, on
   success, the full table it produced. Rows are shared by reference, not copied. `current` is the
   latest successful entry and `rows` its table.
+- A successful entry also has `changes`: `{ updated: [{ rowId, fields }], added, removed }`,
+  compared with the previous successful table. Unchanged rows (the same object, or every field
+  equal) are not listed, and fields are compared shallowly. Old and new values are not copied;
+  read them from the two entries' `rows` when needed, for example in a history view.
 - `errorFor(cell)` is the cell's last failure, cleared by its next success.
 - `lock(reason)` / `unlock()` disable every control with that reason.
 

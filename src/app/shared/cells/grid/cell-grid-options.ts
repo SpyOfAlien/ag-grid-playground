@@ -52,7 +52,7 @@ export function cellGridOptions<
     getRowId: ({ data }) => session.rowId(data),
     defaultColDef: { suppressKeyboardEvent: suppressCellKeyboard, ...options.defaultColDef },
     onGridReady: (event) => {
-      disconnect = session.connect(connectGrid(event.api, session.rowId, graph));
+      disconnect = session.connect(connectGrid(event.api, graph));
       options.onGridReady?.(event);
     },
     onGridPreDestroyed: (event) => {

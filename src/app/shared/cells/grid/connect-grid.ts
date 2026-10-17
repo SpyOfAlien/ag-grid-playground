@@ -1,18 +1,14 @@
 import { isDevMode } from '@angular/core';
 import type { Column, GridApi, IRowNode } from 'ag-grid-community';
 import type { ConnectedGrid } from '../session/edit-session';
-import type { Result } from '../session/persistence';
+import type { RowChanges } from '../session/row-changes';
 import type { RefreshGraph } from './refresh-map';
 
 /**
  * Shows session results in one grid. AG Grid refreshes cells whose own value changed; this adds
  * a forced refresh only for declared dependents whose value did not change.
  */
-export function connectGrid<Row>(
-  api: GridApi<Row>,
-  rowId: (row: Row) => string,
-  graph: RefreshGraph,
-): ConnectedGrid<Row> {
+export function connectGrid<Row>(api: GridApi<Row>, graph: RefreshGraph): ConnectedGrid<Row> {
   // Names are column ids, falling back to a column's field.
   const column = (name: string): Column | null =>
     api.getColumn(name) ??
@@ -24,11 +20,11 @@ export function connectGrid<Row>(
 
   return {
     show: (rows) => api.setGridOption('rowData', [...rows]),
-    apply(previous, result) {
-      const plans = plan(api, rowId, graph, column, previous, result);
+    apply(result, changes) {
+      const snapshots = snapshotBefore(api, graph, column, changes);
       if ('replace' in result) api.setGridOption('rowData', [...result.replace]);
       else api.applyTransaction({ update: [...result.update] });
-      for (const { node, fields, before } of plans) {
+      for (const { node, fields, before } of snapshots) {
         const forced: Column[] = [];
         const seen = new Set<string>();
         const queue = [...fields];
@@ -48,43 +44,30 @@ export function connectGrid<Row>(
   };
 }
 
-interface RowPlan {
+interface RowSnapshot {
   readonly node: IRowNode;
   readonly fields: readonly string[];
   /** Values of every cell the change could reach, read before the rows are applied. */
   readonly before: ReadonlyMap<string, unknown>;
 }
 
-function plan<Row>(
+/** Reads, before the rows are applied, the values of every column a changed field can reach. */
+function snapshotBefore<Row>(
   api: GridApi<Row>,
-  rowId: (row: Row) => string,
   graph: RefreshGraph,
   column: (name: string) => Column | null,
-  previous: readonly Row[],
-  result: Result<Row>,
-): RowPlan[] {
-  const old = new Map(previous.map((row) => [rowId(row), row]));
-  const plans: RowPlan[] = [];
-  for (const row of 'replace' in result ? result.replace : result.update) {
-    const id = rowId(row);
-    const was = old.get(id);
-    const node = api.getRowNode(id);
-    // Immutable rows: the same object means nothing in the row changed.
-    if (was === undefined || was === row || !node) continue;
-    const fields = changedFields(was, row);
+  changes: RowChanges,
+): RowSnapshot[] {
+  const snapshots: RowSnapshot[] = [];
+  for (const { rowId, fields } of changes.updated) {
+    const node = api.getRowNode(rowId);
+    if (!node) continue;
     const before = new Map<string, unknown>();
     for (const name of graph.reachable(fields)) {
       const target = column(name);
       if (target) before.set(name, api.getCellValue({ rowNode: node, colKey: target }));
     }
-    plans.push({ node, fields, before });
+    if (before.size) snapshots.push({ node, fields, before });
   }
-  return plans;
-}
-
-function changedFields<Row>(was: Row, row: Row): string[] {
-  const keys = new Set([...Object.keys(was as object), ...Object.keys(row as object)]);
-  return [...keys].filter(
-    (key) => (was as Record<string, unknown>)[key] !== (row as Record<string, unknown>)[key],
-  );
+  return snapshots;
 }

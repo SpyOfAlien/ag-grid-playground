@@ -4,7 +4,7 @@ import { test } from '@playwright/test';
 // and change detection) and how many cell renderers were refreshed.
 type Sample = { ms: number; refreshes: number };
 type Perf = Record<'ready', () => Promise<number>> &
-  Record<'baseline' | 'update' | 'replace', () => Promise<Sample>>;
+  Record<'baseline' | 'update' | 'replace' | 'serverReplace', () => Promise<Sample>>;
 const median = (values: number[]) =>
   [...values].sort((a, b) => a - b)[Math.floor(values.length / 2)];
 
@@ -18,7 +18,7 @@ for (const allColumns of [false, true])
       (window as unknown as { cellsPerf: Perf }).cellsPerf.ready(),
     );
     const lines = [`cell renderers drawn: ${rendered}`];
-    for (const kind of ['baseline', 'update', 'replace'] as const) {
+    for (const kind of ['baseline', 'update', 'replace', 'serverReplace'] as const) {
       const samples: Sample[] = [];
       for (let run = 0; run < 12; run++)
         samples.push(
@@ -29,7 +29,7 @@ for (const allColumns of [false, true])
         );
       const timed = samples.slice(2);
       lines.push(
-        `${kind.padEnd(8)} median ${median(timed.map((s) => s.ms)).toFixed(1)} ms, ` +
+        `${kind.padEnd(13)} median ${median(timed.map((s) => s.ms)).toFixed(1)} ms, ` +
           `max ${Math.max(...timed.map((s) => s.ms)).toFixed(1)} ms, ` +
           `renderer refreshes ${median(timed.map((s) => s.refreshes))}`,
       );

@@ -65,6 +65,46 @@ describe('EditSession', () => {
     expect(edits.rows()[1]).toBe(B2);
   });
 
+  it('records which fields of which rows a result changed, against the last good rows', async () => {
+    const persistence = new FakePersistence();
+    const edits = session(persistence);
+    await edits.run('load', {});
+    persistence.saveResult = () => Promise.reject(new Error('Server rejected'));
+    await edits.run('save', { changes: [] }).catch(() => undefined);
+    persistence.saveResult = () =>
+      Promise.resolve({
+        update: [
+          { sku: 'A-1', qty: 9 },
+          { sku: 'B-2', qty: 0 },
+        ],
+      });
+
+    await edits.run('save', { changes: [{ rowId: 'A-1', field: 'qty', value: 9 }] });
+
+    expect(edits.entries()[1].changes).toBeUndefined();
+    expect(edits.current()?.changes).toEqual({
+      updated: [{ rowId: 'A-1', fields: ['qty'] }],
+      added: [],
+      removed: [],
+    });
+  });
+
+  it('records added and removed rows on a reload and skips rows whose fields are all equal', async () => {
+    const persistence = new FakePersistence();
+    const edits = session(persistence);
+    await edits.run('load', {});
+    persistence.loadResult = {
+      replace: [
+        { sku: 'B-2', qty: 0 },
+        { sku: 'C-3', qty: 1 },
+      ],
+    };
+
+    await edits.run('load', {});
+
+    expect(edits.current()?.changes).toEqual({ updated: [], added: ['C-3'], removed: ['A-1'] });
+  });
+
   it('keeps the last good rows when a save fails and records why', async () => {
     const persistence = new FakePersistence();
     const edits = session(persistence);
