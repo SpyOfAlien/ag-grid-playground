@@ -137,6 +137,30 @@ test('dialogs edit notes, several fields at once, and approve through another me
   ).toContainText('approve · saved');
 });
 
+test('changing the reorder level redraws the quantity marker that reads it', async ({ page }) => {
+  await page.goto('/cells-demo');
+  const marker = cell(page, 'SKU-01', 'qty').locator('.cells-marker[data-kind="error"]');
+  await expect(cell(page, 'SKU-01', 'qty')).toHaveText('120 pcs');
+  await expect(marker).toHaveCount(0);
+
+  const setLevel = async (level: string) => {
+    await cell(page, 'SKU-01', 'reorder')
+      .getByRole('button', { name: 'Edit reorder level' })
+      .click();
+    const editor = page.getByRole('dialog', { name: 'Reorder level' });
+    await editor.getByLabel('Reorder level').fill(level);
+    await editor.getByRole('button', { name: 'Save' }).click();
+    await expect(editor).toHaveCount(0);
+  };
+
+  await setLevel('200');
+  await expect(marker).toHaveCount(1);
+  await expectTooltip(page, marker, 'Below the reorder level of 200');
+
+  await setLevel('50');
+  await expect(marker).toHaveCount(0);
+});
+
 test('a composite cell runs two controls with their own commands, by mouse and keyboard', async ({
   page,
 }) => {

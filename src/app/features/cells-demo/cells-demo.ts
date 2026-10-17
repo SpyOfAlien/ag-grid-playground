@@ -29,7 +29,7 @@ export class CellsDemo {
     {
       columnDefs: inventoryColumns(),
       rowHeight: 40,
-      // Twelve rows: keep every column in the DOM while scrolling sideways.
+      // Keep every column in the DOM while scrolling sideways.
       suppressColumnVirtualisation: true,
       theme,
       onGridReady: ({ api }) => api.setGridAriaProperty('label', 'Inventory'),
@@ -37,9 +37,12 @@ export class CellsDemo {
     {
       // Cells whose rules read these fields, though their own value does not change.
       refreshOnChange: {
-        approved: ['name', 'qty', 'category', 'active', 'reorder'],
+        approved: ['name', 'qty', 'unitPrice', 'supplier', 'category', 'active', 'reorder'],
+        discontinued: ['name'],
+        qty: ['stockValue'],
+        unitPrice: ['stockValue'],
         reorder: ['reorder'],
-        reorderLevel: ['reorder'],
+        reorderLevel: ['qty', 'reorder'],
       },
     },
   );
