@@ -16,7 +16,8 @@
     "module": "preserve",
     "paths": {
       "@grid-cells": ["./src/app/shared/grid-cells/public-api.ts"],
-      "@grid-cells/composition": ["./src/app/shared/grid-cells/composition-api.ts"]
+      "@grid-cells/composition": ["./src/app/shared/grid-cells/composition-api.ts"],
+      "@cells": ["./src/app/shared/cells/index.ts"]
     }
   },
   "angularCompilerOptions": {

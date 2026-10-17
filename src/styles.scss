@@ -1,5 +1,6 @@
 @use '@angular/material' as mat;
 @use './app/shared/grid-cells/styles/cell-layout';
+@use './app/shared/cells/cells';
 html {
   color-scheme: light;
   @include mat.theme(

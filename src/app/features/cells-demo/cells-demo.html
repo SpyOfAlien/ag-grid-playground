@@ -1,0 +1,52 @@
+<main class="page">
+  <h1>Warehouse inventory</h1>
+  <div class="controls">
+    <label>
+      Persistence
+      <select
+        [value]="persistence.mode()"
+        [disabled]="busy()"
+        (change)="setMode($any($event.target).value)"
+      >
+        <option value="client">Client</option>
+        <option value="server">Server (mock API)</option>
+      </select>
+    </label>
+    @if (persistence.mode() === 'server') {
+      <label>
+        Delay (ms)
+        <input
+          type="number"
+          min="0"
+          step="100"
+          [value]="persistence.delay()"
+          (change)="persistence.delay.set(+$any($event.target).value)"
+        />
+      </label>
+      <label>
+        <input
+          type="checkbox"
+          [checked]="persistence.failNext()"
+          (change)="persistence.failNext.set($any($event.target).checked)"
+        />
+        Fail next save
+      </label>
+    }
+    <label>
+      <input
+        type="checkbox"
+        [checked]="readOnly()"
+        (change)="setReadOnly($any($event.target).checked)"
+      />
+      Read-only
+    </label>
+  </div>
+  <section class="grids">
+    <ag-grid-angular data-testid="inventory-grid" class="inventory" [gridOptions]="inventory" />
+    <aside aria-labelledby="summary-title">
+      <h2 id="summary-title">Stock summary</h2>
+      <ag-grid-angular data-testid="summary-grid" class="summary" [gridOptions]="summary" />
+      <app-edit-history [entries]="session.entries()" />
+    </aside>
+  </section>
+</main>

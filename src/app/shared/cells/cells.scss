@@ -1,0 +1,213 @@
+// Global styles for the cells kit: renderers live inside AG Grid and editors inside overlays.
+// Override the custom properties to theme it.
+:root {
+  --cells-accent: #17675b;
+  --cells-muted: #5f6b67;
+  --cells-highlight: #fff6db;
+  --cells-error: #b3261e;
+  --cells-warning: #8a5a00;
+  --cells-info: #1f5fa8;
+  --cells-edited: #6a3fa0;
+  --cells-generated: #4a6a62;
+  --cells-special: #a0337a;
+}
+
+.cells-cell {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+}
+
+// One column class aligns both rendered cells and AG Grid's plain text (placeholders).
+.cells-align-end {
+  text-align: end;
+
+  .cells-cell {
+    justify-content: flex-end;
+  }
+}
+
+.cells-text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cells-highlighted {
+  background: var(--cells-highlight);
+  padding: 0 4px;
+  border-radius: 3px;
+}
+
+.cells-muted {
+  color: var(--cells-muted);
+}
+
+.cells-marker {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--cells-info);
+
+  &[data-kind='error'] {
+    background: var(--cells-error);
+  }
+  &[data-kind='warning'] {
+    background: var(--cells-warning);
+  }
+  &[data-kind='userEdited'] {
+    background: var(--cells-edited);
+  }
+  &[data-kind='systemGenerated'] {
+    background: var(--cells-generated);
+  }
+  &[data-kind='special'] {
+    background: var(--cells-special);
+  }
+}
+
+// Controls
+.cells-pen,
+.cells-toggle,
+.cells-dropdown {
+  flex: none;
+  cursor: pointer;
+  font: inherit;
+
+  &[aria-disabled='true'] {
+    cursor: not-allowed;
+    opacity: 0.5;
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--cells-accent);
+    outline-offset: 1px;
+  }
+}
+
+.cells-pen {
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--cells-accent);
+
+  &::before {
+    content: '';
+    display: block;
+    width: 14px;
+    height: 14px;
+    margin: auto;
+    background: currentColor;
+    // Pencil icon.
+    mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zm17.71-10.21a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z'/%3E%3C/svg%3E")
+      center / contain no-repeat;
+  }
+
+  &:hover:not([aria-disabled='true']) {
+    background: rgb(23 103 91 / 10%);
+  }
+}
+
+.cells-toggle {
+  position: relative;
+  width: 34px;
+  height: 18px;
+  padding: 0;
+  border: 0;
+  border-radius: 9px;
+  background: #9aa6a2;
+
+  &::after {
+    content: '';
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: #fff;
+    transition: transform 120ms;
+  }
+
+  &[aria-checked='true'] {
+    background: var(--cells-accent);
+
+    &::after {
+      transform: translateX(16px);
+    }
+  }
+}
+
+.cells-dropdown {
+  min-width: 0;
+  max-width: 100%;
+  padding: 2px 8px;
+  border: 1px solid #b8c4c0;
+  border-radius: 4px;
+  background: #fff;
+  color: inherit;
+  text-align: start;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cells-placeholder {
+  color: var(--cells-muted);
+}
+
+// Editors
+.cells-options {
+  display: grid;
+  padding: 4px;
+
+  button {
+    padding: 8px 12px;
+    border: 0;
+    border-radius: 4px;
+    background: transparent;
+    font: inherit;
+    text-align: start;
+    cursor: pointer;
+
+    &:hover:not(:disabled),
+    &:focus-visible {
+      background: rgb(23 103 91 / 10%);
+    }
+
+    &[aria-current='true'] {
+      font-weight: 700;
+      color: var(--cells-accent);
+    }
+  }
+}
+
+.cells-field-editor {
+  display: grid;
+  gap: 8px;
+  padding: 12px;
+
+  mat-form-field {
+    width: 100%;
+  }
+}
+
+.cells-editor-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.cells-error {
+  margin: 0;
+  padding: 0 12px 8px;
+  color: var(--cells-error);
+}

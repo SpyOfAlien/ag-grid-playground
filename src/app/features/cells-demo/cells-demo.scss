@@ -1,0 +1,43 @@
+.page {
+  display: grid;
+  gap: 16px;
+  padding: 24px;
+}
+
+h1,
+h2 {
+  margin: 0;
+}
+
+h2 {
+  font-size: 16px;
+  margin-bottom: 8px;
+}
+
+.grids {
+  display: grid;
+  grid-template-columns: minmax(0, 3fr) minmax(0, 1fr);
+  gap: 16px;
+}
+
+.inventory {
+  height: 560px;
+}
+
+.summary {
+  height: 300px;
+  margin-bottom: 16px;
+}
+
+@media (max-width: 960px) {
+  .grids {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 16px;
+}

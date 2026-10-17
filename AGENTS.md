@@ -25,7 +25,7 @@ You are an expert in TypeScript, Angular, and scalable web application developme
 
 - Keep components small and focused on a single responsibility
 - Order component and directive fields by dependency injection, bindings (inputs, outputs, models, and queries), forms, signals, then computed signals. Within each category, declare private fields before protected fields before public fields. Put other fields after these categories and constructors/methods after fields. Preserve initialization dependencies within each group.
-- Name pure cell-state calculations `compute*` and renderer state signals `cellContent`, `cellMarker`, `cellAction`, and the corresponding category names. Keep Angular `computed()` explicit in the renderer.
+- In `src/app/shared/grid-cells` only: name pure cell-state calculations `compute*` and renderer state signals `cellContent`, `cellMarker`, `cellAction`, and the corresponding category names. Keep Angular `computed()` explicit in the renderer. The `src/app/shared/cells` kit follows its own README instead.
 - Use `input()` and `output()` functions instead of decorators
 - Use `computed()` for derived state
 - Set `changeDetection: ChangeDetectionStrategy.OnPush` in `@Component` decorator

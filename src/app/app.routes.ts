@@ -26,5 +26,10 @@ export const routes: Routes = [
     title: 'Standalone popover',
     loadComponent: () => import('./features/popover-demo/popover-demo').then((m) => m.PopoverDemo),
   },
+  {
+    path: 'cells-demo',
+    title: 'Cells · Warehouse inventory',
+    loadComponent: () => import('./features/cells-demo/cells-demo').then((m) => m.CellsDemo),
+  },
   { path: '**', redirectTo: 'grid-demo' },
 ];
