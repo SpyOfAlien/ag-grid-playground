@@ -1,6 +1,6 @@
 import { isDevMode } from '@angular/core';
 import type { Column, GridApi, IRowNode } from 'ag-grid-community';
-import type { RowsView } from '../session/edit-session';
+import type { ConnectedGrid } from '../session/edit-session';
 import type { Result } from '../session/persistence';
 import type { RefreshGraph } from './refresh-map';
 
@@ -8,11 +8,11 @@ import type { RefreshGraph } from './refresh-map';
  * Shows session results in one grid. AG Grid refreshes cells whose own value changed; this adds
  * a forced refresh only for declared dependents whose value did not change.
  */
-export function gridView<Row>(
+export function connectGrid<Row>(
   api: GridApi<Row>,
   rowId: (row: Row) => string,
   graph: RefreshGraph,
-): RowsView<Row> {
+): ConnectedGrid<Row> {
   // Names are column ids, falling back to a column's field.
   const column = (name: string): Column | null =>
     api.getColumn(name) ??

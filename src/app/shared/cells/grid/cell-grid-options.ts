@@ -8,7 +8,7 @@ import type {
   EditPersistence,
   MethodOf,
 } from '../session/persistence';
-import { gridView } from './grid-view';
+import { connectGrid } from './connect-grid';
 import { suppressCellKeyboard } from './keyboard';
 import { refreshGraph, type RefreshOnChange } from './refresh-map';
 
@@ -52,7 +52,7 @@ export function cellGridOptions<
     getRowId: ({ data }) => session.rowId(data),
     defaultColDef: { suppressKeyboardEvent: suppressCellKeyboard, ...options.defaultColDef },
     onGridReady: (event) => {
-      disconnect = session.connect(gridView(event.api, session.rowId, graph));
+      disconnect = session.connect(connectGrid(event.api, session.rowId, graph));
       options.onGridReady?.(event);
     },
     onGridPreDestroyed: (event) => {

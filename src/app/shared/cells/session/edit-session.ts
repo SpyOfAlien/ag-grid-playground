@@ -15,9 +15,9 @@ export interface Entry<Row, P> {
   readonly error?: string;
 }
 
-/** Something that shows the session's rows, such as a grid. */
-export interface RowsView<Row> {
-  /** Shows the whole table, for example when the view connects. */
+/** One table on screen connected to the session; each grid built with `cellGridOptions` is one. */
+export interface ConnectedGrid<Row> {
+  /** Shows the whole table, for example when the grid connects. */
   show(rows: readonly Row[]): void;
   /** Applies a successful result; `previous` is the table of the previous successful entry. */
   apply(previous: readonly Row[], result: Result<Row>): void;
@@ -28,7 +28,7 @@ export class EditSession<Row, P extends EditPersistence<Row>> {
   private readonly lockReason = signal<string | null>(null);
   private nextId = 1;
   private destroyed = false;
-  private readonly views = new Set<RowsView<Row>>();
+  private readonly grids = new Set<ConnectedGrid<Row>>();
 
   readonly entries = this.log.asReadonly();
   readonly current = computed(() => latestSaved(this.entries()));
@@ -62,7 +62,7 @@ export class EditSession<Row, P extends EditPersistence<Row>> {
       const previous = this.rows();
       const rows = 'replace' in result ? result.replace : this.merge(result.update);
       this.settle(id, { status: 'saved', rows });
-      for (const view of this.views) view.apply(previous, result);
+      for (const grid of this.grids) grid.apply(previous, result);
     } catch (error: unknown) {
       this.settle(id, { status: 'failed', error: errorMessage(error) });
       throw error;
@@ -81,11 +81,11 @@ export class EditSession<Row, P extends EditPersistence<Row>> {
     return null;
   }
 
-  /** Shows the current rows in a view and keeps it in step; returns the disconnect. */
-  connect(view: RowsView<Row>): () => void {
-    this.views.add(view);
-    view.show(this.rows());
-    return () => this.views.delete(view);
+  /** Shows the current rows in a grid and keeps it in step; returns the disconnect. */
+  connect(grid: ConnectedGrid<Row>): () => void {
+    this.grids.add(grid);
+    grid.show(this.rows());
+    return () => this.grids.delete(grid);
   }
 
   lock(reason: string): void {
