@@ -6,6 +6,7 @@ import {
   Injector,
   type Type,
 } from '@angular/core';
+import { CellsTooltip } from '../tooltip/tooltip';
 import { CellBase, evaluate, type Cell, type CellParams, type CellRule } from '../cell/cell';
 import { controlView } from '../cell/control-state';
 import { displayView, type DisplayParams } from '../cell/display';
@@ -73,6 +74,7 @@ export function editView<Row, V>(
 /** Displays a value and edits it in a popover anchored to the pen. */
 @Component({
   selector: 'cells-popover-cell',
+  imports: [CellsTooltip],
   host: { class: 'cells-cell' },
   template: EDIT_TEMPLATE,
   changeDetection: ChangeDetectionStrategy.OnPush,

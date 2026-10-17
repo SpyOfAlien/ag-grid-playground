@@ -1,6 +1,6 @@
 import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
-import { rendererParams, testSession, type Item } from '../testing/cell-test-kit';
+import { rendererParams, testSession, tooltipFor, type Item } from '../testing/cell-test-kit';
 import { TextCell, type TextCellParams } from './text-cell';
 
 async function render(config: TextCellParams<Item>, value: string | null) {
@@ -35,7 +35,7 @@ describe('TextCell', () => {
     const markers = host.querySelectorAll('.cells-marker');
     expect(markers).toHaveLength(1);
     expect(markers[0].getAttribute('data-kind')).toBe('warning');
-    expect(markers[0].getAttribute('title')).toBe('Review required');
+    expect(tooltipFor(markers[0])).toBe('Review required');
   });
 
   it('applies tooltip, highlighted and muted rules to the content', async () => {
@@ -45,7 +45,7 @@ describe('TextCell', () => {
     );
 
     const content = host.querySelector('.cells-text')!;
-    expect(content.getAttribute('title')).toBe('Name: Bolt');
+    expect(tooltipFor(content)).toBe('Name: Bolt');
     expect(content.classList).toContain('cells-highlighted');
     expect(content.classList).toContain('cells-muted');
   });
@@ -67,5 +67,30 @@ describe('TextCell', () => {
     await fixture.whenStable();
     expect((fixture.nativeElement as HTMLElement).querySelector('.cells-text')).toBe(text);
     expect(text.textContent).toBe('6 kg');
+  });
+
+  it('shows an HTML tooltip from a tooltip rule', async () => {
+    const host = await render(
+      { tooltip: ({ value }) => ({ html: `<b>${value}</b> in stock` }) },
+      'Bolt',
+    );
+
+    const content = host.querySelector('.cells-text')!;
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Tab', bubbles: true }));
+    content.dispatchEvent(new FocusEvent('focusin', { bubbles: true }));
+    expect(document.querySelector('.cells-tooltip b')?.textContent).toBe('Bolt');
+    expect(tooltipFor(content)).toBe('Bolt in stock');
+  });
+
+  it('passes the column tooltip position to the tooltip', async () => {
+    const host = await render({ tooltip: 'Name', tooltipPosition: 'above' }, 'Bolt');
+
+    const content = host.querySelector('.cells-text')!;
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Tab', bubbles: true }));
+    content.dispatchEvent(new FocusEvent('focusin', { bubbles: true }));
+
+    expect(document.querySelector<HTMLElement>('.cells-tooltip')?.dataset['position']).toBe(
+      'above',
+    );
   });
 });

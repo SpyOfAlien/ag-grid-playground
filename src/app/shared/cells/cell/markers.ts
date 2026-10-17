@@ -1,4 +1,5 @@
 import { evaluate, type Cell, type CellRule } from './cell';
+import type { TooltipContent } from '../tooltip/tooltip';
 
 /** Highest priority first. */
 export const MARKER_KINDS = [
@@ -24,14 +25,14 @@ const DEFAULT_TOOLTIPS: Record<MarkerKind, string> = {
 export interface MarkerRule<Row, V> {
   when: CellRule<Row, V, boolean>;
   /** Defaults to the kind's own description. */
-  tooltip?: CellRule<Row, V, string>;
+  tooltip?: CellRule<Row, V, TooltipContent>;
 }
 
 export type Markers<Row, V> = Partial<Record<MarkerKind, MarkerRule<Row, V>>>;
 
 export interface MarkerView {
   readonly kind: MarkerKind;
-  readonly tooltip: string;
+  readonly tooltip: TooltipContent;
 }
 
 /** The highest-priority active marker, or null. */

@@ -1,9 +1,10 @@
 import { evaluate, type Cell, type CellRule } from './cell';
 import type { CellSession } from '../grid/cell-grid-options';
+import type { TooltipContent } from '../tooltip/tooltip';
 
 export interface ControlView {
   readonly disabled: boolean;
-  readonly tooltip: string | null;
+  readonly tooltip: TooltipContent | null;
 }
 
 /**
@@ -12,7 +13,10 @@ export interface ControlView {
  * stays enabled so the user can retry), then the normal tooltip.
  */
 export function controlView<Row, V>(
-  config: { editable?: CellRule<Row, V, true | string>; tooltip?: CellRule<Row, V, string | null> },
+  config: {
+    editable?: CellRule<Row, V, true | string>;
+    tooltip?: CellRule<Row, V, TooltipContent | null>;
+  },
   cell: Cell<Row, V>,
   session: CellSession,
 ): ControlView {

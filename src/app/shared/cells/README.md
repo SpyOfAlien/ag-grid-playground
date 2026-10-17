@@ -109,6 +109,41 @@ or a function of the cell (`{ rowId, columnId, row, value }`).
   exports exactly what is shown, and the renderer is skipped for it.
 - **Alignment** is a column class: `cellClass: 'cells-align-end'`.
 
+## Tooltips
+
+All kit tooltips go through one shared tooltip that behaves and looks like Angular Material's
+`matTooltip`, without its per-element cost:
+
+- A `tooltip` rule (and a marker's `tooltip`) returns text or `{ html: '<b>…</b>' }`. HTML is
+  sanitized by Angular before it is shown. Disabled reasons, "Saving…" and errors are text.
+- `tooltipPosition` places a column's tooltips: `above`, `below` (default), `left`, `right`,
+  `before` or `after` (these two follow the text direction). It flips to the opposite side when
+  there is no room.
+- It shows 100 ms after the pointer rests on an element, at once on keyboard focus (focus after a
+  mouse click does not show it, as in Material), and after a 500 ms touch hold. While one is
+  visible, moving to another element switches without a delay.
+- It hides on pointer leave, blur, Escape, a click, 1.5 s after a touch is released, or when the
+  element is removed. When a container scrolls it follows its element, and hides once the element
+  scrolls out of view, as Material does. The pointer may move onto the tooltip without it closing,
+  and a visible tooltip follows changes to its content.
+- Like Material's tooltip the visible element is `aria-hidden`. While it shows, its element gets
+  `aria-describedby` pointing at it (kept alongside the element's own descriptions), so screen
+  readers hear it on focus. No other element carries anything.
+- Custom renderers use the directive: `<button [cellsTooltip]="view.tooltip"
+[cellsTooltipPosition]="view.tooltipPosition">`. It only writes attributes onto the element; nine
+  document-level listeners do the rest, however many cells there are.
+
+### Measured cost
+
+`npx playwright test -c perf/playwright.config.ts perf/tooltip.spec.ts` drives `/tooltip-perf`:
+300 rows × 200 columns, every cell with a tooltip (8,200 drawn). Dev build in Chrome, median of 5:
+
+| Tooltip      | First render  | Scroll sweep    | JS heap         | Event listeners |
+| ------------ | ------------- | --------------- | --------------- | --------------- |
+| None         | 466 ms        | 2,341 ms        | 77.4 MB         | 6               |
+| Cells kit    | 535 ms (+15%) | 2,623 ms (+12%) | 88.7 MB (+11.3) | 15 (+9 total)   |
+| `matTooltip` | 607 ms (+30%) | 3,568 ms (+52%) | 98.9 MB (+21.5) | 8,211 (+1/cell) |
+
 ## Editors
 
 An editor is a component with a `data` input of `EditorData` plus whatever its column adds:

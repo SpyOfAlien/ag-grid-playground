@@ -7,7 +7,10 @@ export type DropdownOptionsData<Row, V> = EditorData<Row, V> & {
   readonly equals?: (left: V, right: V) => boolean;
 };
 
-/** The option list a dropdown cell opens. Choosing the current option only closes it. */
+/**
+ * The option list a dropdown cell opens, styled after `mat-select`. The selected option takes
+ * focus when it opens; choosing it again only closes the list.
+ */
 @Component({
   selector: 'cells-dropdown-options',
   template: `
@@ -15,11 +18,13 @@ export type DropdownOptionsData<Row, V> = EditorData<Row, V> & {
       @for (option of data().options; track $index) {
         <button
           type="button"
+          class="cells-option"
           [attr.aria-current]="$index === selectedIndex() || null"
+          [attr.cdkFocusInitial]="$index === selectedIndex() ? '' : null"
           [disabled]="option.disabled || saving()"
           (click)="choose(option)"
         >
-          {{ option.label }}
+          <span class="cells-option-label">{{ option.label }}</span>
         </button>
       }
     </div>

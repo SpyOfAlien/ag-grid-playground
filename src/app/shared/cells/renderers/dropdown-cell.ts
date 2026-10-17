@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, inject, Injector } from '@angular/core';
+import { CellsTooltip } from '../tooltip/tooltip';
 import { CellBase, evaluate, type CellRule } from '../cell/cell';
 import { controlView } from '../cell/control-state';
 import { displayView, type DisplayParams } from '../cell/display';
@@ -22,21 +23,28 @@ export type DropdownCellParams<Row, V, P, M extends string = 'save'> = DisplayPa
 
 @Component({
   selector: 'cells-dropdown-cell',
+  imports: [CellsTooltip],
   host: { class: 'cells-cell' },
   template: `
     @if (view(); as view) {
       @if (view.marker; as marker) {
-        <span class="cells-marker" [attr.data-kind]="marker.kind" [title]="marker.tooltip"></span>
+        <span
+          class="cells-marker"
+          [attr.data-kind]="marker.kind"
+          [cellsTooltip]="marker.tooltip"
+          [cellsTooltipPosition]="view.tooltipPosition"
+        ></span>
       }
       <button
         type="button"
         class="cells-dropdown"
         [class.cells-placeholder]="view.selected === null"
         [attr.aria-disabled]="view.disabled"
-        [attr.title]="view.tooltip"
+        [cellsTooltip]="view.tooltip"
+        [cellsTooltipPosition]="view.tooltipPosition"
         (click)="open($event)"
       >
-        {{ view.selected?.label ?? view.placeholder }}
+        <span class="cells-dropdown-text">{{ view.selected?.label ?? view.placeholder }}</span>
       </button>
     }
   `,
@@ -73,10 +81,21 @@ export class DropdownCell<Row, V, P, M extends string = 'save'> extends CellBase
     const view = this.view();
     if (!params || !cell || !view || view.disabled) return;
     const trigger = event.currentTarget as HTMLElement;
-    openCellPopover(this.injector, trigger, DropdownOptions<Row, V>, (close) => ({
-      ...cellEditorData<Row, V, V>(params, cell, close),
-      options: view.options,
-      equals: params.equals,
-    }));
+    openCellPopover(
+      this.injector,
+      trigger,
+      DropdownOptions<Row, V>,
+      (close) => ({
+        ...cellEditorData<Row, V, V>(params, cell, close),
+        options: view.options,
+        equals: params.equals,
+      }),
+      // Like mat-select: below the trigger, left-aligned, at least as wide, no arrow.
+      {
+        placement: 'bottomLeft',
+        width: Math.max(trigger.getBoundingClientRect().width, 180),
+        arrow: false,
+      },
+    );
   }
 }

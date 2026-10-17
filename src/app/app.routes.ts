@@ -31,5 +31,11 @@ export const routes: Routes = [
     title: 'Cells · Warehouse inventory',
     loadComponent: () => import('./features/cells-demo/cells-demo').then((m) => m.CellsDemo),
   },
+  {
+    path: 'tooltip-perf',
+    title: 'Cells · Tooltip performance',
+    loadComponent: () =>
+      import('./features/tooltip-perf/tooltip-perf').then((m) => m.TooltipPerf),
+  },
   { path: '**', redirectTo: 'grid-demo' },
 ];

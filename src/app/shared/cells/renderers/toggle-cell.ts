@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed } from '@angular/core';
+import { CellsTooltip } from '../tooltip/tooltip';
 import { CellBase } from '../cell/cell';
 import { controlView } from '../cell/control-state';
 import { displayView, type DisplayParams } from '../cell/display';
@@ -9,11 +10,17 @@ export type ToggleCellParams<Row, P, M extends string = 'save'> = DisplayParams<
 
 @Component({
   selector: 'cells-toggle-cell',
+  imports: [CellsTooltip],
   host: { class: 'cells-cell' },
   template: `
     @if (view(); as view) {
       @if (view.marker; as marker) {
-        <span class="cells-marker" [attr.data-kind]="marker.kind" [title]="marker.tooltip"></span>
+        <span
+          class="cells-marker"
+          [attr.data-kind]="marker.kind"
+          [cellsTooltip]="marker.tooltip"
+          [cellsTooltipPosition]="view.tooltipPosition"
+        ></span>
       }
       <button
         type="button"
@@ -22,7 +29,8 @@ export type ToggleCellParams<Row, P, M extends string = 'save'> = DisplayParams<
         [attr.aria-checked]="view.checked"
         [attr.aria-label]="view.label"
         [attr.aria-disabled]="view.disabled"
-        [attr.title]="view.tooltip"
+        [cellsTooltip]="view.tooltip"
+        [cellsTooltipPosition]="view.tooltipPosition"
         (click)="toggle($event)"
       ></button>
     }

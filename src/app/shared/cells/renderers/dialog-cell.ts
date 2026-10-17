@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, inject, Injector } from '@angular/core';
+import { CellsTooltip } from '../tooltip/tooltip';
 import { CellBase } from '../cell/cell';
 import {
   cellEditorData,
@@ -21,6 +22,7 @@ export type DialogCellParams<
 /** Displays a value and edits it in a modal dialog. */
 @Component({
   selector: 'cells-dialog-cell',
+  imports: [CellsTooltip],
   host: { class: 'cells-cell' },
   template: EDIT_TEMPLATE,
   changeDetection: ChangeDetectionStrategy.OnPush,

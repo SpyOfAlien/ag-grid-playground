@@ -21,7 +21,8 @@ h2 {
 }
 
 .inventory {
-  height: 560px;
+  // 200 rows: use the window's height, but never less than about twelve rows.
+  height: max(560px, calc(100dvh - 140px));
 }
 
 .summary {

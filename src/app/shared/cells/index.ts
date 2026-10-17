@@ -45,6 +45,14 @@ export {
   type Markers,
 } from './cell/markers';
 
+// Tooltip
+export {
+  CellsTooltip,
+  CellsTooltipService,
+  type TooltipContent,
+  type TooltipPosition,
+} from './tooltip/tooltip';
+
 // Renderers
 export { TextCell, type TextCellParams } from './renderers/text-cell';
 export { NumberCell, type NumberCellParams } from './renderers/number-cell';

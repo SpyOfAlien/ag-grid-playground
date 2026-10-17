@@ -5,6 +5,7 @@ import {
   rendererParams,
   settle,
   testSession,
+  tooltipFor,
   type Item,
 } from '../testing/cell-test-kit';
 import { ToggleCell, type ToggleCellParams } from './toggle-cell';
@@ -51,11 +52,11 @@ describe('ToggleCell', () => {
       tooltip: 'Active in catalogue',
     });
     expect(toggle.getAttribute('aria-disabled')).toBe('true');
-    expect(toggle.getAttribute('title')).toBe('Locked after review');
+    expect(tooltipFor(toggle)).toBe('Locked after review');
 
     session.lock('Table is read-only');
     await fixture.whenStable();
-    expect(toggle.getAttribute('title')).toBe('Table is read-only');
+    expect(tooltipFor(toggle)).toBe('Table is read-only');
 
     toggle.click();
     expect(persistence.saved).toEqual([]);
@@ -70,17 +71,17 @@ describe('ToggleCell', () => {
     toggle.click();
     await fixture.whenStable();
     expect(toggle.getAttribute('aria-disabled')).toBe('true');
-    expect(toggle.getAttribute('title')).toBe('Active in catalogue');
+    expect(tooltipFor(toggle)).toBe('Active in catalogue');
 
     fail(new Error('Server rejected'));
     await settle(fixture);
     expect(toggle.getAttribute('aria-disabled')).toBe('false');
-    expect(toggle.getAttribute('title')).toBe('Server rejected');
+    expect(tooltipFor(toggle)).toBe('Server rejected');
 
     persistence.next = () => Promise.resolve({ update: [] });
     toggle.click();
     await settle(fixture);
-    expect(toggle.getAttribute('title')).toBe('Active in catalogue');
+    expect(tooltipFor(toggle)).toBe('Active in catalogue');
   });
 
   it('sends its own command to the method it names', async () => {

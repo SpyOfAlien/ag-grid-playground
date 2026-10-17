@@ -75,3 +75,12 @@ export async function settle(fixture: { whenStable(): Promise<unknown> }): Promi
   await new Promise((done) => setTimeout(done));
   await fixture.whenStable();
 }
+
+/** The shared tooltip's text for an element, read by focusing it; null when none shows. */
+export function tooltipFor(element: Element): string | null {
+  document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Tab', bubbles: true }));
+  element.dispatchEvent(new FocusEvent('focusin', { bubbles: true }));
+  const text = document.querySelector('.cells-tooltip')?.textContent?.trim() ?? null;
+  element.dispatchEvent(new FocusEvent('focusout', { bubbles: true }));
+  return text;
+}

@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, computed, inject, Injector } from '
 import { Validators } from '@angular/forms';
 import {
   CellBase,
+  CellsTooltip,
   cellEditorData,
   controlView,
   FieldEditor,
@@ -24,6 +25,7 @@ export interface ReorderCellParams {
 /** A composite cell: a reorder switch and a pen for the reorder level. */
 @Component({
   selector: 'app-reorder-cell',
+  imports: [CellsTooltip],
   host: { class: 'cells-cell' },
   template: `
     @if (view(); as view) {
@@ -34,7 +36,7 @@ export interface ReorderCellParams {
         aria-label="Reorder"
         [attr.aria-checked]="view.reorder"
         [attr.aria-disabled]="view.toggle.disabled"
-        [attr.title]="view.toggle.tooltip"
+        [cellsTooltip]="view.toggle.tooltip"
         (click)="toggle($event)"
       ></button>
       <span class="cells-text" [class.cells-muted]="!view.reorder"
@@ -45,7 +47,7 @@ export interface ReorderCellParams {
         class="cells-pen"
         aria-label="Edit reorder level"
         [attr.aria-disabled]="view.pen.disabled"
-        [attr.title]="view.pen.tooltip"
+        [cellsTooltip]="view.pen.tooltip"
         (click)="edit($event)"
       ></button>
     }

@@ -7,6 +7,7 @@ import {
   rendererParams,
   settle,
   testSession,
+  tooltipFor,
   type Item,
 } from '../testing/cell-test-kit';
 import { PopoverCell, type PopoverCellParams } from './popover-cell';
@@ -79,7 +80,7 @@ describe('PopoverCell', () => {
   it('does not open while the cell is not editable', async () => {
     const { fixture, pen } = await render({ ...NAME, editable: 'Locked after review' });
     expect(pen.getAttribute('aria-disabled')).toBe('true');
-    expect(pen.getAttribute('title')).toBe('Locked after review');
+    expect(tooltipFor(pen)).toBe('Locked after review');
 
     pen.click();
     await fixture.whenStable();

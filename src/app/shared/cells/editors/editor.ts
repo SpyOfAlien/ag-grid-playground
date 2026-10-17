@@ -27,6 +27,8 @@ export interface CellPopoverOptions {
   title?: string;
   width?: number | string;
   placement?: PopoverPlacement;
+  /** Defaults to true. */
+  arrow?: boolean;
 }
 
 export interface CellDialogOptions {
@@ -73,6 +75,7 @@ export function openCellPopover<D>(
       backdrop: true,
       title: options.title,
       width: options.width,
+      arrow: options.arrow ?? true,
     },
     initialize: (content) => content.setInput('data', data(close)),
   });

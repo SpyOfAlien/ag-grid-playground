@@ -1,10 +1,20 @@
 import AxeBuilder from '@axe-core/playwright';
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test, type Locator, type Page } from '@playwright/test';
 
 const main = (page: Page) => page.getByTestId('inventory-grid');
 const summary = (page: Page) => page.getByTestId('summary-grid');
 const cell = (page: Page, sku: string, column: string) =>
   main(page).locator(`.ag-row[row-id="${sku}"] [col-id="${column}"]`);
+
+/** Hovers an element and checks the shared tooltip, then moves the pointer away. */
+async function expectTooltip(page: Page, target: Locator, text: string): Promise<void> {
+  // A click hides the tooltip; a fresh hover brings it back.
+  await page.mouse.move(0, 0);
+  await target.hover();
+  await expect(page.locator('.cells-tooltip')).toHaveText(text);
+  await page.mouse.move(0, 0);
+  await expect(page.locator('.cells-tooltip')).toHaveCount(0);
+}
 
 test('loads the inventory into both grids with placeholders and no axe violations', async ({
   page,
@@ -12,8 +22,9 @@ test('loads the inventory into both grids with placeholders and no axe violation
   await page.goto('/cells-demo');
 
   await expect(page.getByRole('heading', { name: 'Warehouse inventory' })).toBeVisible();
-  await expect(main(page).locator('.ag-row[row-id]')).toHaveCount(12);
-  await expect(summary(page).locator('.ag-row[row-id]')).toHaveCount(12);
+  // 200 items plus the header row; only the visible rows are drawn.
+  await expect(main(page).getByRole('grid')).toHaveAttribute('aria-rowcount', '201');
+  await expect(summary(page).getByRole('grid')).toHaveAttribute('aria-rowcount', '201');
   await expect(cell(page, 'SKU-03', 'qty')).toHaveText('-');
   await expect(cell(page, 'SKU-04', 'qty')).toHaveText('NA');
   await expect(cell(page, 'SKU-01', 'qty')).toHaveText('120 pcs');
@@ -60,7 +71,7 @@ test('toggle and dropdown save directly, and a read-only lock disables every con
 
   await page.getByRole('checkbox', { name: 'Read-only' }).check();
   await expect(active).toHaveAttribute('aria-disabled', 'true');
-  await expect(active).toHaveAttribute('title', 'Table is read-only');
+  await expectTooltip(page, active, 'Table is read-only');
   await active.click({ force: true });
   await expect(active).toHaveAttribute('aria-checked', 'false');
 });
@@ -76,7 +87,7 @@ test('server failures keep committed values, show the error on the cell and allo
   const otherControl = cell(page, 'SKU-02', 'category').getByRole('button');
   await active.click();
   await expect(otherControl).toHaveAttribute('aria-disabled', 'true');
-  await expect(active).toHaveAttribute('title', 'The server rejected this change.');
+  await expectTooltip(page, active, 'The server rejected this change.');
   await expect(active).toHaveAttribute('aria-checked', 'true');
   await expect(active).toHaveAttribute('aria-disabled', 'false');
   await expect(otherControl).toHaveAttribute('aria-disabled', 'false');
@@ -120,7 +131,7 @@ test('dialogs edit notes, several fields at once, and approve through another me
   await expect(cell(page, 'SKU-02', 'approved')).toHaveText('Approved');
   const pen = cell(page, 'SKU-02', 'qty').getByRole('button', { name: 'Edit Quantity' });
   await expect(pen).toHaveAttribute('aria-disabled', 'true');
-  await expect(pen).toHaveAttribute('title', 'Approved items are locked');
+  await expectTooltip(page, pen, 'Approved items are locked');
   await expect(
     page.getByRole('list', { name: 'Edit history' }).getByRole('listitem').first(),
   ).toContainText('approve · saved');
@@ -188,4 +199,65 @@ test('placeholders line up with rendered values in the same column', async ({ pa
     .evaluate((element) => element.getBoundingClientRect().right);
 
   expect(Math.abs(placeholderRight - renderedRight)).toBeLessThan(2);
+});
+
+test('tooltips show on hover and keyboard focus, render HTML, and pass axe', async ({ page }) => {
+  await page.goto('/cells-demo');
+  // The tooltip is visual only (aria-hidden), like Material's.
+  const tooltip = page.locator('.cells-tooltip');
+
+  await cell(page, 'SKU-01', 'stockValue').locator('.cells-text').hover();
+  await expect(tooltip).toHaveText('120 × 0.35 €');
+  await expect(tooltip.locator('b')).toHaveText('120');
+  expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
+  await page.mouse.move(0, 0);
+  await expect(tooltip).toHaveCount(0);
+
+  // Like Material, focus shows a tooltip only after keyboard input.
+  await page.keyboard.press('Shift');
+  await cell(page, 'SKU-01', 'active').getByRole('switch').focus();
+  await expect(tooltip).toHaveText('Sold in the shop');
+  await page.keyboard.press('Escape');
+  await expect(tooltip).toHaveCount(0);
+});
+
+test('a column can place its tooltips on another side', async ({ page }) => {
+  await page.goto('/cells-demo');
+  const toggle = cell(page, 'SKU-03', 'active').getByRole('switch');
+
+  await toggle.hover();
+  const tooltip = page.locator('.cells-tooltip');
+  await expect(tooltip).toBeVisible();
+
+  const [trigger, tip] = [await toggle.boundingBox(), await tooltip.boundingBox()];
+  expect(tip!.x).toBeGreaterThanOrEqual(trigger!.x + trigger!.width);
+  expect(Math.abs(tip!.y + tip!.height / 2 - (trigger!.y + trigger!.height / 2))).toBeLessThan(4);
+});
+
+test('price, supplier and date columns edit, guard disabled options and flag overdue counts', async ({
+  page,
+}) => {
+  await page.goto('/cells-demo');
+
+  await cell(page, 'SKU-01', 'unitPrice').getByRole('button', { name: 'Edit Unit price' }).click();
+  const price = page.getByRole('dialog', { name: 'Edit unit price' });
+  await price.getByLabel('Unit price (€)').fill('1');
+  await price.getByRole('button', { name: 'Save' }).click();
+  await expect(cell(page, 'SKU-01', 'unitPrice')).toHaveText('1.00 €');
+  await expect(cell(page, 'SKU-01', 'stockValue')).toHaveText('120.00 €');
+
+  const supplier = cell(page, 'SKU-01', 'supplier').getByRole('button');
+  await expect(supplier).toHaveText('Acme Industrial Supplies Ltd.');
+  await supplier.click();
+  const options = page.getByRole('group', { name: 'Options' });
+  await expect(
+    options.getByRole('button', { name: 'Legacy Parts (no new orders)' }),
+  ).toBeDisabled();
+  await options.getByRole('button', { name: 'FixIt Wholesale' }).click();
+  await expect(supplier).toHaveText('FixIt Wholesale');
+
+  await expect(cell(page, 'SKU-01', 'lastCounted')).toHaveText('01 Oct 2026');
+  await expect(
+    cell(page, 'SKU-10', 'lastCounted').locator('.cells-marker[data-kind="warning"]'),
+  ).toHaveCount(1);
 });
