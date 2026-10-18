@@ -20,33 +20,32 @@ export type {
   SaveCommand,
 } from './session/persistence';
 export { applyChanges } from './session/apply-changes';
-export type { RowChanges } from './session/row-changes';
+export type { RowChanges, ValueChange } from './session/row-changes';
 
 // Grid wiring
 export {
   cellGridOptions,
   cellSession,
-  type CellGridExtras,
   type CellSession,
   type CellsContext,
-  type RefreshOnChange,
 } from './grid/cell-grid-options';
+export type { CellColumnContext } from './grid/column-reads';
 export { withEmptyState, type EmptyStateColumn } from './grid/empty-state';
 export { suppressCellKeyboard } from './grid/keyboard';
 
 // Building blocks for custom renderers
-export { CellBase, evaluate, type Cell, type CellParams, type CellRule } from './cell/cell';
-export { displayView, type DisplayParams, type DisplayView } from './cell/display';
-export { controlView, type ControlView } from './cell/control-state';
-export { submitEdit, type EditParams, type EditTarget } from './cell/edit';
-export { formatNumber, type NumberFormat } from './cell/format';
+export { CellBase, evaluate, type Cell, type CellParams, type CellRule } from './base/base';
+export { cellDisplay, type DisplayParams, type CellDisplay } from './base/display';
+export { cellControl, type CellControl } from './base/control';
+export { submitEdit, type EditParams, type EditTarget } from './base/edit';
+export { formatNumber, type NumberFormat } from './base/format';
 export {
   MARKER_KINDS,
   topMarker,
   type MarkerKind,
   type MarkerRule,
   type Markers,
-} from './cell/markers';
+} from './base/markers';
 
 // Tooltip
 export {
@@ -57,6 +56,7 @@ export {
 } from './tooltip/tooltip';
 
 // Renderers
+export { CellMarker } from './renderers/cell-marker';
 export { TextCell, type TextCellParams } from './renderers/text-cell';
 export { NumberCell, type NumberCellParams } from './renderers/number-cell';
 export { ToggleCell, type ToggleCellParams } from './renderers/toggle-cell';

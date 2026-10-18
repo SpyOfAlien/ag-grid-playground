@@ -4,7 +4,7 @@ import {
   CellBase,
   CellsTooltip,
   cellEditorData,
-  controlView,
+  cellControl,
   FieldEditor,
   openCellPopover,
   submitEdit,
@@ -33,7 +33,7 @@ export interface ReorderCellParams {
         type="button"
         role="switch"
         class="cells-toggle"
-        aria-label="Reorder"
+        [attr.aria-label]="view.toggle.label"
         [attr.aria-checked]="view.reorder"
         [attr.aria-disabled]="view.toggle.disabled"
         [cellsTooltip]="view.toggle.tooltip"
@@ -45,7 +45,7 @@ export interface ReorderCellParams {
       <button
         type="button"
         class="cells-pen"
-        aria-label="Edit reorder level"
+        [attr.aria-label]="view.pen.label"
         [attr.aria-disabled]="view.pen.disabled"
         [cellsTooltip]="view.pen.tooltip"
         (click)="edit($event)"
@@ -65,8 +65,8 @@ export class ReorderCell extends CellBase<Item, null, ReorderCellParams> {
     return {
       reorder: cell.row.reorder,
       level: cell.row.reorderLevel,
-      toggle: controlView(params.toggle, cell, session),
-      pen: controlView(params.level, cell, session),
+      toggle: cellControl(params.toggle, cell, session, 'Reorder'),
+      pen: cellControl(params.level, cell, session, 'Edit reorder level'),
     };
   });
 

@@ -1,6 +1,7 @@
 // Compile-time contracts of `@cells`. Each @ts-expect-error line must fail to compile.
 import {
   cellGridOptions,
+  type CellColumnContext,
   createEditSession,
   type Command,
   type DialogCellParams,
@@ -55,28 +56,36 @@ cellGridOptions(session, { rowData: [] });
 // @ts-expect-error row ids come from the session
 cellGridOptions(session, { getRowId: () => '' });
 
-// refreshOnChange keys are row fields unless extra column ids are named.
+// Dependencies live on the columns; grid options take no map.
+const reads = { reads: ['active', 'status'] } satisfies CellColumnContext<Item>;
+cellGridOptions(session, { columnDefs: [{ colId: 'badge', context: reads }] });
+// @ts-expect-error there is no third argument any more
 cellGridOptions(session, {}, { refreshOnChange: { active: ['status'] } });
-// @ts-expect-error actve is not a field of Item
-cellGridOptions(session, {}, { refreshOnChange: { actve: ['status'] } });
-cellGridOptions<Item, Inventory, 'status'>(session, {}, { refreshOnChange: { status: ['badge'] } });
 
-// A column's command must match the method it names.
+// `method` picks the persistence method and `command` is checked against it; no type argument.
 const approveToggle = {
   method: 'approve',
   command: (_next, cell) => ({ skus: [cell.rowId] }),
-} satisfies ToggleCellParams<Item, Inventory, 'approve'>;
+} satisfies ToggleCellParams<Item, Inventory>;
 
 const wrongCommand = {
   method: 'approve',
-  // @ts-expect-error approve needs skus, not changes
   command: () => ({ changes: [] }),
-} satisfies ToggleCellParams<Item, Inventory, 'approve'>;
+  // @ts-expect-error approve needs skus, not changes
+} satisfies ToggleCellParams<Item, Inventory>;
 
 const unknownMethod = {
   // @ts-expect-error there is no delete method
   method: 'delete',
-} satisfies ToggleCellParams<Item, Inventory, 'delete'>;
+} satisfies ToggleCellParams<Item, Inventory>;
+
+// @ts-expect-error a method other than save needs its own command
+const approveWithoutCommand = { method: 'approve' } satisfies ToggleCellParams<Item, Inventory>;
+
+const missingMethod = {
+  command: (_next, cell) => ({ skus: [cell.rowId] }),
+  // @ts-expect-error without a method this is a save, which needs changes
+} satisfies ToggleCellParams<Item, Inventory>;
 
 // Popover and dialog cells take the row, value and submitted value from the editor's data.
 type CountData = EditorData<Item, number, number | null> & { readonly label: string };
@@ -100,11 +109,13 @@ const approveDialog = {
   method: 'approve',
   // @ts-expect-error next is number | null, not a list of skus
   command: (next) => ({ skus: next }),
-} satisfies DialogCellParams<CountData, Inventory, 'approve'>;
+} satisfies DialogCellParams<CountData, Inventory>;
 
 export {
   approveDialog,
   approveToggle,
+  approveWithoutCommand,
+  missingMethod,
   countDialog,
   countPopover,
   helper,

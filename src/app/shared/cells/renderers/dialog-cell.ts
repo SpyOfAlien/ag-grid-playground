@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, inject, Injector } from '@angular/core';
 import { CellsTooltip } from '../tooltip/tooltip';
-import { CellBase } from '../cell/cell';
+import { CellMarker } from './cell-marker';
+import { CellBase } from '../base/base';
 import {
   cellEditorData,
   openCellDialog,
@@ -13,25 +14,23 @@ import {
 import { EDIT_TEMPLATE } from './display-template';
 import { editView, type EditCellParams } from './popover-cell';
 
-export type DialogCellParams<
-  D extends EditorData<unknown, unknown>,
-  P,
-  M extends string = 'save',
-> = EditCellParams<D, P, M> & { dialog?: CellDialogOptions };
+export type DialogCellParams<D extends EditorData<unknown, unknown>, P> = EditCellParams<D, P> & {
+  dialog?: CellDialogOptions;
+};
 
 /** Displays a value and edits it in a modal dialog. */
 @Component({
   selector: 'cells-dialog-cell',
-  imports: [CellsTooltip],
+  imports: [CellsTooltip, CellMarker],
   host: { class: 'cells-cell' },
   template: EDIT_TEMPLATE,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class DialogCell<
-  D extends EditorData<unknown, unknown>,
-  P,
-  M extends string = 'save',
-> extends CellBase<EditorRow<D>, EditorValue<D>, DialogCellParams<D, P, M>> {
+export class DialogCell<D extends EditorData<unknown, unknown>, P> extends CellBase<
+  EditorRow<D>,
+  EditorValue<D>,
+  DialogCellParams<D, P>
+> {
   private readonly injector = inject(Injector);
 
   protected readonly view = computed(() => {

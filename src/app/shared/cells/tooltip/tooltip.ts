@@ -118,7 +118,10 @@ export class CellsTooltipService {
     };
     const box = element.getBoundingClientRect();
     const visible =
-      box.bottom > area.top && box.top < area.bottom && box.right > area.left && box.left < area.right;
+      box.bottom > area.top &&
+      box.top < area.bottom &&
+      box.right > area.left &&
+      box.left < area.right;
     // A pending hover is not cancelled: the pointer may still rest on an element.
     if (visible) this.overlayRef?.updatePosition();
     else this.hide(false);
@@ -280,6 +283,25 @@ function target(event: Event): HTMLElement | null {
     : null;
 }
 
+/** What an element carries for the shared tooltip to read. */
+export interface TooltipAttributes {
+  readonly text: string | null;
+  readonly html: string | null;
+  readonly position: TooltipPosition | null;
+}
+
+/** The tooltip attributes for content and a position; for elements that bind them themselves. */
+export function tooltipAttributes(
+  content: TooltipContent | null | undefined,
+  position: TooltipPosition | null | undefined,
+): TooltipAttributes {
+  return {
+    text: typeof content === 'string' && content ? content : null,
+    html: content && typeof content === 'object' ? content.html : null,
+    position: position ?? null,
+  };
+}
+
 /**
  * Gives an element a tooltip. It only writes the content onto the element; one shared service
  * shows it, so a grid of thousands of cells adds no listeners or overlays per cell.
@@ -287,9 +309,9 @@ function target(event: Event): HTMLElement | null {
 @Directive({
   selector: '[cellsTooltip]',
   host: {
-    '[attr.data-cells-tooltip]': 'text()',
-    '[attr.data-cells-tooltip-html]': 'html()',
-    '[attr.data-cells-tooltip-position]': 'position()',
+    '[attr.data-cells-tooltip]': 'attributes().text',
+    '[attr.data-cells-tooltip-html]': 'attributes().html',
+    '[attr.data-cells-tooltip-position]': 'attributes().position',
   },
 })
 export class CellsTooltip {
@@ -299,14 +321,9 @@ export class CellsTooltip {
     alias: 'cellsTooltipPosition',
   });
 
-  protected readonly text = computed(() => {
-    const content = this.content();
-    return typeof content === 'string' && content ? content : null;
-  });
-  protected readonly html = computed(() => {
-    const content = this.content();
-    return content && typeof content === 'object' ? content.html : null;
-  });
+  protected readonly attributes = computed(() =>
+    tooltipAttributes(this.content(), this.position()),
+  );
 
   constructor() {
     inject(CellsTooltipService).start();

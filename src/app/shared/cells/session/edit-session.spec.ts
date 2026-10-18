@@ -83,7 +83,7 @@ describe('EditSession', () => {
 
     expect(edits.entries()[1].changes).toBeUndefined();
     expect(edits.current()?.changes).toEqual({
-      updated: [{ rowId: 'A-1', fields: ['qty'] }],
+      updated: [{ rowId: 'A-1', fields: { qty: { before: 5, after: 9 } } }],
       added: [],
       removed: [],
     });
@@ -102,7 +102,11 @@ describe('EditSession', () => {
 
     await edits.run('load', {});
 
-    expect(edits.current()?.changes).toEqual({ updated: [], added: ['C-3'], removed: ['A-1'] });
+    expect(edits.current()?.changes).toEqual({
+      updated: [],
+      added: [{ rowId: 'C-3', row: { sku: 'C-3', qty: 1 } }],
+      removed: [{ rowId: 'A-1', row: A1 }],
+    });
   });
 
   it('keeps the last good rows when a save fails and records why', async () => {
@@ -119,7 +123,7 @@ describe('EditSession', () => {
     const last = edits.entries().at(-1);
     expect(last?.status).toBe('failed');
     expect(last?.error).toBe('Server rejected');
-    expect(last?.rows).toBeUndefined();
+    expect(last?.changes).toBeUndefined();
   });
 
   it('links each entry to the one before it, failed or not', async () => {
@@ -152,12 +156,14 @@ describe('EditSession', () => {
     };
 
     const first = edits.run('save', { changes: [] });
+    expect(edits.busy()).toBe(true);
     expect(edits.disabledReason()).toBe('Saving…');
     await expect(edits.run('save', { changes: [] })).rejects.toThrow('Saving…');
     expect(calls).toBe(1);
 
     pending.resolve({ update: [] });
     await first;
+    expect(edits.busy()).toBe(false);
     expect(edits.disabledReason()).toBeNull();
   });
 
@@ -169,11 +175,13 @@ describe('EditSession', () => {
     const load = edits.run('load', {});
 
     edits.lock('Table is read-only');
+    expect(edits.lockReason()).toBe('Table is read-only');
     expect(edits.disabledReason()).toBe('Table is read-only');
     await load;
     await expect(edits.run('load', {})).rejects.toThrow('Table is read-only');
 
     edits.unlock();
+    expect(edits.lockReason()).toBeNull();
     persistence.saveResult = () => pending.promise;
     const save = edits.run('save', { changes: [] });
     expect(edits.disabledReason()).toBe('Saving…');

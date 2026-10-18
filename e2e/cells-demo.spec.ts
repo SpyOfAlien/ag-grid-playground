@@ -51,7 +51,7 @@ test('a popover edit saves through the session and updates dependent values in b
   );
   await expect(
     page.getByRole('list', { name: 'Edit history' }).getByRole('listitem').first(),
-  ).toContainText('save · saved · SKU-01 qty');
+  ).toContainText('save · saved · SKU-01 qty · qty 120 → 200');
 });
 
 test('toggle and dropdown save directly, and a read-only lock disables every control', async ({

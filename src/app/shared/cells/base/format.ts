@@ -1,4 +1,4 @@
-import { evaluate, type Cell, type CellRule } from './cell';
+import { evaluate, type Cell, type CellRule } from './base';
 
 export interface NumberFormat<Row> {
   locale?: string;

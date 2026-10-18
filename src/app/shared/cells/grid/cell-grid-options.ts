@@ -10,18 +10,14 @@ import type {
 } from '../session/persistence';
 import { connectGrid } from './connect-grid';
 import { suppressCellKeyboard } from './keyboard';
-import { refreshGraph, type RefreshOnChange } from './refresh-map';
-
-export type { RefreshOnChange } from './refresh-map';
-
-export interface CellGridExtras<Row, Columns extends string = never> {
-  /** Columns to refresh when a field changes even though their own value does not. */
-  readonly refreshOnChange?: RefreshOnChange<Row, Columns>;
-}
+import { columnReadsGraph } from './column-reads';
 
 /** What renderers need from the session. Column params type-check methods and commands. */
 export interface CellSession {
-  readonly disabledReason: Signal<string | null>;
+  /** Why the page locked the grid, or null. */
+  readonly lockReason: Signal<string | null>;
+  /** A command is running. */
+  readonly busy: Signal<boolean>;
   errorFor(cell: CellRef): string | null;
   run(method: string, command: Command): Promise<void>;
 }
@@ -35,16 +31,11 @@ export interface CellsContext {
  * The only way to build a cell grid: it cannot exist without a session. Rows come from the
  * session, so `rowData` and `getRowId` are not options.
  */
-export function cellGridOptions<
-  Row,
-  P extends EditPersistence<Row>,
-  Columns extends string = never,
->(
+export function cellGridOptions<Row, P extends EditPersistence<Row>>(
   session: EditSession<Row, P>,
   options: Omit<GridOptions<Row>, 'context' | 'rowData' | 'getRowId'>,
-  extras: CellGridExtras<Row, NoInfer<Columns>> = {},
 ): GridOptions<Row> {
-  const graph = refreshGraph(extras.refreshOnChange ?? {});
+  const graph = columnReadsGraph(options.columnDefs ?? []);
   let disconnect: (() => void) | undefined;
   return {
     ...options,
@@ -70,7 +61,8 @@ export function cellSession<Row, P extends EditPersistence<Row>>(
   session: EditSession<Row, P>,
 ): CellSession {
   return {
-    disabledReason: session.disabledReason,
+    lockReason: session.lockReason,
+    busy: session.busy,
     errorFor: (cell) => session.errorFor(cell),
     run: (method, command) =>
       session.run(method as MethodOf<P>, command as CommandOf<P, MethodOf<P>>),

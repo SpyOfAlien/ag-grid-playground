@@ -1,4 +1,4 @@
-import { evaluate, type Cell, type CellRule } from './cell';
+import { evaluate, type Cell, type CellRule } from './base';
 import { topMarker, type MarkerView, type Markers } from './markers';
 import type { TooltipContent, TooltipPosition } from '../tooltip/tooltip';
 
@@ -14,7 +14,7 @@ export interface DisplayParams<Row, V> {
   markers?: Markers<Row, V>;
 }
 
-export interface DisplayView {
+export interface CellDisplay {
   readonly text: string;
   readonly tooltip: TooltipContent | null;
   readonly tooltipPosition: TooltipPosition | null;
@@ -23,11 +23,11 @@ export interface DisplayView {
   readonly marker: MarkerView | null;
 }
 
-export function displayView<Row, V>(
+export function cellDisplay<Row, V>(
   config: DisplayParams<Row, V>,
   cell: Cell<Row, V>,
   defaultText: (value: V | null | undefined) => string = (value) => (value ?? '').toString(),
-): DisplayView {
+): CellDisplay {
   return {
     text: config.format ? config.format(cell.value, cell) : defaultText(cell.value),
     tooltip: evaluate(config.tooltip ?? null, cell),

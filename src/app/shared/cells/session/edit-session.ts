@@ -11,10 +11,8 @@ export interface Entry<Row, P> {
   readonly method: MethodOf<P>;
   readonly command: Command | undefined;
   readonly status: EntryStatus;
-  /** The full table after this entry; set only on success. */
-  readonly rows?: readonly Row[];
   /** What this entry changed compared with the previous successful table; set only on success. */
-  readonly changes?: RowChanges;
+  readonly changes?: RowChanges<Row>;
   readonly error?: string;
 }
 
@@ -23,23 +21,29 @@ export interface ConnectedGrid<Row> {
   /** Shows the whole table, for example when the grid connects. */
   show(rows: readonly Row[]): void;
   /** Applies a successful result; `changes` is what it changed in the previous successful table. */
-  apply(result: Result<Row>, changes: RowChanges): void;
+  apply(result: Result<Row>, changes: RowChanges<Row>): void;
 }
 
 export class EditSession<Row, P extends EditPersistence<Row>> {
   private readonly log = signal<readonly Entry<Row, P>[]>([]);
-  private readonly lockReason = signal<string | null>(null);
+  private readonly locked = signal<string | null>(null);
+  private readonly table = signal<readonly Row[]>([]);
+  /** Each source cell's latest settled entry, so a cell finds its error without a scan. */
+  private readonly latestByCell = signal<ReadonlyMap<string, Entry<Row, P>>>(new Map());
   private nextId = 1;
   private destroyed = false;
   private readonly grids = new Set<ConnectedGrid<Row>>();
 
   readonly entries = this.log.asReadonly();
   readonly current = computed(() => latestSaved(this.entries()));
-  readonly rows = computed(() => this.current()?.rows ?? []);
-  /** Why nothing in the grid can be edited right now, or null. */
-  readonly disabledReason = computed(
-    () => this.lockReason() ?? (this.entries().at(-1)?.status === 'pending' ? 'Saving…' : null),
-  );
+  /** The table of the latest successful entry. */
+  readonly rows = this.table.asReadonly();
+  /** Why the page locked the grid, or null. */
+  readonly lockReason = this.locked.asReadonly();
+  /** A command is running; no other can start until it settles. */
+  readonly busy = computed(() => this.entries().at(-1)?.status === 'pending');
+  /** Why nothing in the grid can be edited right now, or null: the lock first, then "Saving…". */
+  readonly disabledReason = computed(() => this.lockReason() ?? (this.busy() ? 'Saving…' : null));
 
   constructor(
     private readonly persistence: P,
@@ -65,7 +69,8 @@ export class EditSession<Row, P extends EditPersistence<Row>> {
       const previous = this.rows();
       const rows = 'replace' in result ? result.replace : this.merge(result.update);
       const changes = rowChanges(previous, rows, this.rowId);
-      this.settle(id, { status: 'saved', rows, changes });
+      this.table.set(rows);
+      this.settle(id, { status: 'saved', changes });
       for (const grid of this.grids) grid.apply(result, changes);
     } catch (error: unknown) {
       this.settle(id, { status: 'failed', error: errorMessage(error) });
@@ -75,14 +80,7 @@ export class EditSession<Row, P extends EditPersistence<Row>> {
 
   /** The error of the cell's latest settled command, if that command failed. Reactive. */
   errorFor(cell: CellRef): string | null {
-    const log = this.entries();
-    for (let index = log.length - 1; index >= 0; index--) {
-      const entry = log[index];
-      const source = entry.command?.source;
-      if (entry.status === 'pending' || source?.rowId !== cell.rowId) continue;
-      if (source.columnId === cell.columnId) return entry.error ?? null;
-    }
-    return null;
+    return this.latestByCell().get(cellKey(cell))?.error ?? null;
   }
 
   /** Shows the current rows in a grid and keeps it in step; returns the disconnect. */
@@ -93,20 +91,22 @@ export class EditSession<Row, P extends EditPersistence<Row>> {
   }
 
   lock(reason: string): void {
-    this.lockReason.set(reason);
+    this.locked.set(reason);
   }
 
   unlock(): void {
-    this.lockReason.set(null);
+    this.locked.set(null);
   }
 
-  private settle(
-    id: number,
-    outcome: Pick<Entry<Row, P>, 'status' | 'rows' | 'changes' | 'error'>,
-  ): void {
+  private settle(id: number, outcome: Pick<Entry<Row, P>, 'status' | 'changes' | 'error'>): void {
+    let settled: Entry<Row, P> | undefined;
     this.log.update((log) =>
-      log.map((entry) => (entry.id === id ? { ...entry, ...outcome } : entry)),
+      log.map((entry) => (entry.id === id ? (settled = { ...entry, ...outcome }) : entry)),
     );
+    const entry = settled;
+    const source = entry?.command?.source;
+    if (entry && source)
+      this.latestByCell.update((latest) => new Map(latest).set(cellKey(source), entry));
   }
 
   /** Rows outside the current table are ignored; adding rows goes through `replace`. */
@@ -114,6 +114,10 @@ export class EditSession<Row, P extends EditPersistence<Row>> {
     const changed = new Map(update.map((row) => [this.rowId(row), row]));
     return this.rows().map((row) => changed.get(this.rowId(row)) ?? row);
   }
+}
+
+function cellKey(cell: CellRef): string {
+  return `${cell.rowId}\u0000${cell.columnId}`;
 }
 
 function errorMessage(error: unknown): string {

@@ -1,4 +1,4 @@
-import { evaluate, type Cell, type CellRule } from './cell';
+import { evaluate, type Cell, type CellRule } from './base';
 import type { TooltipContent } from '../tooltip/tooltip';
 
 /** Highest priority first. */

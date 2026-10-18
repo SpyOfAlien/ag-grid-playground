@@ -10,13 +10,13 @@ import {
 } from '../testing/cell-test-kit';
 import { ToggleCell, type ToggleCellParams } from './toggle-cell';
 
-async function render<M extends string = 'save'>(
-  config: ToggleCellParams<Item, FakePersistence, M>,
+async function render(
+  config: ToggleCellParams<Item, FakePersistence>,
   persistence = new FakePersistence(),
   session = testSession(persistence),
 ) {
   await session.run('load', {});
-  const fixture = TestBed.createComponent(ToggleCell<Item, FakePersistence, M>);
+  const fixture = TestBed.createComponent(ToggleCell<Item, FakePersistence>);
   fixture.componentInstance.agInit(
     rendererParams(session, config, ITEM.active, {
       columnId: 'active',
@@ -30,6 +30,11 @@ async function render<M extends string = 'save'>(
 }
 
 describe('ToggleCell', () => {
+  it('takes its accessible name from a label rule when the column gives one', async () => {
+    const { toggle } = await render({ label: ({ row }) => `Active: ${row.sku}` });
+    expect(toggle.getAttribute('aria-label')).toBe('Active: A-1');
+  });
+
   it('shows the value as a switch and saves the opposite to its own field', async () => {
     const { toggle, persistence } = await render({});
     expect(toggle.getAttribute('role')).toBe('switch');

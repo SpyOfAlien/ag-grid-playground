@@ -1,17 +1,28 @@
 # Cells kit (`@cells`)
 
 Cell renderers for AG Grid with one edit flow: a cell builds a **command**, the grid's **edit
-session** runs it through a **persistence** service, and the grid shows the rows that come back.
-The demo at `/cells-demo` (`src/app/features/cells-demo`) uses every part.
+session** runs it through a **persistence** service, and every grid on that session shows the rows
+that come back. The demo at `/cells-demo` (`src/app/features/cells-demo`) uses every part.
 
 ```
 cell ──command──▶ session.run(method, command)
-                    │ entry { status: 'pending' }   → every control in the grid is disabled
+                    │ entry { status: 'pending' }      → every control waits ("busy")
                     ▼
                  persistence[method](command) ──▶ { replace: rows } | { update: rows }
-                    │ success: entry 'saved', rows applied to every connected grid
-                    │ failure: entry 'failed', grid unchanged, error shown on the source cell
+                    │ success: entry 'saved' with what changed; each connected grid applies it
+                    │ failure: entry 'failed' with the error; grids unchanged; the source cell shows it
 ```
+
+## Folders
+
+| Folder       | What is in it                                                                         |
+| ------------ | ------------------------------------------------------------------------------------- |
+| `session/`   | `EditSession`, the persistence contract, `rowChanges`, `applyChanges`                 |
+| `grid/`      | `cellGridOptions`, `connectGrid` (one per table), column reads, keyboard, empty state |
+| `base/`      | `CellBase` and what every renderer uses: `cellDisplay`, `cellControl`, `submitEdit`   |
+| `renderers/` | the six renderers and `CellMarker`                                                    |
+| `editors/`   | `openCellPopover`, `openCellDialog` (`CellDialog`), `FieldEditor`, `DropdownOptions`  |
+| `tooltip/`   | the shared tooltip: one service, the `cellsTooltip` directive                         |
 
 ## Setting up a grid
 
@@ -31,51 +42,10 @@ export class InventoryPage {
 - `createEditSession` must be called in the component's injection context and ends with it.
   A persistence is required.
 - `cellGridOptions` is the only way to build a cell grid. It puts the session in `context`, sets
-  `getRowId`, connects the grid to the session, and enables keyboard access to controls inside
-  cells. `rowData` and `getRowId` are not options, because rows come from the session.
-- Several grids can share one session (the demo's summary grid). Each one is disconnected when
-  it is destroyed.
-
-## Refreshing only what changed
-
-When rows arrive, the session compares them once with the previous successful rows and records
-the result on the entry as `changes` (see Session). Each connected grid uses that record: AG Grid
-refreshes every cell whose own value changed, and a cell whose value did not change but whose
-rules read a changed field must be listed:
-
-```ts
-cellGridOptions(session, options, {
-  refreshOnChange: {
-    approved: ['name', 'qty', 'category', 'active', 'reorder'], // their locks read `approved`
-    reorderLevel: ['reorder'], // a composite cell with no field of its own
-  },
-});
-```
-
-- Keys are row fields (type-checked). To chain through a column with no field of that name,
-  name it in the third type argument: `cellGridOptions<Row, P, 'total'>(…)`.
-- Values are column ids, falling back to a column's field. An unknown name throws in dev mode.
-- List direct dependents only. The chain continues past a dependent only when that dependent's
-  value changed; a dependent whose value stayed the same is force-refreshed once and stops it.
-- Cycles throw when the grid is built. A column listing its own field is a dependency, not a cycle.
-- Columns that are not listed refresh only when their own value changes.
-
-### Measured cost
-
-`npm run test:perf` drives `/cells-perf`: 200 columns × 300 tree rows, a change to one field
-with ten dependent columns. Main-thread time on a dev build in Chrome, median of 10 runs:
-
-| Columns drawn     | Change                  | Before (force whole rows/grid) | `refreshOnChange` |
-| ----------------- | ----------------------- | ------------------------------ | ----------------- |
-| Virtualised (555) | save, one field         | 5.7 ms, 16 refreshes           | 5.2 ms, 4         |
-| Virtualised (555) | reload, one row differs | 7.2 ms, 556 refreshes          | 4.4 ms, 4         |
-| All 200 (≈4,500)  | save, one field         | 16.6 ms, 201 refreshes         | 15.8 ms, 11       |
-| All 200 (≈4,500)  | reload, one row differs | 49.9 ms, 7,401 refreshes       | 16.0 ms, 11       |
-
-The remaining time is AG Grid applying the change itself. A server reload that returns every row
-as a new object (one with a different value) costs about 16 ms virtualised and 24 ms with all
-columns drawn; comparing the 300 × 200 fields is about 3 ms of that. Keeping unchanged rows as the
-same object makes the comparison free.
+  `getRowId`, connects the grid to the session, and lets keys reach controls inside cells.
+  `rowData` and `getRowId` are not options, because rows come from the session.
+- Several grids can share one session (the demo's summary grid). Each is connected when it is
+  ready and disconnected when it is destroyed.
 
 ## Persistence
 
@@ -83,32 +53,50 @@ same object makes the comparison free.
 class InventoryPersistence implements EditPersistence<Item> {
   load(command?: Command): Promise<Result<Item>>; // required
   save(command: SaveCommand<Item>): Promise<Result<Item>>; // required: field changes
-  approve(command: Command & { skus: string[] }): Promise<Result<Item>>; // any extra method
+  approve(command: ApproveCommand): Promise<Result<Item>>; // any extra method
 }
 ```
 
 - Every method takes a command (`{ source?, params? }` plus its own fields) and returns either
-  `{ replace }` (the full table) or `{ update }` (changed and dependent rows only).
+  `{ replace }` (the full table) or `{ update }` (the changed rows).
 - Client-side and server-side persistence look the same to the kit. A client persistence works
-  out affected rows locally; `applyChanges(rows, rowId, changes)` helps with the field changes.
+  out the affected rows itself; `applyChanges(rows, rowId, changes)` helps with field changes.
+- Rows are immutable. Return a **new object for every row whose display changes**, including rows
+  changed by another row (a tree parent whose total depends on its children), and keep unchanged
+  rows as the same object. The kit relies on this to find what changed.
 - To add or remove rows, a method does its work, reloads, and returns `{ replace }`.
-- Rows must be immutable: return new objects and never change a row in place.
+- With NgRx, the store owns server state and the session owns grid state: a persistence that
+  calls the store's methods and returns their `Result` connects the two. Effects that react to
+  outside events (a push, another page) go through `session.run`, never into the store alone.
 
 ## Session
 
-- `run(method, command)` is the single entry point for cells, editors and page UI. It is checked
-  at compile time: the method must exist and the command must match its parameter.
-- Only one command runs at a time. While one is pending, `run` is refused and controls are
-  disabled. Nothing runs after the owning component is destroyed.
-- `entries` is the history. Each entry has `previousId` (the entry just before it) and, on
-  success, the full table it produced. Rows are shared by reference, not copied. `current` is the
-  latest successful entry and `rows` its table.
-- A successful entry also has `changes`: `{ updated: [{ rowId, fields }], added, removed }`,
-  compared with the previous successful table. Unchanged rows (the same object, or every field
-  equal) are not listed, and fields are compared shallowly. Old and new values are not copied;
-  read them from the two entries' `rows` when needed, for example in a history view.
-- `errorFor(cell)` is the cell's last failure, cleared by its next success.
-- `lock(reason)` / `unlock()` disable every control with that reason.
+- `run(method, command)` is the single entry point for every change: cells, editors, page UI and
+  outside events. It is checked at compile time: the method must exist and the command must
+  match its parameter. A reload from a toolbar is `session.run('load', {})`.
+- One command at a time. While one runs, `busy()` is true, `run` is refused and controls wait.
+  `lock(reason)` / `unlock()` disable every control with a reason, read back as `lockReason()`.
+  `disabledReason()` combines both for page UI: the lock first, then "Saving…".
+- Nothing runs after the owning component is destroyed.
+- `entries` is the history. Each entry has `previousId` (the entry just before it, whatever its
+  status), `method`, `command`, `status` and, on failure, `error`. `current` is the latest
+  successful entry and `rows` the current table.
+- A successful entry has `changes`, compared with the previous successful table:
+
+  ```ts
+  {
+    updated: [{ rowId: 'SKU-01', fields: { qty: { before: 120, after: 200 } } }],
+    added: [{ rowId, row }],
+    removed: [{ rowId, row }],
+  }
+  ```
+
+  Rows that are the same object, or whose fields are all equal, are not listed; fields are
+  compared shallowly. The values are the rows' own, so history costs only what changed. Undo is a
+  command that sends the `before` values back through the persistence.
+
+- `errorFor(cell)` is the error of that cell's latest command, if it failed. It stays until the
+  same cell's next command succeeds (a reload does not clear it), and the entry keeps it for good.
 
 ## Columns
 
@@ -117,20 +105,17 @@ Columns are plain `ColDef`s. Renderer params are checked with `satisfies`:
 ```ts
 {
   field: 'qty',
+  context: { reads: ['approved', 'reorderLevel'] } satisfies CellColumnContext<Item>,
   cellRenderer: PopoverCell,
   cellRendererParams: {
     format: (qty) => `${qty} pcs`,
     editable: ({ row }) => (row.approved ? 'Approved items are locked' : true),
+    markers: { error: { when: ({ row, value }) => (value ?? 0) < row.reorderLevel } },
     editor: { component: FieldEditor<Item, number>, data: () => ({ label: 'Quantity', mode: 'number' }) },
     popover: { title: 'Edit quantity' },
   } satisfies PopoverCellParams<FieldEditorData<Item, number>, InventoryPersistence>,
 }
 ```
-
-`PopoverCellParams` and `DialogCellParams` take the editor's data, the persistence and, when the
-column calls a method other than `save`, that method's name: `DialogCellParams<ItemDetailsData,
-InventoryPersistence, 'approve'>`. The row, the cell value and what the editor submits all come
-from the editor's data.
 
 | Renderer       | Shows                            | Edits                                           |
 | -------------- | -------------------------------- | ----------------------------------------------- |
@@ -141,23 +126,71 @@ from the editor's data.
 | `PopoverCell`  | text and a pen                   | the column's editor in a popover                |
 | `DialogCell`   | text and a pen                   | the column's editor in a dialog                 |
 
-Every renderer accepts `format`, `tooltip`, `highlighted`, `muted` and `markers`. Rules are a value
-or a function of the cell (`{ rowId, columnId, row, value }`).
+Every renderer accepts `format`, `tooltip`, `tooltipPosition`, `highlighted`, `muted` and
+`markers`. Rules are a value or a function of the cell (`{ rowId, columnId, row, value }`). A rule
+may read signals (page state such as a read-only switch); the cell redraws when they change, with
+no grid refresh.
 
 - **Text.** `format(value, cell)` is also called for empty values. It changes only what is drawn;
   the cell value, and therefore export, stays raw.
 - **Markers.** Six fixed kinds in priority order: `error`, `warning`, `userEdited`,
   `systemGenerated`, `info`, `special`. Only the highest active one is drawn, with its tooltip.
-- **Editing.** `editable` returns `true` or the reason it is not allowed. `method` defaults to
-  `save`. `command(next, cell)` defaults to a `save` that sets the column's own top-level field.
-  The source cell is always attached.
-- **Disabled and tooltip order.** Session lock or "Saving…" (a pending save keeps the normal
-  tooltip), then the `editable` reason, then this cell's last error (the control stays enabled for
-  retry), then the normal tooltip.
+- **Editing.** `editable` returns `true` or the reason it is not allowed. Without a `method` the
+  control saves: `command(next, cell)` is optional and defaults to setting the column's own
+  top-level field. With another `method`, `command` is required and checked against that method:
+  `{ method: 'approve', command: (_next, cell) => ({ skus: [cell.rowId] }) }`. The methods offered
+  are the persistence's own. The source cell is always attached.
+- **Labels.** `label` is a control's accessible name. Defaults: the header for a switch,
+  "Header: choice" for a dropdown, "Edit Header" for a pen.
+- **Disabled and tooltip order.** The lock, or busy (keeping the normal tooltip), then the
+  `editable` reason, then this cell's last error (the control stays enabled for a retry), then the
+  normal tooltip.
 - **Empty states.** `withEmptyState({ value, emptyState, renderer, params })` decides per cell
   whether to show text such as `-` or `NA` instead of the value. The empty state becomes the cell
   value, so Excel exports exactly what is shown, and the renderer is skipped for it.
 - **Alignment** is a column class: `cellClass: 'cells-align-end'`.
+
+`PopoverCellParams` and `DialogCellParams` take the editor's data and the persistence; the row,
+the cell value and what the editor submits all come from the editor's data.
+
+## Refreshing only what changed
+
+After a result, AG Grid redraws every cell whose own value changed. A cell whose value stays the
+same but whose rules read another field, such as a lock reading `approved`, says so on its column:
+
+```ts
+{ field: 'name', context: { reads: ['approved', 'discontinued'] } satisfies CellColumnContext<Item> }
+```
+
+- Names are row fields or column ids. List what the column reads directly; when a column it
+  reads changes value, the kit follows on to the columns that read that one.
+- Each connected grid takes the changed fields from the entry's `changes`, reads the affected
+  cells' values before applying the rows, and afterwards force-refreshes only those whose value did
+  not change (AG Grid already redrew the rest). Columns without `reads` refresh only when their own
+  value changes.
+- Cycles throw when the grid is built. A column reading the field of its own name is not a cycle.
+  In dev mode a name that is neither a column nor a field of any row throws when rows first arrive.
+- Each table declares its own columns, so two tables on one session refresh independently.
+
+### Measured cost
+
+`npm run test:perf` drives `/cells-perf`: 200 columns × 300 tree rows; ten columns read the field
+that changes. Main-thread time on a dev build in Chrome, median of 10 runs:
+
+| Columns drawn     | Change                          | Time    | Renderer refreshes |
+| ----------------- | ------------------------------- | ------- | ------------------ |
+| Virtualised (555) | save, one field                 | 5.1 ms  | 4                  |
+| Virtualised (555) | reload, one row differs         | 5.7 ms  | 4                  |
+| All 200 (≈3,000)  | save, one field                 | 9.0 ms  | 11                 |
+| All 200 (≈3,000)  | reload, one row differs         | 11.8 ms | 11                 |
+| All 200 (≈3,000)  | server reload, every row is new | 15.4 ms | 11                 |
+
+For comparison, forcing whole rows or the whole grid to refresh, as the kit first did, cost
+16.6 ms (201 refreshes) for a save and 49.9 ms (7,401 refreshes) for a reload with all columns
+drawn, on an earlier build.
+
+A save costs the same after 1,000 entries as after 10 (8.7 ms and 9.2 ms with all columns): each
+cell finds its error by lookup, not by reading the history.
 
 ## Tooltips
 
@@ -165,7 +198,7 @@ All kit tooltips go through one shared tooltip that behaves and looks like Angul
 `matTooltip`, without its per-element cost:
 
 - A `tooltip` rule (and a marker's `tooltip`) returns text or `{ html: '<b>…</b>' }`. HTML is
-  sanitized by Angular before it is shown. Disabled reasons, "Saving…" and errors are text.
+  sanitized by Angular before it is shown. Disabled reasons and errors are text.
 - `tooltipPosition` places a column's tooltips: `above`, `below` (default), `left`, `right`,
   `before` or `after` (these two follow the text direction). It flips to the opposite side when
   there is no room.
@@ -174,14 +207,13 @@ All kit tooltips go through one shared tooltip that behaves and looks like Angul
   visible, moving to another element switches without a delay.
 - It hides on pointer leave, blur, Escape, a click, 1.5 s after a touch is released, or when the
   element is removed. When a container scrolls it follows its element, and hides once the element
-  scrolls out of view, as Material does. The pointer may move onto the tooltip without it closing,
-  and a visible tooltip follows changes to its content.
+  scrolls out of view. The pointer may move onto the tooltip without it closing, and a visible
+  tooltip follows changes to its content.
 - Like Material's tooltip the visible element is `aria-hidden`. While it shows, its element gets
   `aria-describedby` pointing at it (kept alongside the element's own descriptions), so screen
-  readers hear it on focus. No other element carries anything.
-- Custom renderers use the directive: `<button [cellsTooltip]="view.tooltip"
-[cellsTooltipPosition]="view.tooltipPosition">`. It only writes attributes onto the element; nine
-  document-level listeners do the rest, however many cells there are.
+  readers hear it on focus.
+- Elements only carry attributes (`[cellsTooltip]` writes them); nine document-level listeners
+  do the rest, however many cells there are.
 
 ### Measured cost
 
@@ -208,12 +240,25 @@ An editor is a component with a `data` input of `EditorData` plus whatever its c
 the editor shows the error and stays open. `session` is there for anything else, such as running
 another method. `FieldEditor` covers text, number and multi-line fields.
 
+The editor never knows where it is shown. `openCellPopover` puts it in the shared popover, whose
+panel draws the title and arrow; `openCellDialog` puts it in a Material dialog through
+`CellDialog`, which draws the title.
+
 ## Custom renderers
 
-Extend `CellBase` and use the same parts the built-in renderers use: `displayView`, `controlView`,
-`submitEdit`, `cellEditorData`, `openCellPopover` and `openCellDialog`. The demo's `ReorderCell`
-puts a switch and a pen in one cell, each with its own command.
+Extend `CellBase` and use the parts the built-in renderers use:
 
-Add `class: 'cells-cell'` to the host so keyboard handling finds the controls. The kit's global
-styles are in `cells.scss` (included from `src/styles.scss`) and can be themed through its
-`--cells-*` custom properties.
+| Part                                                  | Gives                                                     |
+| ----------------------------------------------------- | --------------------------------------------------------- |
+| `cell()` (from `CellBase`)                            | `{ rowId, columnId, row, value }` as a signal             |
+| `cellDisplay(params, cell)`                           | text, tooltip, highlighted, muted, the top marker         |
+| `cellControl(params, cell, …)`                        | disabled, tooltip and accessible name of one control      |
+| `submitEdit(target, cell, next)`                      | runs the control's command through the session            |
+| `cellEditorData`, `openCellPopover`, `openCellDialog` | hosts an editor for the cell                              |
+| `<span [cellsMarker]>`                                | the marker and its tooltip, on the renderer's own element |
+| `[cellsTooltip]`                                      | a tooltip on any element                                  |
+
+The demo's `ReorderCell` puts a switch and a pen in one cell, each with its own command. Add
+`class: 'cells-cell'` to the host so keyboard handling finds the controls. The kit's global styles
+are in `cells.scss` (included from `src/styles.scss`) and can be themed through its `--cells-*`
+custom properties.

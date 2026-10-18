@@ -1,6 +1,7 @@
 import { Validators } from '@angular/forms';
 import type { ColDef } from 'ag-grid-community';
 import {
+  type CellColumnContext,
   DialogCell,
   DropdownCell,
   FieldEditor,
@@ -24,6 +25,8 @@ import type { InventoryPersistence } from './inventory-persistence';
 import { DEMO_TODAY, type Category, type Item, type Supplier } from './inventory.model';
 
 type P = InventoryPersistence;
+/** Fields and columns a column's rules read besides its own value. */
+type Reads = CellColumnContext<Item>;
 type NumberEditor = FieldEditorData<Item, number>;
 type TextEditor = FieldEditorData<Item, string>;
 
@@ -49,6 +52,7 @@ export function inventoryColumns(): ColDef<Item>[] {
     { field: 'sku', headerName: 'SKU', width: 110, pinned: 'left' },
     {
       field: 'name',
+      context: { reads: ['approved', 'discontinued'] } satisfies Reads,
       headerName: 'Name',
       width: 200,
       cellRenderer: PopoverCell,
@@ -71,6 +75,7 @@ export function inventoryColumns(): ColDef<Item>[] {
     },
     {
       field: 'qty',
+      context: { reads: ['approved', 'reorderLevel'] } satisfies Reads,
       headerName: 'Quantity',
       width: 150,
       cellClass: 'cells-align-end',
@@ -97,6 +102,7 @@ export function inventoryColumns(): ColDef<Item>[] {
     },
     {
       field: 'stockValue',
+      context: { reads: ['qty', 'unitPrice'] } satisfies Reads,
       headerName: 'Stock value',
       width: 150,
       cellClass: 'cells-align-end',
@@ -112,6 +118,7 @@ export function inventoryColumns(): ColDef<Item>[] {
     },
     {
       field: 'unitPrice',
+      context: { reads: ['approved'] } satisfies Reads,
       headerName: 'Unit price',
       width: 140,
       cellClass: 'cells-align-end',
@@ -132,6 +139,7 @@ export function inventoryColumns(): ColDef<Item>[] {
     },
     {
       field: 'supplier',
+      context: { reads: ['approved'] } satisfies Reads,
       headerName: 'Supplier',
       width: 190,
       cellRenderer: DropdownCell,
@@ -180,6 +188,7 @@ export function inventoryColumns(): ColDef<Item>[] {
     },
     {
       field: 'category',
+      context: { reads: ['approved'] } satisfies Reads,
       headerName: 'Category',
       width: 160,
       cellRenderer: DropdownCell,
@@ -195,6 +204,7 @@ export function inventoryColumns(): ColDef<Item>[] {
     },
     {
       field: 'active',
+      context: { reads: ['approved'] } satisfies Reads,
       headerName: 'Active',
       width: 100,
       cellRenderer: ToggleCell,
@@ -206,6 +216,7 @@ export function inventoryColumns(): ColDef<Item>[] {
     },
     {
       colId: 'reorder',
+      context: { reads: ['approved', 'reorder', 'reorderLevel'] } satisfies Reads,
       headerName: 'Reorder',
       width: 200,
       valueGetter: () => null,

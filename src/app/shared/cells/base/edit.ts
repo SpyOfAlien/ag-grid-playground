@@ -1,16 +1,31 @@
-import type { Cell, CellRule } from './cell';
+import type { Cell, CellRule } from './base';
 import type { CellsContext } from '../grid/cell-grid-options';
 import type { Command, CommandFor, MethodOf, SaveCommand } from '../session/persistence';
 
-/** How an editable control sends its change. `M` must name a method of the persistence `P`. */
-export interface EditParams<Row, V, P, Next, M extends string = 'save'> {
+/**
+ * How an editable control sends its change. Without a `method` it is a `save`, and `command`
+ * (optional) must build a save; with another method of the persistence `P`, `command` is required
+ * and must build that method's command.
+ */
+export type EditParams<Row, V, P, Next> = {
   /** `true` when allowed, otherwise the reason it is not. */
   editable?: CellRule<Row, V, true | string>;
-  /** The persistence method to call; defaults to `save`. */
-  method?: M & MethodOf<P>;
-  /** Builds the command; defaults to a `save` that sets the column's own field. */
-  command?: (next: Next, cell: Cell<Row, V>) => CommandFor<P, M>;
+  /** The control's accessible name; each renderer has a default built from the column header. */
+  label?: CellRule<Row, V, string>;
+} & (SaveEdit<Row, V, P, Next> | OtherMethodEdit<Row, V, P, Next>);
+
+interface SaveEdit<Row, V, P, Next> {
+  method?: 'save';
+  /** Builds the save; defaults to setting the column's own field. */
+  command?: (next: Next, cell: Cell<Row, V>) => CommandFor<P, 'save'>;
 }
+
+type OtherMethodEdit<Row, V, P, Next> = {
+  [M in Exclude<MethodOf<P>, 'save'>]: {
+    method: M;
+    command: (next: Next, cell: Cell<Row, V>) => CommandFor<P, M>;
+  };
+}[Exclude<MethodOf<P>, 'save'>];
 
 /**
  * What sending an edit needs: the grid context, the column's field for the default command,

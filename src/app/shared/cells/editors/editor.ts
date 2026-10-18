@@ -1,12 +1,12 @@
 import type { Injector, InputSignal, Type } from '@angular/core';
 import { MatDialog, type MatDialogRef } from '@angular/material/dialog';
-import type { Cell } from '../cell/cell';
-import { submitEdit, type EditTarget } from '../cell/edit';
+import type { Cell } from '../base/base';
+import { submitEdit, type EditTarget } from '../base/edit';
 import type { CellSession } from '../grid/cell-grid-options';
 import type { PopoverPlacement } from '../../popover/popover.model';
 import type { PopoverRef } from '../../popover/popover-ref';
 import { PopoverService } from '../../popover/popover-service';
-import { DialogFrame, type DialogFrameData } from './dialog-frame';
+import { CellDialog, type CellDialogData } from './cell-dialog';
 
 /** What every hosted editor receives, plus any extra data its column adds. */
 export interface EditorData<Row, V, Next = V> {
@@ -95,18 +95,18 @@ export function openCellDialog<D>(
   component: Type<CellEditor<D>>,
   data: (close: () => void) => D,
   options: CellDialogOptions = {},
-): MatDialogRef<DialogFrame> {
+): MatDialogRef<CellDialog> {
   const size = (value: number | string | undefined) =>
     typeof value === 'number' ? `${value}px` : value;
-  let ref: MatDialogRef<DialogFrame> | undefined;
+  let ref: MatDialogRef<CellDialog> | undefined;
   const close = () => ref?.close();
-  ref = injector.get(MatDialog).open(DialogFrame, {
+  ref = injector.get(MatDialog).open(CellDialog, {
     injector,
     data: {
       title: options.title ?? 'Edit',
       component,
       data: data(close),
-    } satisfies DialogFrameData,
+    } satisfies CellDialogData,
     width: size(options.width),
     height: size(options.height),
     maxWidth: 'calc(100vw - 24px)',

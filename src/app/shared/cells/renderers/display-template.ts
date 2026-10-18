@@ -2,15 +2,14 @@
 export const DISPLAY_TEMPLATE = `
   @if (view(); as view) {
     @if (view.marker; as marker) {
-      <span class="cells-marker" [attr.data-kind]="marker.kind" [cellsTooltip]="marker.tooltip"
-        [cellsTooltipPosition]="view.tooltipPosition"></span>
+      <span [cellsMarker]="marker" [position]="view.tooltipPosition"></span>
     }
     <span
       class="cells-text"
       [class.cells-highlighted]="view.highlighted"
       [class.cells-muted]="view.muted"
       [cellsTooltip]="view.tooltip"
-        [cellsTooltipPosition]="view.tooltipPosition"
+      [cellsTooltipPosition]="view.tooltipPosition"
       >{{ view.text }}</span
     >
   }
@@ -26,7 +25,7 @@ export const EDIT_TEMPLATE = `
       [attr.aria-label]="view.label"
       [attr.aria-disabled]="view.pen.disabled"
       [cellsTooltip]="view.pen.tooltip"
-        [cellsTooltipPosition]="view.tooltipPosition"
+      [cellsTooltipPosition]="view.tooltipPosition"
       (click)="open($event)"
     ></button>
   }

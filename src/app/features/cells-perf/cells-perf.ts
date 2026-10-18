@@ -82,7 +82,14 @@ class PerfPersistence implements EditPersistence<Row> {
 function columns(): ColDef<Row>[] {
   return Array.from({ length: COLUMNS }, (_, column): ColDef<Row> => {
     const field = `c${column}`;
-    const base = { field, headerName: `C${column}`, width: 110 } as ColDef<Row>;
+    // Ten columns read c0 besides their own value, so a change to c0 must refresh them too.
+    const reads = column > 0 && column <= 40 && column % 4 === 0 ? ['c0'] : undefined;
+    const base = {
+      field,
+      headerName: `C${column}`,
+      width: 110,
+      context: reads && { reads },
+    } as ColDef<Row>;
     switch (column % 4) {
       case 0:
         return {
@@ -137,22 +144,17 @@ export class CellsPerf {
   private readonly session = createEditSession(this.persistence, (row: Row) => row.id);
   private counter = 0;
 
-  protected readonly options = cellGridOptions(
-    this.session,
-    {
-      columnDefs: columns(),
-      treeData: true,
-      getDataPath: (row) => [...row.path],
-      groupDefaultExpanded: -1,
-      autoGroupColumnDef: { headerName: 'Group', width: 200, pinned: 'left' },
-      rowHeight: 32,
-      animateRows: false,
-      suppressColumnVirtualisation: new URLSearchParams(location.search).has('allColumns'),
-      theme: themeQuartz,
-    },
-    // A change to c0 must also refresh ten other columns whose rules read it.
-    { refreshOnChange: { c0: Array.from({ length: 10 }, (_, index) => `c${(index + 1) * 4}`) } },
-  );
+  protected readonly options = cellGridOptions(this.session, {
+    columnDefs: columns(),
+    treeData: true,
+    getDataPath: (row) => [...row.path],
+    groupDefaultExpanded: -1,
+    autoGroupColumnDef: { headerName: 'Group', width: 200, pinned: 'left' },
+    rowHeight: 32,
+    animateRows: false,
+    suppressColumnVirtualisation: new URLSearchParams(location.search).has('allColumns'),
+    theme: themeQuartz,
+  });
 
   constructor() {
     (window as unknown as { cellsPerf: unknown }).cellsPerf = {

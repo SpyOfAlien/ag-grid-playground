@@ -7,6 +7,7 @@ import {
   testSession,
   type Item,
 } from '../testing/cell-test-kit';
+import type { CellRule } from '../base/base';
 import { DropdownCell, type DropdownCellParams } from './dropdown-cell';
 
 const CATEGORIES: DropdownCellParams<Item, string, FakePersistence> = {
@@ -17,12 +18,20 @@ const CATEGORIES: DropdownCellParams<Item, string, FakePersistence> = {
   placeholder: 'Choose category',
 };
 
-async function render(value: string | null, persistence = new FakePersistence()) {
+async function render(
+  value: string | null,
+  persistence = new FakePersistence(),
+  config: { label?: CellRule<Item, string, string> } = {},
+) {
   const session = testSession(persistence);
   await session.run('load', {});
   const fixture = TestBed.createComponent(DropdownCell<Item, string, FakePersistence>);
   fixture.componentInstance.agInit(
-    rendererParams(session, CATEGORIES, value, { columnId: 'category', field: 'category' }),
+    rendererParams(session, { ...CATEGORIES, ...config }, value, {
+      columnId: 'category',
+      field: 'category',
+      headerName: 'Category',
+    }),
   );
   await fixture.whenStable();
   const button = (fixture.nativeElement as HTMLElement).querySelector('button')!;
@@ -44,6 +53,17 @@ describe('DropdownCell', () => {
     expect((await render('hw')).button.textContent?.trim()).toBe('Hardware');
     expect((await render('lb')).button.textContent?.trim()).toBe('Choose category');
     expect((await render(null)).button.textContent?.trim()).toBe('Choose category');
+  });
+
+  it('is named after its column and the choice, unless the column gives a label', async () => {
+    expect((await render('hw')).button.getAttribute('aria-label')).toBe('Category: Hardware');
+    expect((await render(null)).button.getAttribute('aria-label')).toBe(
+      'Category: Choose category',
+    );
+    const custom = await render('hw', new FakePersistence(), {
+      label: ({ row }) => `Category of ${row.sku}`,
+    });
+    expect(custom.button.getAttribute('aria-label')).toBe('Category of A-1');
   });
 
   it('opens the options and saves a different choice to its own field, then closes', async () => {

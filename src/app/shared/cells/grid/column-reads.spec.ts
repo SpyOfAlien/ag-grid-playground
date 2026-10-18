@@ -10,7 +10,7 @@ import {
 } from 'ag-grid-community';
 import { createEditSession } from '../session/edit-session';
 import type { Command, EditPersistence, Result, SaveCommand } from '../session/persistence';
-import { cellGridOptions, type RefreshOnChange } from './cell-grid-options';
+import { cellGridOptions } from './cell-grid-options';
 
 ModuleRegistry.registerModules([AllCommunityModule]);
 
@@ -73,21 +73,30 @@ const COLUMNS: ColDef<Item>[] = [
   probe('other', ({ data }) => data?.sku),
 ];
 
-type Map = RefreshOnChange<Item, 'total' | 'label'>;
+/** What each column's display reads besides its own value, by column id. */
+type Reads = Record<string, string[]>;
 
-async function setup(refreshOnChange: Map, columnDefs = COLUMNS) {
+const withReads = (reads: Reads, columnDefs: ColDef<Item>[]) =>
+  columnDefs.map((column) =>
+    reads[column.colId ?? '']
+      ? { ...column, context: { reads: reads[column.colId ?? ''] } }
+      : column,
+  );
+
+async function setup(reads: Reads, columns = COLUMNS) {
   const persistence = new FakePersistence();
   const session = TestBed.runInInjectionContext(() =>
     createEditSession(persistence, (item: Item) => item.sku),
   );
+  const columnDefs = withReads(reads, columns);
   const api = await new Promise<GridApi<Item>>((ready) => {
     const grid = createGrid<Item>(
       document.body.appendChild(document.createElement('div')),
-      cellGridOptions<Item, FakePersistence, 'total' | 'label'>(
-        session,
-        { columnDefs, domLayout: 'autoHeight', onGridReady: () => ready(grid) },
-        { refreshOnChange },
-      ),
+      cellGridOptions(session, {
+        columnDefs,
+        domLayout: 'autoHeight',
+        onGridReady: () => ready(grid),
+      }),
     );
   });
   await session.run('load', {});
@@ -101,11 +110,11 @@ async function setup(refreshOnChange: Map, columnDefs = COLUMNS) {
 /** Lets AG Grid finish rendering before counting. */
 const rendered = () => new Promise((done) => setTimeout(done, 50));
 
-describe('refreshOnChange', () => {
+describe('column reads', () => {
   afterEach(() => (document.body.innerHTML = ''));
 
-  it('forces declared dependents, leaves undeclared ones to AG Grid, and refreshes each once', async () => {
-    const { session, persistence, api, text } = await setup({ qty: ['label'] });
+  it('forces columns that read a changed field, leaves the rest to AG Grid, and refreshes each once', async () => {
+    const { session, persistence, api, text } = await setup({ label: ['qty'] });
 
     persistence.saveResult = { update: [{ ...ROWS[1], qty: 4 }] };
     await session.run('save', { changes: [] });
@@ -119,7 +128,7 @@ describe('refreshOnChange', () => {
   });
 
   it('follows the chain through a dependent whose value changed', async () => {
-    const { session, persistence, api, text } = await setup({ qty: ['total'], total: ['label'] });
+    const { session, persistence, api, text } = await setup({ total: ['qty'], label: ['total'] });
 
     persistence.saveResult = { update: [{ ...ROWS[1], qty: 4 }] };
     await session.run('save', { changes: [] });
@@ -132,7 +141,7 @@ describe('refreshOnChange', () => {
   });
 
   it('stops the chain at a dependent whose value did not change', async () => {
-    const { session, persistence, api } = await setup({ approved: ['qty'], qty: ['total'] });
+    const { session, persistence, api } = await setup({ qty: ['approved'], total: ['qty'] });
 
     persistence.saveResult = { update: [{ ...ROWS[1], approved: true }] };
     await session.run('save', { changes: [] });
@@ -143,7 +152,7 @@ describe('refreshOnChange', () => {
   });
 
   it('touches only rows that changed when a reload replaces the table', async () => {
-    const { session, persistence, api, text } = await setup({ qty: ['label'] });
+    const { session, persistence, api, text } = await setup({ label: ['qty'] });
 
     persistence.loadResult = { replace: [ROWS[0], { ...ROWS[1], qty: 2 }] };
     await session.run('load', {});
@@ -160,35 +169,16 @@ describe('refreshOnChange', () => {
     );
 
     expect(() =>
-      cellGridOptions<Item, FakePersistence, 'total'>(
-        session,
-        {},
-        {
-          refreshOnChange: { qty: ['total'], total: ['qty'] },
-        },
-      ),
-    ).toThrow('refreshOnChange has a cycle: qty → total → qty');
+      cellGridOptions(session, {
+        columnDefs: withReads({ qty: ['total'], total: ['qty'] }, COLUMNS),
+      }),
+    ).toThrow('Column reads have a cycle: total → qty → total');
   });
 
-  it('rejects an unknown column name when the grid is ready', async () => {
-    const session = TestBed.runInInjectionContext(() =>
-      createEditSession(new FakePersistence(), (item: Item) => item.sku),
+  it('rejects a read that is neither a column nor a field when rows arrive', async () => {
+    await expect(setup({ label: ['qtty'] })).rejects.toThrow(
+      'Column label reads qtty, which is neither a column nor a row field.',
     );
-    const options = cellGridOptions(
-      session,
-      { columnDefs: COLUMNS },
-      {
-        refreshOnChange: { qty: ['totl'] },
-      },
-    );
-    const api = createGrid<Item>(document.body.appendChild(document.createElement('div')), {
-      columnDefs: COLUMNS,
-    });
-
-    expect(() => options.onGridReady?.({ api } as never)).toThrow(
-      'refreshOnChange names an unknown column: totl',
-    );
-    api.destroy();
   });
 
   it('refreshes a column that shares its name with the field it reads but shows something else', async () => {

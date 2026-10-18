@@ -2,11 +2,11 @@ import { isDevMode } from '@angular/core';
 import type { Column, GridApi, IRowNode } from 'ag-grid-community';
 import type { ConnectedGrid } from '../session/edit-session';
 import type { RowChanges } from '../session/row-changes';
-import type { RefreshGraph } from './refresh-map';
+import type { RefreshGraph } from './column-reads';
 
 /**
  * Shows session results in one grid. AG Grid refreshes cells whose own value changed; this adds
- * a forced refresh only for declared dependents whose value did not change.
+ * a forced refresh only for columns that read a changed field but whose own value did not change.
  */
 export function connectGrid<Row>(api: GridApi<Row>, graph: RefreshGraph): ConnectedGrid<Row> {
   // Names are column ids, falling back to a column's field.
@@ -14,13 +14,26 @@ export function connectGrid<Row>(api: GridApi<Row>, graph: RefreshGraph): Connec
     api.getColumn(name) ??
     api.getColumns()?.find((candidate) => candidate.getColDef().field === name) ??
     null;
-  if (isDevMode())
-    for (const name of graph.targets)
-      if (!column(name)) throw new Error(`refreshOnChange names an unknown column: ${name}`);
+
+  // Names in `reads` are not checked at compile time; the first rows show whether each exists.
+  let checked = !isDevMode();
+  const check = (rows: readonly Row[]) => {
+    if (checked || !rows.length) return;
+    checked = true;
+    for (const { column: reader, name } of graph.reads)
+      if (!column(name) && !rows.some((row) => name in (row as object)))
+        throw new Error(
+          `Column ${reader} reads ${name}, which is neither a column nor a row field.`,
+        );
+  };
 
   return {
-    show: (rows) => api.setGridOption('rowData', [...rows]),
+    show(rows) {
+      check(rows);
+      api.setGridOption('rowData', [...rows]);
+    },
     apply(result, changes) {
+      check('replace' in result ? result.replace : result.update);
       const snapshots = snapshotBefore(api, graph, column, changes);
       if ('replace' in result) api.setGridOption('rowData', [...result.replace]);
       else api.applyTransaction({ update: [...result.update] });
@@ -56,10 +69,11 @@ function snapshotBefore<Row>(
   api: GridApi<Row>,
   graph: RefreshGraph,
   column: (name: string) => Column | null,
-  changes: RowChanges,
+  changes: RowChanges<Row>,
 ): RowSnapshot[] {
   const snapshots: RowSnapshot[] = [];
-  for (const { rowId, fields } of changes.updated) {
+  for (const { rowId, fields: changed } of changes.updated) {
+    const fields = Object.keys(changed);
     const node = api.getRowNode(rowId);
     if (!node) continue;
     const before = new Map<string, unknown>();

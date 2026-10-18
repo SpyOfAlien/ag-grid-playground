@@ -7,10 +7,11 @@ import {
   type Type,
 } from '@angular/core';
 import { CellsTooltip } from '../tooltip/tooltip';
-import { CellBase, evaluate, type Cell, type CellParams, type CellRule } from '../cell/cell';
-import { controlView } from '../cell/control-state';
-import { displayView, type DisplayParams } from '../cell/display';
-import type { EditParams } from '../cell/edit';
+import { CellMarker } from './cell-marker';
+import { CellBase, evaluate, type Cell, type CellParams, type CellRule } from '../base/base';
+import { cellControl } from '../base/control';
+import { cellDisplay, type DisplayParams } from '../base/display';
+import type { EditParams } from '../base/edit';
 import {
   cellEditorData,
   openCellPopover,
@@ -31,24 +32,19 @@ export interface EditorConfig<D extends EditorData<unknown, unknown>> {
 
 /**
  * Shared by popover and dialog cells. The editor's data `D` already says the row, the cell value
- * and what the editor submits, so only the persistence `P` and a method other than `save` are added.
+ * and what the editor submits, so only the persistence `P` is added.
  */
-export type EditCellParams<
-  D extends EditorData<unknown, unknown>,
-  P,
-  M extends string = 'save',
-> = DisplayParams<EditorRow<D>, EditorValue<D>> &
-  EditParams<EditorRow<D>, EditorValue<D>, P, EditorNext<D>, M> & {
+export type EditCellParams<D extends EditorData<unknown, unknown>, P> = DisplayParams<
+  EditorRow<D>,
+  EditorValue<D>
+> &
+  EditParams<EditorRow<D>, EditorValue<D>, P, EditorNext<D>> & {
     editor: EditorConfig<D>;
-    /** The pen's accessible name; defaults to "Edit {header}". */
-    label?: CellRule<EditorRow<D>, EditorValue<D>, string>;
   };
 
-export type PopoverCellParams<
-  D extends EditorData<unknown, unknown>,
-  P,
-  M extends string = 'save',
-> = EditCellParams<D, P, M> & { popover?: CellPopoverOptions };
+export type PopoverCellParams<D extends EditorData<unknown, unknown>, P> = EditCellParams<D, P> & {
+  popover?: CellPopoverOptions;
+};
 
 /** The view both editing renderers show: the value and a pen. */
 export function editView<Row, V>(
@@ -62,28 +58,28 @@ export function editView<Row, V>(
   >,
   cell: Cell<Row, V>,
 ) {
-  return {
-    ...displayView(params, cell),
-    pen: controlView({ editable: params.editable }, cell, params.context.session),
-    label: params.label
-      ? evaluate(params.label, cell)
-      : `Edit ${params.colDef?.headerName ?? ''}`.trim(),
-  };
+  const pen = cellControl(
+    { editable: params.editable, label: params.label },
+    cell,
+    params.context.session,
+    `Edit ${params.colDef?.headerName ?? ''}`.trim(),
+  );
+  return { ...cellDisplay(params, cell), pen, label: pen.label };
 }
 
 /** Displays a value and edits it in a popover anchored to the pen. */
 @Component({
   selector: 'cells-popover-cell',
-  imports: [CellsTooltip],
+  imports: [CellsTooltip, CellMarker],
   host: { class: 'cells-cell' },
   template: EDIT_TEMPLATE,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class PopoverCell<
-  D extends EditorData<unknown, unknown>,
-  P,
-  M extends string = 'save',
-> extends CellBase<EditorRow<D>, EditorValue<D>, PopoverCellParams<D, P, M>> {
+export class PopoverCell<D extends EditorData<unknown, unknown>, P> extends CellBase<
+  EditorRow<D>,
+  EditorValue<D>,
+  PopoverCellParams<D, P>
+> {
   private readonly injector = inject(Injector);
 
   protected readonly view = computed(() => {

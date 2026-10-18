@@ -1,9 +1,10 @@
 import { ChangeDetectionStrategy, Component, computed, inject, Injector } from '@angular/core';
 import { CellsTooltip } from '../tooltip/tooltip';
-import { CellBase, evaluate, type CellRule } from '../cell/cell';
-import { controlView } from '../cell/control-state';
-import { displayView, type DisplayParams } from '../cell/display';
-import type { EditParams } from '../cell/edit';
+import { CellMarker } from './cell-marker';
+import { CellBase, evaluate, type CellRule } from '../base/base';
+import { cellControl } from '../base/control';
+import { cellDisplay, type DisplayParams } from '../base/display';
+import type { EditParams } from '../base/edit';
 import { DropdownOptions } from '../editors/dropdown-options';
 import { cellEditorData, openCellPopover } from '../editors/editor';
 
@@ -13,8 +14,8 @@ export interface DropdownOption<V> {
   readonly disabled?: boolean;
 }
 
-export type DropdownCellParams<Row, V, P, M extends string = 'save'> = DisplayParams<Row, V> &
-  EditParams<Row, V, P, V, M> & {
+export type DropdownCellParams<Row, V, P> = DisplayParams<Row, V> &
+  EditParams<Row, V, P, V> & {
     options: CellRule<Row, V, readonly DropdownOption<V>[]>;
     /** Shown when the value matches no option, like `mat-select`. */
     placeholder?: string;
@@ -23,38 +24,30 @@ export type DropdownCellParams<Row, V, P, M extends string = 'save'> = DisplayPa
 
 @Component({
   selector: 'cells-dropdown-cell',
-  imports: [CellsTooltip],
+  imports: [CellsTooltip, CellMarker],
   host: { class: 'cells-cell' },
   template: `
     @if (view(); as view) {
       @if (view.marker; as marker) {
-        <span
-          class="cells-marker"
-          [attr.data-kind]="marker.kind"
-          [cellsTooltip]="marker.tooltip"
-          [cellsTooltipPosition]="view.tooltipPosition"
-        ></span>
+        <span [cellsMarker]="marker" [position]="view.tooltipPosition"></span>
       }
       <button
         type="button"
         class="cells-dropdown"
         [class.cells-placeholder]="view.selected === null"
+        [attr.aria-label]="view.label"
         [attr.aria-disabled]="view.disabled"
         [cellsTooltip]="view.tooltip"
         [cellsTooltipPosition]="view.tooltipPosition"
         (click)="open($event)"
       >
-        <span class="cells-dropdown-text">{{ view.selected?.label ?? view.placeholder }}</span>
+        <span class="cells-dropdown-text">{{ view.text }}</span>
       </button>
     }
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class DropdownCell<Row, V, P, M extends string = 'save'> extends CellBase<
-  Row,
-  V,
-  DropdownCellParams<Row, V, P, M>
-> {
+export class DropdownCell<Row, V, P> extends CellBase<Row, V, DropdownCellParams<Row, V, P>> {
   private readonly injector = inject(Injector);
 
   protected readonly view = computed(() => {
@@ -64,13 +57,17 @@ export class DropdownCell<Row, V, P, M extends string = 'save'> extends CellBase
     const options = evaluate(params.options, cell);
     const equals = params.equals ?? Object.is;
     const value = cell.value;
+    const selected =
+      value == null ? null : (options.find((option) => equals(option.value, value)) ?? null);
+    const text = selected?.label ?? params.placeholder ?? '';
+    const header = params.colDef?.headerName;
     return {
-      ...displayView(params, cell),
-      ...controlView(params, cell, params.context.session),
+      ...cellDisplay(params, cell),
+      // Like mat-select, the name says both the field and the current choice.
+      ...cellControl(params, cell, params.context.session, header ? `${header}: ${text}` : text),
       options,
-      selected:
-        value == null ? null : (options.find((option) => equals(option.value, value)) ?? null),
-      placeholder: params.placeholder ?? '',
+      selected,
+      text,
     };
   });
 

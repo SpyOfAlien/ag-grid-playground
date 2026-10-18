@@ -1,26 +1,22 @@
 import { ChangeDetectionStrategy, Component, computed } from '@angular/core';
 import { CellsTooltip } from '../tooltip/tooltip';
-import { CellBase } from '../cell/cell';
-import { controlView } from '../cell/control-state';
-import { displayView, type DisplayParams } from '../cell/display';
-import { submitEdit, type EditParams } from '../cell/edit';
+import { CellMarker } from './cell-marker';
+import { CellBase } from '../base/base';
+import { cellControl } from '../base/control';
+import { cellDisplay, type DisplayParams } from '../base/display';
+import { submitEdit, type EditParams } from '../base/edit';
 
-export type ToggleCellParams<Row, P, M extends string = 'save'> = DisplayParams<Row, boolean> &
-  EditParams<Row, boolean, P, boolean, M>;
+export type ToggleCellParams<Row, P> = DisplayParams<Row, boolean> &
+  EditParams<Row, boolean, P, boolean>;
 
 @Component({
   selector: 'cells-toggle-cell',
-  imports: [CellsTooltip],
+  imports: [CellsTooltip, CellMarker],
   host: { class: 'cells-cell' },
   template: `
     @if (view(); as view) {
       @if (view.marker; as marker) {
-        <span
-          class="cells-marker"
-          [attr.data-kind]="marker.kind"
-          [cellsTooltip]="marker.tooltip"
-          [cellsTooltipPosition]="view.tooltipPosition"
-        ></span>
+        <span [cellsMarker]="marker" [position]="view.tooltipPosition"></span>
       }
       <button
         type="button"
@@ -37,20 +33,15 @@ export type ToggleCellParams<Row, P, M extends string = 'save'> = DisplayParams<
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class ToggleCell<Row, P, M extends string = 'save'> extends CellBase<
-  Row,
-  boolean,
-  ToggleCellParams<Row, P, M>
-> {
+export class ToggleCell<Row, P> extends CellBase<Row, boolean, ToggleCellParams<Row, P>> {
   protected readonly view = computed(() => {
     const params = this.params();
     const cell = this.cell();
     if (!params || !cell) return null;
     return {
-      ...displayView(params, cell),
-      ...controlView(params, cell, params.context.session),
+      ...cellDisplay(params, cell),
+      ...cellControl(params, cell, params.context.session, params.colDef?.headerName ?? ''),
       checked: cell.value === true,
-      label: params.colDef?.headerName ?? '',
     };
   });
 
