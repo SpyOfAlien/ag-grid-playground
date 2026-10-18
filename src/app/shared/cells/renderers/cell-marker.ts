@@ -1,10 +1,10 @@
 import { ChangeDetectionStrategy, Component, computed, inject, input } from '@angular/core';
-import type { MarkerView } from '../base/markers';
+import type { ActiveMarker } from '../base/markers';
 import { CellsTooltipService, tooltipAttributes, type TooltipPosition } from '../tooltip/tooltip';
 
 /**
  * A cell's marker with its tooltip. It sits on the renderer's own `<span>`, so it adds no element:
- * `<span [cellsMarker]="view.marker" [position]="view.tooltipPosition"></span>`.
+ * `<span [cellsMarker]="state.marker" [position]="state.tooltipPosition"></span>`.
  */
 @Component({
   selector: 'span[cellsMarker]',
@@ -19,7 +19,7 @@ import { CellsTooltipService, tooltipAttributes, type TooltipPosition } from '..
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class CellMarker {
-  readonly marker = input.required<MarkerView>({ alias: 'cellsMarker' });
+  readonly marker = input.required<ActiveMarker>({ alias: 'cellsMarker' });
   /** Where the tooltip shows; defaults to below. */
   readonly position = input<TooltipPosition | null>(null);
 

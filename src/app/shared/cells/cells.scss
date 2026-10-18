@@ -12,13 +12,21 @@
   --cells-special: #a0337a;
 }
 
+// A renderer stretches over the cell's side padding: the marker sits in the start padding and the
+// pen floats at the end, so neither takes room from the content or moves with its alignment.
 .cells-cell {
+  --cells-pad: var(--ag-cell-horizontal-padding, 16px);
+
+  position: relative;
+  box-sizing: border-box;
   display: flex;
   align-items: center;
   gap: 6px;
-  width: 100%;
+  width: calc(100% + 2 * var(--cells-pad));
   height: 100%;
   min-width: 0;
+  margin-inline: calc(-1 * var(--cells-pad));
+  padding-inline: var(--cells-pad);
 }
 
 // One column class aligns both rendered cells and AG Grid's plain text (empty states).
@@ -48,7 +56,10 @@
 }
 
 .cells-marker {
-  flex: none;
+  position: absolute;
+  inset-inline-start: calc((var(--cells-pad) - 8px) / 2);
+  top: 50%;
+  translate: 0 -50%;
   width: 8px;
   height: 8px;
   border-radius: 50%;
@@ -90,14 +101,57 @@
   }
 }
 
+// The pen appears when its cell is hovered or focused (always on touch screens), over the end of
+// the content. The button is just the icon, so its focus ring is a small square; behind it a
+// layer in the row's own colour (its background plus the hover tint) is solid and fades out toward
+// the content. A pointer can only reach the pen by hovering the cell, which shows it, so it needs
+// no pointer-events switch.
 .cells-pen {
-  width: 24px;
-  height: 24px;
+  --cells-pen-shown: 0;
+  --cells-pen-base: var(--ag-background-color, #fff);
+  --cells-pen-tint: transparent;
+
+  position: absolute;
+  z-index: 0;
+  inset-inline-end: 6px;
+  top: 50%;
+  translate: 0 -50%;
+  width: 20px;
+  height: 20px;
   padding: 0;
   border: 0;
   border-radius: 4px;
   background: transparent;
   color: var(--cells-accent);
+  opacity: var(--cells-pen-shown);
+
+  // The backdrop: solid under the pen and up to the cell's end, then fading toward the content.
+  &::after {
+    content: '';
+    position: absolute;
+    z-index: -1;
+    inset-block: -2px;
+    inset-inline: -28px -6px;
+    background:
+      linear-gradient(to left, var(--cells-pen-tint) 26px, transparent),
+      linear-gradient(to left, var(--cells-pen-base) 26px, transparent);
+    pointer-events: none;
+  }
+
+  &:dir(rtl)::after {
+    background:
+      linear-gradient(to right, var(--cells-pen-tint) 26px, transparent),
+      linear-gradient(to right, var(--cells-pen-base) 26px, transparent);
+  }
+
+  // Disabled dims the icon only; the backdrop keeps covering the text.
+  &[aria-disabled='true'] {
+    opacity: var(--cells-pen-shown);
+
+    &::before {
+      opacity: 0.5;
+    }
+  }
 
   &::before {
     content: '';
@@ -112,7 +166,28 @@
   }
 
   &:hover:not([aria-disabled='true']) {
-    background: rgb(23 103 91 / 10%);
+    color: color-mix(in srgb, var(--cells-accent) 75%, #000);
+  }
+}
+
+// Match the row under the pen: odd-row colour, and AG Grid's hover tint while the row is hovered.
+.ag-row-odd .cells-pen {
+  --cells-pen-base: var(--ag-odd-row-background-color, var(--ag-background-color, #fff));
+}
+
+.ag-row-hover .cells-pen {
+  --cells-pen-tint: var(--ag-row-hover-color, transparent);
+}
+
+.ag-cell:hover .cells-pen,
+.ag-cell-focus .cells-pen,
+.cells-pen:focus-visible {
+  --cells-pen-shown: 1;
+}
+
+@media (hover: none) {
+  .cells-pen {
+    --cells-pen-shown: 1;
   }
 }
 
@@ -192,12 +267,15 @@
   padding: 4px 0;
 }
 
+// One column no wider than the popover, so long labels are cut off instead of scrolling sideways.
 .cells-options {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
 }
 
 .cells-option {
   display: flex;
+  min-width: 0;
   align-items: center;
   gap: 12px;
   min-height: 40px;
@@ -218,18 +296,6 @@
   &[aria-current='true'] {
     background: rgb(23 103 91 / 10%);
     color: var(--cells-accent);
-
-    // Like mat-select's single-selection check.
-    &::after {
-      content: '';
-      flex: none;
-      width: 10px;
-      height: 5px;
-      margin-inline-start: auto;
-      border-bottom: 2px solid currentColor;
-      border-left: 2px solid currentColor;
-      transform: rotate(-45deg) translateY(-2px);
-    }
   }
 
   &:disabled {

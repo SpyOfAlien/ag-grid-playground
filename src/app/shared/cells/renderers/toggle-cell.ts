@@ -4,29 +4,31 @@ import { CellMarker } from './cell-marker';
 import { CellBase } from '../base/base';
 import { cellControl } from '../base/control';
 import { cellDisplay, type DisplayParams } from '../base/display';
-import { submitEdit, type EditParams } from '../base/edit';
+import { submitEdit, type ActionParams } from '../base/edit';
 
-export type ToggleCellParams<Row, P> = DisplayParams<Row, boolean> &
-  EditParams<Row, boolean, P, boolean>;
+/** A switch has no value text, so no `content`: markers and the action only. */
+export type ToggleCellParams<Row, P> = Omit<DisplayParams<Row, boolean>, 'content'> & {
+  action?: ActionParams<Row, boolean, P, boolean>;
+};
 
 @Component({
   selector: 'cells-toggle-cell',
   imports: [CellsTooltip, CellMarker],
   host: { class: 'cells-cell' },
   template: `
-    @if (view(); as view) {
-      @if (view.marker; as marker) {
-        <span [cellsMarker]="marker" [position]="view.tooltipPosition"></span>
+    @if (state(); as state) {
+      @if (state.marker; as marker) {
+        <span [cellsMarker]="marker" [position]="state.tooltipPosition"></span>
       }
       <button
         type="button"
         role="switch"
         class="cells-toggle"
-        [attr.aria-checked]="view.checked"
-        [attr.aria-label]="view.label"
-        [attr.aria-disabled]="view.disabled"
-        [cellsTooltip]="view.tooltip"
-        [cellsTooltipPosition]="view.tooltipPosition"
+        [attr.aria-checked]="state.checked"
+        [attr.aria-label]="state.control.name"
+        [attr.aria-disabled]="state.control.disabled"
+        [cellsTooltip]="state.control.tooltip"
+        [cellsTooltipPosition]="state.tooltipPosition"
         (click)="toggle($event)"
       ></button>
     }
@@ -34,13 +36,16 @@ export type ToggleCellParams<Row, P> = DisplayParams<Row, boolean> &
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ToggleCell<Row, P> extends CellBase<Row, boolean, ToggleCellParams<Row, P>> {
-  protected readonly view = computed(() => {
+  protected readonly state = computed(() => {
     const params = this.params();
     const cell = this.cell();
     if (!params || !cell) return null;
+    const { marker, tooltipPosition } = cellDisplay(params, cell);
+    const header = params.colDef?.headerName ?? '';
     return {
-      ...cellDisplay(params, cell),
-      ...cellControl(params, cell, params.context.session, params.colDef?.headerName ?? ''),
+      marker,
+      tooltipPosition,
+      control: cellControl(params.action, cell, params.context.session, header),
       checked: cell.value === true,
     };
   });
@@ -49,8 +54,10 @@ export class ToggleCell<Row, P> extends CellBase<Row, boolean, ToggleCellParams<
     event.stopPropagation();
     const params = this.params();
     const cell = this.cell();
-    if (!params || !cell || this.view()?.disabled) return;
-    // Failures are recorded by the session and shown through the tooltip.
-    void submitEdit(params, cell, cell.value !== true).catch(() => undefined);
+    if (!params || !cell || this.state()?.control.disabled) return;
+    // Failures are recorded on the session entry; the page reports them.
+    void submitEdit(params, params.action?.submit, cell, cell.value !== true).catch(
+      () => undefined,
+    );
   }
 }

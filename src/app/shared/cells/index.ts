@@ -35,13 +35,19 @@ export { suppressCellKeyboard } from './grid/keyboard';
 
 // Building blocks for custom renderers
 export { CellBase, evaluate, type Cell, type CellParams, type CellRule } from './base/base';
-export { cellDisplay, type DisplayParams, type CellDisplay } from './base/display';
-export { cellControl, type CellControl } from './base/control';
-export { submitEdit, type EditParams, type EditTarget } from './base/edit';
+export {
+  cellDisplay,
+  type CellDisplay,
+  type ContentParams,
+  type DisplayParams,
+} from './base/display';
+export { cellControl, type ActionRules, type CellControl } from './base/control';
+export { submitEdit, type ActionParams, type EditTarget, type SubmitParams } from './base/edit';
 export { formatNumber, type NumberFormat } from './base/format';
 export {
   MARKER_KINDS,
   topMarker,
+  type ActiveMarker,
   type MarkerKind,
   type MarkerRule,
   type Markers,
@@ -63,11 +69,13 @@ export { ToggleCell, type ToggleCellParams } from './renderers/toggle-cell';
 export {
   DropdownCell,
   type DropdownCellParams,
+  type DropdownContentParams,
   type DropdownOption,
 } from './renderers/dropdown-cell';
 export {
   PopoverCell,
-  editView,
+  editState,
+  type EditAction,
   type EditCellParams,
   type EditorConfig,
   type PopoverCellParams,

@@ -1,7 +1,7 @@
 import type { Injector, InputSignal, Type } from '@angular/core';
 import { MatDialog, type MatDialogRef } from '@angular/material/dialog';
 import type { Cell } from '../base/base';
-import { submitEdit, type EditTarget } from '../base/edit';
+import { submitEdit, type EditTarget, type RuntimeSubmit } from '../base/edit';
 import type { CellSession } from '../grid/cell-grid-options';
 import type { PopoverPlacement } from '../../popover/popover.model';
 import type { PopoverRef } from '../../popover/popover-ref';
@@ -46,17 +46,18 @@ export interface CellDialogOptions {
 
 /** Builds an editor's data for a cell; `close` closes whatever presents the editor. */
 export function cellEditorData<Row, V, Next>(
-  params: EditTarget<Row, V, Next>,
+  target: EditTarget,
+  submit: RuntimeSubmit<Row, V, Next> | undefined,
   cell: Cell<Row, V>,
   close: () => void,
 ): EditorData<Row, V, Next> {
   return {
     value: cell.value,
     row: cell.row,
-    session: params.context.session,
+    session: target.context.session,
     close,
     submit: async (next) => {
-      await submitEdit(params, cell, next);
+      await submitEdit(target, submit, cell, next);
       close();
     },
   };

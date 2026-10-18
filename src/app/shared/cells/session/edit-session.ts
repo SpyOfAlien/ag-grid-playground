@@ -1,5 +1,5 @@
 import { computed, DestroyRef, inject, signal } from '@angular/core';
-import type { CellRef, Command, CommandOf, EditPersistence, MethodOf, Result } from './persistence';
+import type { Command, CommandOf, EditPersistence, MethodOf, Result } from './persistence';
 import { rowChanges, type RowChanges } from './row-changes';
 
 export type EntryStatus = 'pending' | 'saved' | 'failed';
@@ -28,8 +28,6 @@ export class EditSession<Row, P extends EditPersistence<Row>> {
   private readonly log = signal<readonly Entry<Row, P>[]>([]);
   private readonly locked = signal<string | null>(null);
   private readonly table = signal<readonly Row[]>([]);
-  /** Each source cell's latest settled entry, so a cell finds its error without a scan. */
-  private readonly latestByCell = signal<ReadonlyMap<string, Entry<Row, P>>>(new Map());
   private nextId = 1;
   private destroyed = false;
   private readonly grids = new Set<ConnectedGrid<Row>>();
@@ -78,11 +76,6 @@ export class EditSession<Row, P extends EditPersistence<Row>> {
     }
   }
 
-  /** The error of the cell's latest settled command, if that command failed. Reactive. */
-  errorFor(cell: CellRef): string | null {
-    return this.latestByCell().get(cellKey(cell))?.error ?? null;
-  }
-
   /** Shows the current rows in a grid and keeps it in step; returns the disconnect. */
   connect(grid: ConnectedGrid<Row>): () => void {
     this.grids.add(grid);
@@ -99,14 +92,9 @@ export class EditSession<Row, P extends EditPersistence<Row>> {
   }
 
   private settle(id: number, outcome: Pick<Entry<Row, P>, 'status' | 'changes' | 'error'>): void {
-    let settled: Entry<Row, P> | undefined;
     this.log.update((log) =>
-      log.map((entry) => (entry.id === id ? (settled = { ...entry, ...outcome }) : entry)),
+      log.map((entry) => (entry.id === id ? { ...entry, ...outcome } : entry)),
     );
-    const entry = settled;
-    const source = entry?.command?.source;
-    if (entry && source)
-      this.latestByCell.update((latest) => new Map(latest).set(cellKey(source), entry));
   }
 
   /** Rows outside the current table are ignored; adding rows goes through `replace`. */
@@ -114,10 +102,6 @@ export class EditSession<Row, P extends EditPersistence<Row>> {
     const changed = new Map(update.map((row) => [this.rowId(row), row]));
     return this.rows().map((row) => changed.get(this.rowId(row)) ?? row);
   }
-}
-
-function cellKey(cell: CellRef): string {
-  return `${cell.rowId}\u0000${cell.columnId}`;
 }
 
 function errorMessage(error: unknown): string {

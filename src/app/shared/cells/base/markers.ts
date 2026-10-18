@@ -30,7 +30,7 @@ export interface MarkerRule<Row, V> {
 
 export type Markers<Row, V> = Partial<Record<MarkerKind, MarkerRule<Row, V>>>;
 
-export interface MarkerView {
+export interface ActiveMarker {
   readonly kind: MarkerKind;
   readonly tooltip: TooltipContent;
 }
@@ -39,7 +39,7 @@ export interface MarkerView {
 export function topMarker<Row, V>(
   markers: Markers<Row, V> | undefined,
   cell: Cell<Row, V>,
-): MarkerView | null {
+): ActiveMarker | null {
   for (const kind of MARKER_KINDS) {
     const rule = markers?.[kind];
     if (rule && evaluate(rule.when, cell))

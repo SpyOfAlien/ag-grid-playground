@@ -13,6 +13,15 @@ import { CellsTooltip, type TooltipContent } from './tooltip';
     <button type="button" id="right" [cellsTooltip]="'Right tip'" cellsTooltipPosition="right">
       Right
     </button>
+    <button type="button" id="cut" [cellsTooltip]="null" [cellsTooltipOverflow]="true">
+      <span>Acme Industrial Supplies Ltd.</span>
+    </button>
+    <button type="button" id="fits" [cellsTooltip]="null" [cellsTooltipOverflow]="true">
+      Bolt
+    </button>
+    <button type="button" id="own" [cellsTooltip]="'Own tip'" [cellsTooltipOverflow]="true">
+      Long text
+    </button>
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -47,10 +56,36 @@ function focus(element: HTMLElement): void {
   element.dispatchEvent(new FocusEvent('focusin', { bubbles: true }));
 }
 
+/** jsdom has no layout: make an element report that its content is wider than it is. */
+function clip(element: Element): void {
+  Object.defineProperty(element, 'scrollWidth', { value: 300 });
+  Object.defineProperty(element, 'clientWidth', { value: 120 });
+}
+
 describe('CellsTooltip', () => {
   afterEach(() =>
     document.querySelectorAll('.cdk-overlay-container').forEach((node) => node.remove()),
   );
+
+  it('shows cut-off text in full, and nothing when the text fits', async () => {
+    const { element } = await setup();
+    clip(element('cut').querySelector('span')!);
+
+    focus(element('cut'));
+    expect(tooltip()?.textContent?.trim()).toBe('Acme Industrial Supplies Ltd.');
+
+    focus(element('fits'));
+    expect(tooltip()).toBeNull();
+  });
+
+  it('prefers its own tooltip over the cut-off text', async () => {
+    const { element } = await setup();
+    clip(element('own'));
+
+    focus(element('own'));
+
+    expect(tooltip()?.textContent?.trim()).toBe('Own tip');
+  });
 
   it('shows the text immediately when its element receives focus', async () => {
     const { element } = await setup();
@@ -248,7 +283,14 @@ describe('CellsTooltip', () => {
     const container = document.createElement('div');
     document.body.appendChild(container);
     container.appendChild(first);
-    const rect = (top: number) => ({ top, bottom: top + 20, left: 0, right: 80, width: 80, height: 20 });
+    const rect = (top: number) => ({
+      top,
+      bottom: top + 20,
+      left: 0,
+      right: 80,
+      width: 80,
+      height: 20,
+    });
     vi.spyOn(container, 'getBoundingClientRect').mockReturnValue(rect(0) as DOMRect);
     const inside = vi.spyOn(first, 'getBoundingClientRect');
 

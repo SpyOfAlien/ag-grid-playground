@@ -1,13 +1,7 @@
 import type { Signal } from '@angular/core';
 import type { GridOptions } from 'ag-grid-community';
 import type { EditSession } from '../session/edit-session';
-import type {
-  CellRef,
-  Command,
-  CommandOf,
-  EditPersistence,
-  MethodOf,
-} from '../session/persistence';
+import type { Command, CommandOf, EditPersistence, MethodOf } from '../session/persistence';
 import { connectGrid } from './connect-grid';
 import { suppressCellKeyboard } from './keyboard';
 import { columnReadsGraph } from './column-reads';
@@ -18,7 +12,6 @@ export interface CellSession {
   readonly lockReason: Signal<string | null>;
   /** A command is running. */
   readonly busy: Signal<boolean>;
-  errorFor(cell: CellRef): string | null;
   run(method: string, command: Command): Promise<void>;
 }
 
@@ -63,7 +56,6 @@ export function cellSession<Row, P extends EditPersistence<Row>>(
   return {
     lockReason: session.lockReason,
     busy: session.busy,
-    errorFor: (cell) => session.errorFor(cell),
     run: (method, command) =>
       session.run(method as MethodOf<P>, command as CommandOf<P, MethodOf<P>>),
   };

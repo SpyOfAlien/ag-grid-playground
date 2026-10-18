@@ -76,7 +76,7 @@ test('toggle and dropdown save directly, and a read-only lock disables every con
   await expect(active).toHaveAttribute('aria-checked', 'false');
 });
 
-test('server failures keep committed values, show the error on the cell and allow retry', async ({
+test('server failures keep committed values, report the error in a snackbar and allow retry', async ({
   page,
 }) => {
   await page.goto('/cells-demo');
@@ -87,7 +87,10 @@ test('server failures keep committed values, show the error on the cell and allo
   const otherControl = cell(page, 'SKU-02', 'category').getByRole('button');
   await active.click();
   await expect(otherControl).toHaveAttribute('aria-disabled', 'true');
-  await expectTooltip(page, active, 'The server rejected this change.');
+  const snackbar = page.locator('mat-snack-bar-container');
+  await expect(snackbar).toContainText('The server rejected this change.');
+  await snackbar.getByRole('button', { name: 'Dismiss' }).click();
+  await expect(snackbar).toHaveCount(0);
   await expect(active).toHaveAttribute('aria-checked', 'true');
   await expect(active).toHaveAttribute('aria-disabled', 'false');
   await expect(otherControl).toHaveAttribute('aria-disabled', 'false');
@@ -219,7 +222,7 @@ test('empty states line up with rendered values in the same column', async ({ pa
     return range.getBoundingClientRect().right;
   });
   const renderedRight = await cell(page, 'SKU-02', 'qty')
-    .locator('.cells-cell')
+    .locator('.cells-text')
     .evaluate((element) => element.getBoundingClientRect().right);
 
   expect(Math.abs(emptyStateRight - renderedRight)).toBeLessThan(2);
@@ -277,6 +280,11 @@ test('price, supplier and date columns edit, guard disabled options and flag ove
   await expect(
     options.getByRole('button', { name: 'Legacy Parts (no new orders)' }),
   ).toBeDisabled();
+  // Long labels are cut off with an ellipsis instead of scrolling the list sideways.
+  const body = page.locator('.popover-body', { has: options });
+  expect(await body.evaluate((element) => element.scrollWidth - element.clientWidth)).toBe(0);
+  const acme = options.getByRole('button', { name: 'Acme Industrial Supplies Ltd.' });
+  await expectTooltip(page, acme, 'Acme Industrial Supplies Ltd.');
   await options.getByRole('button', { name: 'FixIt Wholesale' }).click();
   await expect(supplier).toHaveText('FixIt Wholesale');
 
@@ -284,4 +292,38 @@ test('price, supplier and date columns edit, guard disabled options and flag ove
   await expect(
     cell(page, 'SKU-10', 'lastCounted').locator('.cells-marker[data-kind="warning"]'),
   ).toHaveCount(1);
+});
+
+test('markers sit in the start padding and the pen appears at the end on hover or focus', async ({
+  page,
+}) => {
+  await page.goto('/cells-demo');
+  const box = async (locator: Locator) => (await locator.boundingBox())!;
+  const name = (sku: string) => cell(page, sku, 'name');
+
+  // SKU-04 has a marker, SKU-01 none: the text starts at the same place in both.
+  const marked = await box(name('SKU-04').locator('.cells-marker'));
+  const markedCell = await box(name('SKU-04'));
+  expect(marked.x).toBeGreaterThanOrEqual(markedCell.x);
+  expect(marked.x + marked.width).toBeLessThanOrEqual(markedCell.x + 16);
+  const withMarker = await box(name('SKU-04').locator('.cells-text'));
+  const without = await box(name('SKU-01').locator('.cells-text'));
+  expect(Math.abs(withMarker.x - without.x)).toBeLessThan(1);
+
+  // The pen is hidden until its cell is hovered, then sits at the cell's end.
+  const qty = cell(page, 'SKU-01', 'qty');
+  const pen = qty.getByRole('button', { name: 'Edit Quantity' });
+  await page.mouse.move(0, 0);
+  await expect(pen).toHaveCSS('opacity', '0');
+  await qty.hover();
+  await expect(pen).toHaveCSS('opacity', '1');
+  const penBox = await box(pen);
+  const qtyBox = await box(qty);
+  expect(qtyBox.x + qtyBox.width - (penBox.x + penBox.width)).toBeLessThan(8);
+
+  // Keyboard users see it once its cell has focus.
+  await page.mouse.move(0, 0);
+  await qty.click({ position: { x: 4, y: 4 } });
+  await page.mouse.move(0, 0);
+  await expect(pen).toHaveCSS('opacity', '1');
 });

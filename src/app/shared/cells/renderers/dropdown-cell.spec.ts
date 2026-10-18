@@ -11,11 +11,13 @@ import type { CellRule } from '../base/base';
 import { DropdownCell, type DropdownCellParams } from './dropdown-cell';
 
 const CATEGORIES: DropdownCellParams<Item, string, FakePersistence> = {
-  options: [
-    { value: 'hw', label: 'Hardware' },
-    { value: 'tools', label: 'Tools' },
-  ],
-  placeholder: 'Choose category',
+  content: { placeholder: 'Choose category' },
+  action: {
+    options: [
+      { value: 'hw', label: 'Hardware' },
+      { value: 'tools', label: 'Tools' },
+    ],
+  },
 };
 
 async function render(
@@ -27,7 +29,7 @@ async function render(
   await session.run('load', {});
   const fixture = TestBed.createComponent(DropdownCell<Item, string, FakePersistence>);
   fixture.componentInstance.agInit(
-    rendererParams(session, { ...CATEGORIES, ...config }, value, {
+    rendererParams(session, { ...CATEGORIES, action: { ...CATEGORIES.action, ...config } }, value, {
       columnId: 'category',
       field: 'category',
       headerName: 'Category',
@@ -55,7 +57,7 @@ describe('DropdownCell', () => {
     expect((await render(null)).button.textContent?.trim()).toBe('Choose category');
   });
 
-  it('is named after its column and the choice, unless the column gives a label', async () => {
+  it('is named after what it changes and the choice; the name defaults to the header', async () => {
     expect((await render('hw')).button.getAttribute('aria-label')).toBe('Category: Hardware');
     expect((await render(null)).button.getAttribute('aria-label')).toBe(
       'Category: Choose category',
@@ -63,7 +65,7 @@ describe('DropdownCell', () => {
     const custom = await render('hw', new FakePersistence(), {
       label: ({ row }) => `Category of ${row.sku}`,
     });
-    expect(custom.button.getAttribute('aria-label')).toBe('Category of A-1');
+    expect(custom.button.getAttribute('aria-label')).toBe('Category of A-1: Hardware');
   });
 
   it('opens the options and saves a different choice to its own field, then closes', async () => {

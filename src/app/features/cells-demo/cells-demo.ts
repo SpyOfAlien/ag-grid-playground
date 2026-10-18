@@ -1,4 +1,12 @@
-import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  effect,
+  inject,
+  signal,
+  untracked,
+} from '@angular/core';
+import { MatSnackBar } from '@angular/material/snack-bar';
 import { AgGridAngular } from 'ag-grid-angular';
 import { themeQuartz } from 'ag-grid-community';
 import { cellGridOptions, createEditSession } from '@cells';
@@ -21,6 +29,7 @@ const theme = themeQuartz.withParams({ accentColor: '#17675b', fontSize: 13 });
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class CellsDemo {
+  private readonly snackBar = inject(MatSnackBar);
   protected readonly persistence = inject(InventoryPersistence);
   protected readonly session = createEditSession(this.persistence, sku);
 
@@ -40,10 +49,16 @@ export class CellsDemo {
   });
 
   protected readonly readOnly = signal(false);
-  protected readonly busy = computed(() => this.session.entries().at(-1)?.status === 'pending');
+  protected readonly busy = this.session.busy;
 
   constructor() {
     void this.session.run('load', {});
+    // Cells do not show failures; the page reports each failed entry once.
+    effect(() => {
+      const last = this.session.entries().at(-1);
+      const error = last?.status === 'failed' ? last.error : undefined;
+      if (error) untracked(() => this.snackBar.open(error, 'Dismiss', { duration: 6000 }));
+    });
   }
 
   /** Each mode has its own data; switching reloads from it. */

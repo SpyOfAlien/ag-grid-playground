@@ -2,14 +2,18 @@ import { ChangeDetectionStrategy, Component, computed } from '@angular/core';
 import { CellsTooltip } from '../tooltip/tooltip';
 import { CellMarker } from './cell-marker';
 import { CellBase } from '../base/base';
-import { cellDisplay, type DisplayParams } from '../base/display';
+import { cellDisplay, type ContentParams, type DisplayParams } from '../base/display';
 import { formatNumber, type NumberFormat } from '../base/format';
 import { DISPLAY_TEMPLATE } from './display-template';
 
-export type NumberCellParams<Row> = DisplayParams<Row, number> & {
-  /** Built-in number format, used when `format` is not set. */
-  number?: NumberFormat<Row>;
-};
+export type NumberCellParams<Row> = DisplayParams<
+  Row,
+  number,
+  ContentParams<Row, number> & {
+    /** Built-in number format, used when `format` is not set. */
+    number?: NumberFormat<Row>;
+  }
+>;
 
 @Component({
   selector: 'cells-number-cell',
@@ -19,11 +23,11 @@ export type NumberCellParams<Row> = DisplayParams<Row, number> & {
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class NumberCell<Row> extends CellBase<Row, number, NumberCellParams<Row>> {
-  protected readonly view = computed(() => {
+  protected readonly state = computed(() => {
     const params = this.params();
     const cell = this.cell();
     return params && cell
-      ? cellDisplay(params, cell, () => formatNumber(params.number, cell))
+      ? cellDisplay(params, cell, () => formatNumber(params.content?.number, cell))
       : null;
   });
 }

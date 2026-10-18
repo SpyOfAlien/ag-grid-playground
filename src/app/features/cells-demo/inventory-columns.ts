@@ -15,6 +15,7 @@ import {
   type DropdownCellParams,
   type FieldEditorData,
   type NumberCellParams,
+  type NumberFormat,
   type PopoverCellParams,
   type TextCellParams,
   type ToggleCellParams,
@@ -33,7 +34,7 @@ type TextEditor = FieldEditorData<Item, string>;
 const unlessApproved = ({ row }: { row: Item }) =>
   row.approved ? 'Approved items are locked' : true;
 
-const EURO: NumberCellParams<Item>['number'] = { locale: 'en-US', decimals: 2, unit: '€' };
+const EURO: NumberFormat<Item> = { locale: 'en-US', decimals: 2, unit: '€' };
 
 const DATE = new Intl.DateTimeFormat('en-GB', {
   day: '2-digit',
@@ -57,20 +58,22 @@ export function inventoryColumns(): ColDef<Item>[] {
       width: 200,
       cellRenderer: PopoverCell,
       cellRendererParams: {
-        editable: unlessApproved,
         markers: {
           warning: { when: ({ value }) => !value, tooltip: 'Name is missing' },
           special: { when: ({ row }) => row.discontinued, tooltip: 'Discontinued item' },
         },
-        editor: {
-          component: FieldEditor<Item, string>,
-          data: () => ({
-            label: 'Name',
-            mode: 'text',
-            validators: [Validators.required, Validators.maxLength(60)],
-          }),
+        action: {
+          allowed: unlessApproved,
+          editor: {
+            component: FieldEditor<Item, string>,
+            data: () => ({
+              label: 'Name',
+              mode: 'text',
+              validators: [Validators.required, Validators.maxLength(60)],
+            }),
+          },
+          popover: { title: 'Edit name', width: 320 },
         },
-        popover: { title: 'Edit name', width: 320 },
       } satisfies PopoverCellParams<TextEditor, P>,
     },
     {
@@ -84,19 +87,21 @@ export function inventoryColumns(): ColDef<Item>[] {
         emptyState: (qty, item) => (item.discontinued ? 'NA' : qty == null ? '-' : null),
         renderer: PopoverCell,
         params: {
-          format: (qty) => `${qty} pcs`,
           markers: {
             error: {
               when: ({ row, value }) => (value ?? 0) < row.reorderLevel,
               tooltip: ({ row }) => `Below the reorder level of ${row.reorderLevel}`,
             },
           },
-          editable: unlessApproved,
-          editor: {
-            component: FieldEditor<Item, number>,
-            data: () => ({ label: 'Quantity', mode: 'number', validators: [Validators.min(0)] }),
+          content: { format: (qty) => `${qty} pcs` },
+          action: {
+            allowed: unlessApproved,
+            editor: {
+              component: FieldEditor<Item, number>,
+              data: () => ({ label: 'Quantity', mode: 'number', validators: [Validators.min(0)] }),
+            },
+            popover: { title: 'Edit quantity', width: 280 },
           },
-          popover: { title: 'Edit quantity', width: 280 },
         } satisfies PopoverCellParams<NumberEditor, P>,
       }),
     },
@@ -108,12 +113,14 @@ export function inventoryColumns(): ColDef<Item>[] {
       cellClass: 'cells-align-end',
       cellRenderer: NumberCell,
       cellRendererParams: {
-        number: EURO,
-        highlighted: ({ value }) => (value ?? 0) > 20_000,
-        tooltip: ({ row }) => ({
-          html: `<b>${row.qty ?? 0}</b> × ${row.unitPrice.toFixed(2)} €`,
-        }),
         markers: { systemGenerated: { when: true, tooltip: 'Calculated from quantity and price' } },
+        content: {
+          number: EURO,
+          highlighted: ({ value }) => (value ?? 0) > 20_000,
+          tooltip: ({ row }) => ({
+            html: `<b>${row.qty ?? 0}</b> × ${row.unitPrice.toFixed(2)} €`,
+          }),
+        },
       } satisfies NumberCellParams<Item>,
     },
     {
@@ -124,17 +131,19 @@ export function inventoryColumns(): ColDef<Item>[] {
       cellClass: 'cells-align-end',
       cellRenderer: PopoverCell,
       cellRendererParams: {
-        format: (price, cell) => formatNumber(EURO, { ...cell, value: price }),
-        editable: unlessApproved,
-        editor: {
-          component: FieldEditor<Item, number>,
-          data: () => ({
-            label: 'Unit price (€)',
-            mode: 'number',
-            validators: [Validators.required, Validators.min(0)],
-          }),
+        content: { format: (price, cell) => formatNumber(EURO, { ...cell, value: price }) },
+        action: {
+          allowed: unlessApproved,
+          editor: {
+            component: FieldEditor<Item, number>,
+            data: () => ({
+              label: 'Unit price (€)',
+              mode: 'number',
+              validators: [Validators.required, Validators.min(0)],
+            }),
+          },
+          popover: { title: 'Edit unit price', width: 280 },
         },
-        popover: { title: 'Edit unit price', width: 280 },
       } satisfies PopoverCellParams<NumberEditor, P>,
     },
     {
@@ -144,19 +153,21 @@ export function inventoryColumns(): ColDef<Item>[] {
       width: 190,
       cellRenderer: DropdownCell,
       cellRendererParams: {
-        options: [
-          { value: 'acme', label: 'Acme Industrial Supplies Ltd.' },
-          { value: 'bolt', label: 'Bolt & Nut Co.' },
-          { value: 'fixit', label: 'FixIt Wholesale' },
-          { value: 'legacy', label: 'Legacy Parts (no new orders)', disabled: true },
-        ],
-        placeholder: 'No supplier',
-        editable: unlessApproved,
         markers: {
           warning: {
             when: ({ value }) => value === 'legacy',
             tooltip: 'Supplier takes no new orders',
           },
+        },
+        content: { placeholder: 'No supplier' },
+        action: {
+          allowed: unlessApproved,
+          options: [
+            { value: 'acme', label: 'Acme Industrial Supplies Ltd.' },
+            { value: 'bolt', label: 'Bolt & Nut Co.' },
+            { value: 'fixit', label: 'FixIt Wholesale' },
+            { value: 'legacy', label: 'Legacy Parts (no new orders)', disabled: true },
+          ],
         },
       } satisfies DropdownCellParams<Item, Supplier, P>,
     },
@@ -166,12 +177,14 @@ export function inventoryColumns(): ColDef<Item>[] {
       width: 140,
       cellRenderer: TextCell,
       cellRendererParams: {
-        tooltip: ({ value }) =>
-          value?.startsWith('Yard') ? 'Outdoor storage, check for weather damage' : null,
-        tooltipPosition: 'left',
         markers: {
           info: { when: ({ value }) => !!value?.startsWith('Yard'), tooltip: 'Outdoor storage' },
         },
+        content: {
+          tooltip: ({ value }) =>
+            value?.startsWith('Yard') ? 'Outdoor storage, check for weather damage' : null,
+        },
+        tooltipPosition: 'left',
       } satisfies TextCellParams<Item>,
     },
     {
@@ -180,10 +193,12 @@ export function inventoryColumns(): ColDef<Item>[] {
       width: 150,
       cellRenderer: TextCell,
       cellRendererParams: {
-        format: (date) => (date ? DATE.format(Date.parse(date)) : ''),
-        tooltip: ({ value }) => `Counted ${age(value)} days ago`,
-        muted: ({ value }) => age(value) > 30,
         markers: { warning: { when: ({ value }) => age(value) > 90, tooltip: 'Recount overdue' } },
+        content: {
+          format: (date) => (date ? DATE.format(Date.parse(date)) : ''),
+          tooltip: ({ value }) => `Counted ${age(value)} days ago`,
+          muted: ({ value }) => age(value) > 30,
+        },
       } satisfies TextCellParams<Item>,
     },
     {
@@ -193,13 +208,15 @@ export function inventoryColumns(): ColDef<Item>[] {
       width: 160,
       cellRenderer: DropdownCell,
       cellRendererParams: {
-        options: [
-          { value: 'hardware', label: 'Hardware' },
-          { value: 'tools', label: 'Tools' },
-          { value: 'fasteners', label: 'Fasteners' },
-        ],
-        placeholder: 'Choose category',
-        editable: unlessApproved,
+        content: { placeholder: 'Choose category' },
+        action: {
+          allowed: unlessApproved,
+          options: [
+            { value: 'hardware', label: 'Hardware' },
+            { value: 'tools', label: 'Tools' },
+            { value: 'fasteners', label: 'Fasteners' },
+          ],
+        },
       } satisfies DropdownCellParams<Item, Category, P>,
     },
     {
@@ -209,8 +226,10 @@ export function inventoryColumns(): ColDef<Item>[] {
       width: 100,
       cellRenderer: ToggleCell,
       cellRendererParams: {
-        editable: unlessApproved,
-        tooltip: ({ value }) => (value ? 'Sold in the shop' : 'Hidden from the shop'),
+        action: {
+          allowed: unlessApproved,
+          tooltip: ({ value }) => (value ? 'Sold in the shop' : 'Hidden from the shop'),
+        },
         tooltipPosition: 'right',
       } satisfies ToggleCellParams<Item, P>,
     },
@@ -223,16 +242,22 @@ export function inventoryColumns(): ColDef<Item>[] {
       cellRenderer: ReorderCell,
       cellRendererParams: {
         toggle: {
-          editable: unlessApproved,
-          command: (reorder, cell) => ({
-            changes: [{ rowId: cell.rowId, field: 'reorder', value: reorder }],
-          }),
+          allowed: unlessApproved,
+          submit: {
+            method: 'save',
+            command: (reorder, cell) => ({
+              changes: [{ rowId: cell.rowId, field: 'reorder', value: reorder }],
+            }),
+          },
         },
         level: {
-          editable: unlessApproved,
-          command: (level, cell) => ({
-            changes: [{ rowId: cell.rowId, field: 'reorderLevel', value: level }],
-          }),
+          allowed: unlessApproved,
+          submit: {
+            method: 'save',
+            command: (level, cell) => ({
+              changes: [{ rowId: cell.rowId, field: 'reorderLevel', value: level }],
+            }),
+          },
         },
       } satisfies ReorderCellParams,
     },
@@ -242,13 +267,17 @@ export function inventoryColumns(): ColDef<Item>[] {
       width: 200,
       cellRenderer: DialogCell,
       cellRendererParams: {
-        format: (notes) => notes?.split('\n')[0] ?? '',
-        tooltip: ({ value }) => value || null,
-        editor: {
-          component: FieldEditor<Item, string>,
-          data: () => ({ label: 'Notes', mode: 'multiline' }),
+        content: {
+          format: (notes) => notes?.split('\n')[0] ?? '',
+          tooltip: ({ value }) => value || null,
         },
-        dialog: { title: 'Edit notes', width: 480 },
+        action: {
+          editor: {
+            component: FieldEditor<Item, string>,
+            data: () => ({ label: 'Notes', mode: 'multiline' }),
+          },
+          dialog: { title: 'Edit notes', width: 480 },
+        },
       } satisfies DialogCellParams<TextEditor, P>,
     },
     {
@@ -258,17 +287,22 @@ export function inventoryColumns(): ColDef<Item>[] {
       valueGetter: () => null,
       cellRenderer: DialogCell,
       cellRendererParams: {
-        format: () => '',
-        editor: { component: ItemDetailsEditor },
-        dialog: { title: 'Item details', width: 420 },
-        // One command changes several fields.
-        command: (draft, cell) => ({
-          changes: (Object.keys(draft) as (keyof ItemDraft)[]).map((field) => ({
-            rowId: cell.rowId,
-            field,
-            value: draft[field],
-          })),
-        }),
+        content: { format: () => '' },
+        action: {
+          editor: { component: ItemDetailsEditor },
+          dialog: { title: 'Item details', width: 420 },
+          // One command changes several fields.
+          submit: {
+            method: 'save',
+            command: (draft, cell) => ({
+              changes: (Object.keys(draft) as (keyof ItemDraft)[]).map((field) => ({
+                rowId: cell.rowId,
+                field,
+                value: draft[field],
+              })),
+            }),
+          },
+        },
       } satisfies DialogCellParams<ItemDetailsData, P>,
     },
     {
@@ -278,7 +312,7 @@ export function inventoryColumns(): ColDef<Item>[] {
       valueGetter: ({ data }) => (data?.approved ? 'Approved' : 'Pending'),
       cellRenderer: TextCell,
       cellRendererParams: {
-        muted: ({ value }) => value === 'Pending',
+        content: { muted: ({ value }) => value === 'Pending' },
       } satisfies TextCellParams<Item>,
     },
   ];
@@ -295,7 +329,7 @@ export function summaryColumns(): ColDef<Item>[] {
       width: 150,
       cellClass: 'cells-align-end',
       cellRenderer: NumberCell,
-      cellRendererParams: { number: EURO } satisfies NumberCellParams<Item>,
+      cellRendererParams: { content: { number: EURO } } satisfies NumberCellParams<Item>,
     },
   ];
 }

@@ -29,6 +29,9 @@ const TOUCH_HOLD = 500;
 const TOUCH_HIDE_DELAY = 1500;
 const HTML = 'data-cells-tooltip-html';
 const POSITION = 'data-cells-tooltip-position';
+/** Marks an element whose own text is shown when it is cut off and it has no other tooltip. */
+const OVERFLOW = 'data-cells-tooltip-overflow';
+const ANY_TOOLTIP = `[${TEXT}], [${HTML}], [${OVERFLOW}]`;
 /** The one tooltip element's id; the visible tooltip's element points at it. */
 const TOOLTIP_ID = 'cells-tooltip';
 
@@ -159,7 +162,7 @@ export class CellsTooltipService {
     // The pointer may rest on the tooltip itself, or move to another element with a tooltip.
     if (next && (this.overlayRef?.overlayElement.contains(next) || this.shown?.contains(next)))
       return;
-    if (next instanceof Element && next.closest(`[${TEXT}], [${HTML}]`)) return;
+    if (next instanceof Element && next.closest(ANY_TOOLTIP)) return;
     this.hide();
   }
 
@@ -178,7 +181,7 @@ export class CellsTooltipService {
     // Teardown can move focus (a closing popover restores it) after this injector is gone.
     if (!element || this.lifetime.destroyed) return;
     const html = element.getAttribute(HTML);
-    const text = element.getAttribute(TEXT);
+    const text = element.getAttribute(TEXT) ?? (html === null ? cutOffText(element) : null);
     if (html === null && !text) return this.hide();
     if (this.shown !== element) {
       this.stopWatching?.();
@@ -198,7 +201,13 @@ export class CellsTooltipService {
   private watch(element: HTMLElement): () => void {
     const stopRemoval = observePopoverAnchor([element], () => this.hide());
     const content = new MutationObserver(() => this.show(element));
-    content.observe(element, { attributeFilter: [TEXT, HTML] });
+    // Text changes matter too: a cut-off text tooltip shows the element's own text.
+    content.observe(element, {
+      attributeFilter: [TEXT, HTML, OVERFLOW],
+      childList: true,
+      subtree: true,
+      characterData: true,
+    });
     return () => {
       stopRemoval();
       content.disconnect();
@@ -278,9 +287,16 @@ function isTouch(event: Event): boolean {
 }
 
 function target(event: Event): HTMLElement | null {
-  return event.target instanceof Element
-    ? event.target.closest<HTMLElement>(`[${TEXT}], [${HTML}]`)
-    : null;
+  return event.target instanceof Element ? event.target.closest<HTMLElement>(ANY_TOOLTIP) : null;
+}
+
+/** The element's own text when it or a descendant is cut off, for elements marked overflow. */
+function cutOffText(element: HTMLElement): string | null {
+  if (!element.hasAttribute(OVERFLOW)) return null;
+  const clipped = [element, ...element.querySelectorAll('*')].some(
+    (node) => node.scrollWidth > node.clientWidth,
+  );
+  return clipped ? element.textContent?.trim() || null : null;
 }
 
 /** What an element carries for the shared tooltip to read. */
@@ -288,17 +304,23 @@ export interface TooltipAttributes {
   readonly text: string | null;
   readonly html: string | null;
   readonly position: TooltipPosition | null;
+  /** Present (`''`) when the element's own text shows if cut off; only without other content. */
+  readonly overflow: '' | null;
 }
 
 /** The tooltip attributes for content and a position; for elements that bind them themselves. */
 export function tooltipAttributes(
   content: TooltipContent | null | undefined,
   position: TooltipPosition | null | undefined,
+  overflow = false,
 ): TooltipAttributes {
+  const text = typeof content === 'string' && content ? content : null;
+  const html = content && typeof content === 'object' ? content.html : null;
   return {
-    text: typeof content === 'string' && content ? content : null,
-    html: content && typeof content === 'object' ? content.html : null,
+    text,
+    html,
     position: position ?? null,
+    overflow: overflow && text === null && html === null ? '' : null,
   };
 }
 
@@ -312,6 +334,7 @@ export function tooltipAttributes(
     '[attr.data-cells-tooltip]': 'attributes().text',
     '[attr.data-cells-tooltip-html]': 'attributes().html',
     '[attr.data-cells-tooltip-position]': 'attributes().position',
+    '[attr.data-cells-tooltip-overflow]': 'attributes().overflow',
   },
 })
 export class CellsTooltip {
@@ -321,8 +344,11 @@ export class CellsTooltip {
     alias: 'cellsTooltipPosition',
   });
 
+  /** With no content, show the element's own text when it is cut off. */
+  readonly overflow = input(false, { alias: 'cellsTooltipOverflow' });
+
   protected readonly attributes = computed(() =>
-    tooltipAttributes(this.content(), this.position()),
+    tooltipAttributes(this.content(), this.position(), this.overflow()),
   );
 
   constructor() {

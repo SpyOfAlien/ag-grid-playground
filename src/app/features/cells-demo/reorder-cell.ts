@@ -8,7 +8,7 @@ import {
   FieldEditor,
   openCellPopover,
   submitEdit,
-  type EditParams,
+  type ActionParams,
   type FieldEditorData,
 } from '@cells';
 import type { InventoryPersistence } from './inventory-persistence';
@@ -16,10 +16,10 @@ import type { Item } from './inventory.model';
 
 type P = InventoryPersistence;
 
-/** Each control sends its own command. */
+/** One action block per control; each sends its own command. */
 export interface ReorderCellParams {
-  toggle: EditParams<Item, null, P, boolean>;
-  level: EditParams<Item, null, P, number | null>;
+  toggle: ActionParams<Item, null, P, boolean>;
+  level: ActionParams<Item, null, P, number | null>;
 }
 
 /** A composite cell: a reorder switch and a pen for the reorder level. */
@@ -28,26 +28,26 @@ export interface ReorderCellParams {
   imports: [CellsTooltip],
   host: { class: 'cells-cell' },
   template: `
-    @if (view(); as view) {
+    @if (state(); as state) {
       <button
         type="button"
         role="switch"
         class="cells-toggle"
-        [attr.aria-label]="view.toggle.label"
-        [attr.aria-checked]="view.reorder"
-        [attr.aria-disabled]="view.toggle.disabled"
-        [cellsTooltip]="view.toggle.tooltip"
+        [attr.aria-label]="state.toggle.name"
+        [attr.aria-checked]="state.reorder"
+        [attr.aria-disabled]="state.toggle.disabled"
+        [cellsTooltip]="state.toggle.tooltip"
         (click)="toggle($event)"
       ></button>
-      <span class="cells-text" [class.cells-muted]="!view.reorder"
-        >Reorder at {{ view.level }}</span
+      <span class="cells-text" [class.cells-muted]="!state.reorder"
+        >Reorder at {{ state.level }}</span
       >
       <button
         type="button"
         class="cells-pen"
-        [attr.aria-label]="view.pen.label"
-        [attr.aria-disabled]="view.pen.disabled"
-        [cellsTooltip]="view.pen.tooltip"
+        [attr.aria-label]="'Edit ' + state.pen.name"
+        [attr.aria-disabled]="state.pen.disabled"
+        [cellsTooltip]="state.pen.tooltip"
         (click)="edit($event)"
       ></button>
     }
@@ -57,7 +57,7 @@ export interface ReorderCellParams {
 export class ReorderCell extends CellBase<Item, null, ReorderCellParams> {
   private readonly injector = inject(Injector);
 
-  protected readonly view = computed(() => {
+  protected readonly state = computed(() => {
     const params = this.params();
     const cell = this.cell();
     if (!params || !cell) return null;
@@ -66,7 +66,7 @@ export class ReorderCell extends CellBase<Item, null, ReorderCellParams> {
       reorder: cell.row.reorder,
       level: cell.row.reorderLevel,
       toggle: cellControl(params.toggle, cell, session, 'Reorder'),
-      pen: cellControl(params.level, cell, session, 'Edit reorder level'),
+      pen: cellControl(params.level, cell, session, 'reorder level'),
     };
   });
 
@@ -74,22 +74,21 @@ export class ReorderCell extends CellBase<Item, null, ReorderCellParams> {
     event.stopPropagation();
     const params = this.params();
     const cell = this.cell();
-    if (!params || !cell || this.view()?.toggle.disabled) return;
-    const target = { ...params.toggle, context: params.context };
-    void submitEdit(target, cell, !cell.row.reorder).catch(() => undefined);
+    if (!params || !cell || this.state()?.toggle.disabled) return;
+    void submitEdit(params, params.toggle.submit, cell, !cell.row.reorder).catch(() => undefined);
   }
 
   protected edit(event: MouseEvent): void {
     event.stopPropagation();
     const params = this.params();
     const cell = this.cell();
-    if (!params || !cell || this.view()?.pen.disabled) return;
+    if (!params || !cell || this.state()?.pen.disabled) return;
     openCellPopover(
       this.injector,
       event.currentTarget as HTMLElement,
       FieldEditor<Item, number>,
       (close): FieldEditorData<Item, number> => ({
-        ...cellEditorData({ ...params.level, context: params.context }, cell, close),
+        ...cellEditorData(params, params.level.submit, cell, close),
         value: cell.row.reorderLevel,
         label: 'Reorder level',
         mode: 'number',

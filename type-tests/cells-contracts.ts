@@ -5,6 +5,7 @@ import {
   createEditSession,
   type Command,
   type DialogCellParams,
+  type DropdownCellParams,
   type EditorData,
   type EditPersistence,
   type MethodOf,
@@ -62,29 +63,59 @@ cellGridOptions(session, { columnDefs: [{ colId: 'badge', context: reads }] });
 // @ts-expect-error there is no third argument any more
 cellGridOptions(session, {}, { refreshOnChange: { active: ['status'] } });
 
-// `method` picks the persistence method and `command` is checked against it; no type argument.
+// A cell's params have three parts: markers, content and action. `action.submit` picks the
+// persistence method, and its command is checked against it; no type argument names the method.
 const approveToggle = {
-  method: 'approve',
-  command: (_next, cell) => ({ skus: [cell.rowId] }),
+  markers: { info: { when: true } },
+  action: {
+    allowed: ({ row }) => (row.active ? true : 'Inactive items are locked'),
+    label: 'Approved',
+    tooltip: 'Approve this item',
+    submit: { method: 'approve', command: (_next, cell) => ({ skus: [cell.rowId] }) },
+  },
 } satisfies ToggleCellParams<Item, Inventory>;
 
 const wrongCommand = {
-  method: 'approve',
-  command: () => ({ changes: [] }),
-  // @ts-expect-error approve needs skus, not changes
+  action: {
+    submit: {
+      method: 'approve',
+      // @ts-expect-error approve needs skus, not changes
+      command: () => ({ changes: [] }),
+    },
+  },
 } satisfies ToggleCellParams<Item, Inventory>;
 
 const unknownMethod = {
-  // @ts-expect-error there is no delete method
-  method: 'delete',
+  action: {
+    submit: {
+      // @ts-expect-error there is no delete method
+      method: 'delete',
+    },
+  },
 } satisfies ToggleCellParams<Item, Inventory>;
 
-// @ts-expect-error a method other than save needs its own command
-const approveWithoutCommand = { method: 'approve' } satisfies ToggleCellParams<Item, Inventory>;
+const approveWithoutCommand = {
+  action: {
+    // @ts-expect-error a submit block needs its command
+    submit: { method: 'approve' },
+  },
+} satisfies ToggleCellParams<Item, Inventory>;
 
 const missingMethod = {
-  command: (_next, cell) => ({ skus: [cell.rowId] }),
-  // @ts-expect-error without a method this is a save, which needs changes
+  action: {
+    // @ts-expect-error a submit block names its method
+    submit: { command: (_next, cell) => ({ skus: [cell.rowId] }) },
+  },
+} satisfies ToggleCellParams<Item, Inventory>;
+
+const toggleContent = {
+  // @ts-expect-error a switch has no value text, so no content
+  content: { format: () => '' },
+} satisfies ToggleCellParams<Item, Inventory>;
+
+const flatEditable = {
+  // @ts-expect-error control settings live in action
+  editable: true,
 } satisfies ToggleCellParams<Item, Inventory>;
 
 // Popover and dialog cells take the row, value and submitted value from the editor's data.
@@ -94,22 +125,40 @@ declare const CountEditor: new () => {
 };
 
 const countPopover = {
-  format: (count) => `${count ?? 0} pcs`,
-  editor: { component: CountEditor, data: () => ({ label: 'Count' }) },
-  command: (next, cell) => ({ changes: [{ rowId: cell.rowId, field: 'active', value: next }] }),
+  content: { format: (count) => `${count ?? 0} pcs`, tooltip: ({ value }) => `${value} pcs` },
+  action: {
+    editor: { component: CountEditor, data: () => ({ label: 'Count' }) },
+    popover: { title: 'Edit count' },
+    submit: {
+      method: 'save',
+      command: (next, cell) => ({ changes: [{ rowId: cell.rowId, field: 'active', value: next }] }),
+    },
+  },
+  tooltipPosition: 'left',
 } satisfies PopoverCellParams<CountData, Inventory>;
 
 const countDialog = {
-  // @ts-expect-error the editor's data needs a label
-  editor: { component: CountEditor, data: () => ({}) },
+  action: {
+    // @ts-expect-error the editor's data needs a label
+    editor: { component: CountEditor, data: () => ({}) },
+  },
 } satisfies DialogCellParams<CountData, Inventory>;
 
 const approveDialog = {
-  editor: { component: CountEditor },
-  method: 'approve',
-  // @ts-expect-error next is number | null, not a list of skus
-  command: (next) => ({ skus: next }),
+  action: {
+    editor: { component: CountEditor },
+    submit: {
+      method: 'approve',
+      // @ts-expect-error next is number | null, not a list of skus
+      command: (next) => ({ skus: next }),
+    },
+  },
 } satisfies DialogCellParams<CountData, Inventory>;
+
+const dropdown = {
+  content: { placeholder: 'None' },
+  action: { options: [{ value: true, label: 'Yes' }], label: 'Active' },
+} satisfies DropdownCellParams<Item, boolean, Inventory>;
 
 export {
   approveDialog,
@@ -118,9 +167,12 @@ export {
   missingMethod,
   countDialog,
   countPopover,
+  dropdown,
+  flatEditable,
   helper,
   methods,
   partial,
+  toggleContent,
   unknownMethod,
   wrongCommand,
 };

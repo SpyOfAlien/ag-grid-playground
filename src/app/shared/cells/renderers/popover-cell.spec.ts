@@ -27,8 +27,10 @@ class NameEditor implements CellEditor<NameData> {
 }
 
 const NAME: PopoverCellParams<NameData, FakePersistence> = {
-  editor: { component: NameEditor, data: (cell) => ({ hint: `max 60 for ${cell.columnId}` }) },
-  popover: { title: 'Edit name' },
+  action: {
+    editor: { component: NameEditor, data: (cell) => ({ hint: `max 60 for ${cell.columnId}` }) },
+    popover: { title: 'Edit name' },
+  },
 };
 
 async function render(config = NAME, persistence = new FakePersistence()) {
@@ -47,6 +49,7 @@ async function render(config = NAME, persistence = new FakePersistence()) {
   return {
     fixture,
     persistence,
+    session,
     host,
     pen: host.querySelector<HTMLButtonElement>('button.cells-pen')!,
   };
@@ -77,8 +80,24 @@ describe('PopoverCell', () => {
     expect(document.querySelector('.probe')).toBeNull();
   });
 
+  it('phrases its name as an edit, with a hint that a status replaces', async () => {
+    const { pen, session, fixture } = await render({
+      ...NAME,
+      action: { ...NAME.action, label: 'item name', tooltip: 'Rename this item' },
+    });
+    expect(pen.getAttribute('aria-label')).toBe('Edit item name');
+    expect(tooltipFor(pen)).toBe('Rename this item');
+
+    session.lock('Table is read-only');
+    await fixture.whenStable();
+    expect(tooltipFor(pen)).toBe('Table is read-only');
+  });
+
   it('does not open while the cell is not editable', async () => {
-    const { fixture, pen } = await render({ ...NAME, editable: 'Locked after review' });
+    const { fixture, pen } = await render({
+      ...NAME,
+      action: { ...NAME.action, allowed: 'Locked after review' },
+    });
     expect(pen.getAttribute('aria-disabled')).toBe('true');
     expect(tooltipFor(pen)).toBe('Locked after review');
 

@@ -1,63 +1,59 @@
-import type { Cell, CellRule } from './base';
+import type { Cell } from './base';
+import type { ActionRules } from './control';
 import type { CellsContext } from '../grid/cell-grid-options';
 import type { Command, CommandFor, MethodOf, SaveCommand } from '../session/persistence';
 
 /**
- * How an editable control sends its change. Without a `method` it is a `save`, and `command`
- * (optional) must build a save; with another method of the persistence `P`, `command` is required
- * and must build that method's command.
+ * What a change sends: a persistence method and the command for it, checked against each other.
+ * Leave `submit` out to save the change to the column's own field.
  */
-export type EditParams<Row, V, P, Next> = {
-  /** `true` when allowed, otherwise the reason it is not. */
-  editable?: CellRule<Row, V, true | string>;
-  /** The control's accessible name; each renderer has a default built from the column header. */
-  label?: CellRule<Row, V, string>;
-} & (SaveEdit<Row, V, P, Next> | OtherMethodEdit<Row, V, P, Next>);
-
-interface SaveEdit<Row, V, P, Next> {
-  method?: 'save';
-  /** Builds the save; defaults to setting the column's own field. */
-  command?: (next: Next, cell: Cell<Row, V>) => CommandFor<P, 'save'>;
-}
-
-type OtherMethodEdit<Row, V, P, Next> = {
-  [M in Exclude<MethodOf<P>, 'save'>]: {
+export type SubmitParams<Row, V, P, Next> = {
+  [M in MethodOf<P>]: {
     method: M;
     command: (next: Next, cell: Cell<Row, V>) => CommandFor<P, M>;
   };
-}[Exclude<MethodOf<P>, 'save'>];
+}[MethodOf<P>];
 
-/**
- * What sending an edit needs: the grid context, the column's field for the default command,
- * and the control's edit params. Renderer params satisfy it; a composite cell passes one control's
- * params together with `context`.
- */
-export interface EditTarget<Row, V, Next> {
+/** A cell's action: the control (`allowed`, `label`, `tooltip`) and what a change sends. */
+export type ActionParams<Row, V, P, Next> = ActionRules<Row, V> & {
+  submit?: SubmitParams<Row, V, P, Next>;
+};
+
+/** What sending a change needs from the renderer: the grid context and the column's field. */
+export interface EditTarget {
   readonly context: CellsContext;
   readonly colDef?: { readonly field?: string } | null;
+}
+
+/** How a submit looks at run time, whatever the persistence. */
+export interface RuntimeSubmit<Row, V, Next> {
   readonly method?: string;
   readonly command?: (next: Next, cell: Cell<Row, V>) => Command | undefined;
 }
 
-/** Sends a control's change through the grid's session. The source cell is always attached. */
+/** Sends a change through the grid's session. The source cell is always attached. */
 export function submitEdit<Row, V, Next>(
-  params: EditTarget<Row, V, Next>,
+  target: EditTarget,
+  submit: RuntimeSubmit<Row, V, Next> | undefined,
   cell: Cell<Row, V>,
   next: Next,
 ): Promise<void> {
   const source = { rowId: cell.rowId, columnId: cell.columnId };
-  const built = params.command ? params.command(next, cell) : setOwnField(params, cell, next);
-  return params.context.session.run(params.method ?? 'save', { ...built, source });
+  const built = submit?.command ? submit.command(next, cell) : saveToOwnField(target, cell, next);
+  return target.context.session.run(submit?.method ?? 'save', { ...built, source });
 }
 
-function setOwnField<Row, V>(
-  params: EditTarget<Row, V, never>,
+/** Without a `submit`, a change is a save of the column's own top-level field. */
+function saveToOwnField<Row, V>(
+  target: EditTarget,
   cell: Cell<Row, V>,
   value: unknown,
 ): SaveCommand<Row> {
-  // Only a top-level field can be set by default; nested paths need a command.
-  const field = params.colDef?.field;
+  // Only a top-level field can be saved by default; nested paths need a submit.
+  const field = target.colDef?.field;
   if (!field || field.includes('.'))
-    throw new Error(`Column ${cell.columnId} has no top-level field; give it a command.`);
+    throw new Error(
+      `Column ${cell.columnId} has no top-level field to save to; give its action a submit.`,
+    );
   return { changes: [{ rowId: cell.rowId, field: field as keyof Row & string, value }] };
 }

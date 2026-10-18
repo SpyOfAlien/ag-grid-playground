@@ -11,10 +11,12 @@ export function applyChanges<Row>(
 ): Row[] {
   const byId = new Map(rows.map((row) => [rowId(row), row]));
   const changed = new Map<string, Row>();
+
   for (const { rowId: id, field, value } of changes) {
     const row = changed.get(id) ?? byId.get(id);
     if (row === undefined) throw new Error(`Row ${id} does not exist.`);
     changed.set(id, { ...row, [field]: value });
   }
+
   return [...changed.values()];
 }

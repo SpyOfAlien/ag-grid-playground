@@ -189,27 +189,6 @@ describe('EditSession', () => {
     await save;
   });
 
-  it('reports a cell error until that cell saves successfully', async () => {
-    const persistence = new FakePersistence();
-    const edits = session(persistence);
-    const qty = { rowId: 'A-1', columnId: 'qty' };
-    const other = { rowId: 'B-2', columnId: 'qty' };
-    await edits.run('load', {});
-
-    persistence.saveResult = () => Promise.reject(new Error('Out of range'));
-    await edits.run('save', { source: qty, changes: [] }).catch(() => undefined);
-    expect(edits.errorFor(qty)).toBe('Out of range');
-    expect(edits.errorFor(other)).toBeNull();
-
-    persistence.saveResult = () => Promise.resolve({ update: [] });
-    await edits.run('save', { source: other, changes: [] });
-    expect(edits.errorFor(qty)).toBe('Out of range');
-
-    await edits.run('save', { source: qty, changes: [] });
-    expect(edits.errorFor(qty)).toBeNull();
-    expect(edits.entries().filter((entry) => entry.status === 'failed')).toHaveLength(1);
-  });
-
   it('runs nothing once its owner is destroyed', async () => {
     const persistence = new FakePersistence();
     let calls = 0;

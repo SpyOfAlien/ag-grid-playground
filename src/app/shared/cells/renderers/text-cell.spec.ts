@@ -15,9 +15,21 @@ describe('TextCell', () => {
     expect((await render({}, 'Bolt')).textContent?.trim()).toBe('Bolt');
     expect(
       (
-        await render({ format: (value, cell) => `${value ?? '?'} · ${cell.row.sku}` }, null)
+        await render(
+          { content: { format: (value, cell) => `${value ?? '?'} · ${cell.row.sku}` } },
+          null,
+        )
       ).textContent?.trim(),
     ).toBe('? · A-1');
+  });
+
+  it('shows its full text when cut off and no tooltip rule is set', async () => {
+    const host = await render({}, 'Acme Industrial Supplies Ltd.');
+    const content = host.querySelector('.cells-text')!;
+    Object.defineProperty(content, 'scrollWidth', { value: 300 });
+    Object.defineProperty(content, 'clientWidth', { value: 120 });
+
+    expect(tooltipFor(content)).toBe('Acme Industrial Supplies Ltd.');
   });
 
   it('draws only the highest-priority active marker with its tooltip', async () => {
@@ -40,7 +52,9 @@ describe('TextCell', () => {
 
   it('applies tooltip, highlighted and muted rules to the content', async () => {
     const host = await render(
-      { tooltip: ({ value }) => `Name: ${value}`, highlighted: true, muted: () => true },
+      {
+        content: { tooltip: ({ value }) => `Name: ${value}`, highlighted: true, muted: () => true },
+      },
       'Bolt',
     );
 
@@ -54,7 +68,9 @@ describe('TextCell', () => {
     const suffix = signal('pcs');
     const session = testSession();
     const fixture = TestBed.createComponent(TextCell<Item>);
-    const config: TextCellParams<Item> = { format: (value) => `${value} ${suffix()}` };
+    const config: TextCellParams<Item> = {
+      content: { format: (value) => `${value} ${suffix()}` },
+    };
     fixture.componentInstance.agInit(rendererParams(session, config, '5'));
     await fixture.whenStable();
     const text = (fixture.nativeElement as HTMLElement).querySelector('.cells-text')!;
@@ -71,7 +87,7 @@ describe('TextCell', () => {
 
   it('shows an HTML tooltip from a tooltip rule', async () => {
     const host = await render(
-      { tooltip: ({ value }) => ({ html: `<b>${value}</b> in stock` }) },
+      { content: { tooltip: ({ value }) => ({ html: `<b>${value}</b> in stock` }) } },
       'Bolt',
     );
 
@@ -83,7 +99,7 @@ describe('TextCell', () => {
   });
 
   it('passes the column tooltip position to the tooltip', async () => {
-    const host = await render({ tooltip: 'Name', tooltipPosition: 'above' }, 'Bolt');
+    const host = await render({ content: { tooltip: 'Name' }, tooltipPosition: 'above' }, 'Bolt');
 
     const content = host.querySelector('.cells-text')!;
     document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Tab', bubbles: true }));

@@ -10,7 +10,7 @@ cell ──command──▶ session.run(method, command)
                     ▼
                  persistence[method](command) ──▶ { replace: rows } | { update: rows }
                     │ success: entry 'saved' with what changed; each connected grid applies it
-                    │ failure: entry 'failed' with the error; grids unchanged; the source cell shows it
+                    │ failure: entry 'failed' with the error; grids unchanged; the page reports it
 ```
 
 ## Folders
@@ -95,56 +95,73 @@ class InventoryPersistence implements EditPersistence<Item> {
   compared shallowly. The values are the rows' own, so history costs only what changed. Undo is a
   command that sends the `before` values back through the persistence.
 
-- `errorFor(cell)` is the error of that cell's latest command, if it failed. It stays until the
-  same cell's next command succeeds (a reload does not clear it), and the entry keeps it for good.
+- Cells do not show failures. A failed entry keeps its `error`, and the page reports it, for
+  example in a snackbar (the demo watches the latest entry). An editor that submitted the change
+  also shows the error and stays open for a retry.
 
 ## Columns
 
-Columns are plain `ColDef`s. Renderer params are checked with `satisfies`:
+Columns are plain `ColDef`s. A renderer's params have three parts, named after where they show
+on the cell: **markers** in the start padding, **content** in the middle, and the **action** (the
+control and what it sends). They are checked with `satisfies`:
 
 ```ts
 {
   field: 'qty',
+  headerName: 'Quantity',
   context: { reads: ['approved', 'reorderLevel'] } satisfies CellColumnContext<Item>,
   cellRenderer: PopoverCell,
   cellRendererParams: {
-    format: (qty) => `${qty} pcs`,
-    editable: ({ row }) => (row.approved ? 'Approved items are locked' : true),
-    markers: { error: { when: ({ row, value }) => (value ?? 0) < row.reorderLevel } },
-    editor: { component: FieldEditor<Item, number>, data: () => ({ label: 'Quantity', mode: 'number' }) },
-    popover: { title: 'Edit quantity' },
+    markers: {
+      error: { when: ({ row, value }) => (value ?? 0) < row.reorderLevel, tooltip: 'Below reorder level' },
+    },
+    content: {
+      format: (qty) => `${qty} pcs`,
+      tooltip: ({ value }) => `${value} pieces counted`,
+    },
+    action: {
+      allowed: ({ row }) => (row.approved ? 'Approved items are locked' : true),
+      tooltip: 'Change the counted quantity',
+      editor: { component: FieldEditor<Item, number>, data: () => ({ label: 'Quantity', mode: 'number' }) },
+      popover: { title: 'Edit quantity' },
+    },
+    tooltipPosition: 'left', // optional, every tooltip of the column; defaults to below
   } satisfies PopoverCellParams<FieldEditorData<Item, number>, InventoryPersistence>,
 }
 ```
 
-| Renderer       | Shows                            | Edits                                           |
-| -------------- | -------------------------------- | ----------------------------------------------- |
-| `TextCell`     | text                             | —                                               |
-| `NumberCell`   | number with locale/decimals/unit | —                                               |
-| `ToggleCell`   | switch                           | saves the opposite value directly               |
-| `DropdownCell` | selected label or placeholder    | options in a popover; the current option closes |
-| `PopoverCell`  | text and a pen                   | the column's editor in a popover                |
-| `DialogCell`   | text and a pen                   | the column's editor in a dialog                 |
+| Renderer       | `content`                                          | `action`                                                       |
+| -------------- | -------------------------------------------------- | -------------------------------------------------------------- |
+| `TextCell`     | `format`, `tooltip`, `highlighted`, `muted`        | —                                                              |
+| `NumberCell`   | the same plus `number` (locale, decimals, unit)    | —                                                              |
+| `ToggleCell`   | — (the switch is the cell)                         | `allowed`, `label`, `tooltip`, `submit`                        |
+| `DropdownCell` | `tooltip`, `placeholder` (the label on the button) | the same plus `options`, `equals`; the current option closes   |
+| `PopoverCell`  | `format`, `tooltip`, `highlighted`, `muted`        | the same plus `editor` and `popover`; the pen opens the editor |
+| `DialogCell`   | `format`, `tooltip`, `highlighted`, `muted`        | the same plus `editor` and `dialog`                            |
 
-Every renderer accepts `format`, `tooltip`, `tooltipPosition`, `highlighted`, `muted` and
-`markers`. Rules are a value or a function of the cell (`{ rowId, columnId, row, value }`). A rule
-may read signals (page state such as a read-only switch); the cell redraws when they change, with
-no grid refresh.
+Rules are a value or a function of the cell (`{ rowId, columnId, row, value }`). A rule may read
+signals (page state such as a read-only switch); the cell redraws when they change, with no grid
+refresh.
 
-- **Text.** `format(value, cell)` is also called for empty values. It changes only what is drawn;
-  the cell value, and therefore export, stays raw.
 - **Markers.** Six fixed kinds in priority order: `error`, `warning`, `userEdited`,
-  `systemGenerated`, `info`, `special`. Only the highest active one is drawn, with its tooltip.
-- **Editing.** `editable` returns `true` or the reason it is not allowed. Without a `method` the
-  control saves: `command(next, cell)` is optional and defaults to setting the column's own
-  top-level field. With another `method`, `command` is required and checked against that method:
-  `{ method: 'approve', command: (_next, cell) => ({ skus: [cell.rowId] }) }`. The methods offered
-  are the persistence's own. The source cell is always attached.
-- **Labels.** `label` is a control's accessible name. Defaults: the header for a switch,
-  "Header: choice" for a dropdown, "Edit Header" for a pen.
-- **Disabled and tooltip order.** The lock, or busy (keeping the normal tooltip), then the
-  `editable` reason, then this cell's last error (the control stays enabled for a retry), then the
-  normal tooltip.
+  `systemGenerated`, `info`, `special`. Only the highest active one is drawn, with its tooltip, in
+  the cell's start padding: text lines up whether a cell has a marker or not.
+- **Content.** `format(value, cell)` is also called for empty values. It changes only what is
+  drawn; the cell value, and therefore export, stays raw. `content.tooltip` is about the value;
+  without one, text that is cut off shows in full on hover.
+- **Action.** `allowed` returns `true` or the reason it is not. `label` is the name of what the
+  control changes (default: the header), and each renderer phrases it: a switch is named "Active",
+  a dropdown "Supplier: Acme…", a pen "Edit Quantity". `tooltip` is the control's hint.
+- **The control's tooltip**, in order: the session lock; busy (the hint stays); the `allowed`
+  reason; the hint. A dropdown is one element, so after those it falls back to `content.tooltip`
+  or its cut-off label.
+- **Submit.** Leave `submit` out to save the change to the column's own top-level field. Otherwise
+  it names a persistence method and builds that method's command, checked against each other:
+  `submit: { method: 'approve', command: (_next, cell) => ({ skus: [cell.rowId] }) }`. An editor's
+  `submit(next)` sends the same. The source cell is always attached.
+- **The pen** floats at the end of the cell: hidden until the cell is hovered or has keyboard
+  focus, always shown on touch screens, on a backdrop that fades the text beneath it. It takes no
+  room, so the content keeps its width and alignment. Switches and dropdowns always show.
 - **Empty states.** `withEmptyState({ value, emptyState, renderer, params })` decides per cell
   whether to show text such as `-` or `NA` instead of the value. The empty state becomes the cell
   value, so Excel exports exactly what is shown, and the renderer is skipped for it.
@@ -197,8 +214,10 @@ cell finds its error by lookup, not by reading the history.
 All kit tooltips go through one shared tooltip that behaves and looks like Angular Material's
 `matTooltip`, without its per-element cost:
 
-- A `tooltip` rule (and a marker's `tooltip`) returns text or `{ html: '<b>…</b>' }`. HTML is
-  sanitized by Angular before it is shown. Disabled reasons and errors are text.
+- A `tooltip` rule (content, action or marker) returns text or `{ html: '<b>…</b>' }`. HTML is
+  sanitized by Angular before it is shown. Lock and `allowed` reasons are text.
+- `[cellsTooltipOverflow]="true"` shows an element's own text when it, or text inside it, is cut
+  off and it has no other tooltip. The kit's value text and dropdown labels use it.
 - `tooltipPosition` places a column's tooltips: `above`, `below` (default), `left`, `right`,
   `before` or `after` (these two follow the text direction). It flips to the opposite side when
   there is no room.
@@ -248,17 +267,19 @@ panel draws the title and arrow; `openCellDialog` puts it in a Material dialog t
 
 Extend `CellBase` and use the parts the built-in renderers use:
 
-| Part                                                  | Gives                                                     |
-| ----------------------------------------------------- | --------------------------------------------------------- |
-| `cell()` (from `CellBase`)                            | `{ rowId, columnId, row, value }` as a signal             |
-| `cellDisplay(params, cell)`                           | text, tooltip, highlighted, muted, the top marker         |
-| `cellControl(params, cell, …)`                        | disabled, tooltip and accessible name of one control      |
-| `submitEdit(target, cell, next)`                      | runs the control's command through the session            |
-| `cellEditorData`, `openCellPopover`, `openCellDialog` | hosts an editor for the cell                              |
-| `<span [cellsMarker]>`                                | the marker and its tooltip, on the renderer's own element |
-| `[cellsTooltip]`                                      | a tooltip on any element                                  |
+| Part                                                  | Gives                                                      |
+| ----------------------------------------------------- | ---------------------------------------------------------- |
+| `cell()` (from `CellBase`)                            | `{ rowId, columnId, row, value }` as a signal              |
+| `cellDisplay(params, cell)`                           | from markers and content: text, tooltip, highlight, marker |
+| `cellControl(action, cell, session, defaultName)`     | one control's disabled state, tooltip and name             |
+| `submitEdit(params, action.submit, cell, next)`       | sends the change through the session                       |
+| `cellEditorData`, `openCellPopover`, `openCellDialog` | hosts an editor for the cell                               |
+| `<span [cellsMarker]>`                                | the marker and its tooltip, on the renderer's own element  |
+| `[cellsTooltip]`                                      | a tooltip on any element                                   |
 
-The demo's `ReorderCell` puts a switch and a pen in one cell, each with its own command. Add
+A custom renderer's state signal is usually called `state`. The demo's `ReorderCell` puts a
+switch and a pen in one cell, each with its own `action` block (`{ allowed, label, tooltip,
+submit }`); its pen floats at the end like the built-in ones. Add
 `class: 'cells-cell'` to the host so keyboard handling finds the controls. The kit's global styles
 are in `cells.scss` (included from `src/styles.scss`) and can be themed through its `--cells-*`
 custom properties.

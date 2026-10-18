@@ -9,9 +9,9 @@ import {
 import { CellsTooltip } from '../tooltip/tooltip';
 import { CellMarker } from './cell-marker';
 import { CellBase, evaluate, type Cell, type CellParams, type CellRule } from '../base/base';
-import { cellControl } from '../base/control';
+import { cellControl, type ActionRules } from '../base/control';
 import { cellDisplay, type DisplayParams } from '../base/display';
-import type { EditParams } from '../base/edit';
+import type { ActionParams } from '../base/edit';
 import {
   cellEditorData,
   openCellPopover,
@@ -32,39 +32,37 @@ export interface EditorConfig<D extends EditorData<unknown, unknown>> {
 
 /**
  * Shared by popover and dialog cells. The editor's data `D` already says the row, the cell value
- * and what the editor submits, so only the persistence `P` is added.
+ * and what the editor submits, so only the persistence `P` is added. The action owns the editor.
  */
+export type EditAction<D extends EditorData<unknown, unknown>, P> = ActionParams<
+  EditorRow<D>,
+  EditorValue<D>,
+  P,
+  EditorNext<D>
+> & { editor: EditorConfig<D> };
+
 export type EditCellParams<D extends EditorData<unknown, unknown>, P> = DisplayParams<
   EditorRow<D>,
   EditorValue<D>
-> &
-  EditParams<EditorRow<D>, EditorValue<D>, P, EditorNext<D>> & {
-    editor: EditorConfig<D>;
-  };
+> & { action: EditAction<D, P> };
 
-export type PopoverCellParams<D extends EditorData<unknown, unknown>, P> = EditCellParams<D, P> & {
-  popover?: CellPopoverOptions;
-};
+export type PopoverCellParams<D extends EditorData<unknown, unknown>, P> = DisplayParams<
+  EditorRow<D>,
+  EditorValue<D>
+> & { action: EditAction<D, P> & { popover?: CellPopoverOptions } };
 
-/** The view both editing renderers show: the value and a pen. */
-export function editView<Row, V>(
-  params: CellParams<
-    Row,
-    V,
-    DisplayParams<Row, V> & {
-      editable?: CellRule<Row, V, true | string>;
-      label?: CellRule<Row, V, string>;
-    }
-  >,
+/** The state both editing renderers show: the value and a pen. */
+export function editState<Row, V>(
+  params: CellParams<Row, V, DisplayParams<Row, V> & { action: ActionRules<Row, V> }>,
   cell: Cell<Row, V>,
 ) {
   const pen = cellControl(
-    { editable: params.editable, label: params.label },
+    params.action,
     cell,
     params.context.session,
-    `Edit ${params.colDef?.headerName ?? ''}`.trim(),
+    params.colDef?.headerName ?? '',
   );
-  return { ...cellDisplay(params, cell), pen, label: pen.label };
+  return { ...cellDisplay(params, cell), pen, label: `Edit ${pen.name}`.trim() };
 }
 
 /** Displays a value and edits it in a popover anchored to the pen. */
@@ -82,28 +80,34 @@ export class PopoverCell<D extends EditorData<unknown, unknown>, P> extends Cell
 > {
   private readonly injector = inject(Injector);
 
-  protected readonly view = computed(() => {
+  protected readonly state = computed(() => {
     const params = this.params();
     const cell = this.cell();
-    return params && cell ? editView(params, cell) : null;
+    return params && cell ? editState(params, cell) : null;
   });
 
   protected open(event: MouseEvent): void {
     event.stopPropagation();
     const params = this.params();
     const cell = this.cell();
-    if (!params || !cell || this.view()?.pen.disabled) return;
-    const { component, data } = params.editor;
+    if (!params || !cell || this.state()?.pen.disabled) return;
+    const { editor, submit, popover } = params.action;
+    const { component, data } = editor;
     openCellPopover(
       this.injector,
       event.currentTarget as HTMLElement,
       component,
       (close) =>
         ({
-          ...cellEditorData<EditorRow<D>, EditorValue<D>, EditorNext<D>>(params, cell, close),
+          ...cellEditorData<EditorRow<D>, EditorValue<D>, EditorNext<D>>(
+            params,
+            submit,
+            cell,
+            close,
+          ),
           ...data?.(cell),
         }) as D,
-      params.popover,
+      popover,
     );
   }
 }

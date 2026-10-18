@@ -34,8 +34,10 @@ describe('DialogCell', () => {
     const session = testSession(persistence);
     await session.run('load', {});
     const config: DialogCellParams<NotesData, FakePersistence> = {
-      editor: { component: NotesEditor },
-      dialog: { title: 'Edit notes', width: 480 },
+      action: {
+        editor: { component: NotesEditor },
+        dialog: { title: 'Edit notes', width: 480 },
+      },
     };
     const fixture = TestBed.createComponent(DialogCell<NotesData, FakePersistence>);
     fixture.componentInstance.agInit(

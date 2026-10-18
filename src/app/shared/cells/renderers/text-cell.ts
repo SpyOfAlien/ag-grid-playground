@@ -15,7 +15,7 @@ export type TextCellParams<Row> = DisplayParams<Row, string>;
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class TextCell<Row> extends CellBase<Row, string, TextCellParams<Row>> {
-  protected readonly view = computed(() => {
+  protected readonly state = computed(() => {
     const params = this.params();
     const cell = this.cell();
     return params && cell ? cellDisplay(params, cell) : null;

@@ -19,6 +19,8 @@ import {
   TextCell,
   ToggleCell,
   type Command,
+  type DropdownCellParams,
+  type NumberCellParams,
   type EditPersistence,
   type Result,
   type SaveCommand,
@@ -96,9 +98,9 @@ function columns(): ColDef<Row>[] {
           ...base,
           cellRenderer: NumberCell,
           cellRendererParams: {
-            number: { decimals: 0 },
-            markers: { warning: { when: ({ value }: { value: number }) => value < 20 } },
-          },
+            markers: { warning: { when: ({ value }) => (value ?? 0) < 20 } },
+            content: { number: { decimals: 0 } },
+          } satisfies NumberCellParams<Row>,
         };
       case 1:
         return { ...base, cellRenderer: TextCell };
@@ -109,11 +111,13 @@ function columns(): ColDef<Row>[] {
           ...base,
           cellRenderer: DropdownCell,
           cellRendererParams: {
-            options: ['a', 'b', 'c'].map((option) => ({
-              value: option,
-              label: option.toUpperCase(),
-            })),
-          },
+            action: {
+              options: ['a', 'b', 'c'].map((option) => ({
+                value: option,
+                label: option.toUpperCase(),
+              })),
+            },
+          } satisfies DropdownCellParams<Row, string, PerfPersistence>,
         };
     }
   });

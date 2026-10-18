@@ -13,16 +13,23 @@ describe('NumberCell', () => {
   it('formats with locale, decimals, grouping and unit', async () => {
     const number = { locale: 'en-US', decimals: 2, unit: ({ row }: { row: Item }) => row.sku };
 
-    expect(await text({ number }, 1250.5)).toBe('1,250.50 A-1');
-    expect(await text({ number }, 0)).toBe('0.00 A-1');
-    expect(await text({ number: { locale: 'de-DE', grouping: false } }, 1250.5)).toBe('1250,5');
-    expect(await text({ number }, null)).toBe('');
+    expect(await text({ content: { number } }, 1250.5)).toBe('1,250.50 A-1');
+    expect(await text({ content: { number } }, 0)).toBe('0.00 A-1');
+    expect(await text({ content: { number: { locale: 'de-DE', grouping: false } } }, 1250.5)).toBe(
+      '1250,5',
+    );
+    expect(await text({ content: { number } }, null)).toBe('');
   });
 
   it('lets a column format replace the number format', async () => {
     expect(
       await text(
-        { number: { decimals: 2 }, format: (value) => (value == null ? 'none' : `#${value}`) },
+        {
+          content: {
+            number: { decimals: 2 },
+            format: (value) => (value == null ? 'none' : `#${value}`),
+          },
+        },
         null,
       ),
     ).toBe('none');

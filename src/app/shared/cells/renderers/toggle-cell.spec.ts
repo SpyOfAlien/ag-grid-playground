@@ -31,7 +31,7 @@ async function render(
 
 describe('ToggleCell', () => {
   it('takes its accessible name from a label rule when the column gives one', async () => {
-    const { toggle } = await render({ label: ({ row }) => `Active: ${row.sku}` });
+    const { toggle } = await render({ action: { label: ({ row }) => `Active: ${row.sku}` } });
     expect(toggle.getAttribute('aria-label')).toBe('Active: A-1');
   });
 
@@ -51,10 +51,12 @@ describe('ToggleCell', () => {
     ]);
   });
 
-  it('disables with the lock reason first, then the editable reason', async () => {
+  it('disables with the lock reason first, then the allowed reason', async () => {
     const { toggle, session, fixture, persistence } = await render({
-      editable: ({ row }) => (row.locked ? true : 'Locked after review'),
-      tooltip: 'Active in catalogue',
+      action: {
+        allowed: ({ row }) => (row.locked ? true : 'Locked after review'),
+        tooltip: 'Active in catalogue',
+      },
     });
     expect(toggle.getAttribute('aria-disabled')).toBe('true');
     expect(tooltipFor(toggle)).toBe('Locked after review');
@@ -67,11 +69,14 @@ describe('ToggleCell', () => {
     expect(persistence.saved).toEqual([]);
   });
 
-  it('disables while saving and shows a failure on this cell until it saves again', async () => {
+  it('disables while saving and, after a failure, keeps its value and is usable again', async () => {
     const persistence = new FakePersistence();
     let fail!: (error: Error) => void;
     persistence.next = () => new Promise((_resolve, reject) => (fail = reject));
-    const { toggle, fixture } = await render({ tooltip: 'Active in catalogue' }, persistence);
+    const { toggle, fixture, session } = await render(
+      { action: { tooltip: 'Active in catalogue' } },
+      persistence,
+    );
 
     toggle.click();
     await fixture.whenStable();
@@ -81,18 +86,19 @@ describe('ToggleCell', () => {
     fail(new Error('Server rejected'));
     await settle(fixture);
     expect(toggle.getAttribute('aria-disabled')).toBe('false');
-    expect(tooltipFor(toggle)).toBe('Server rejected');
-
-    persistence.next = () => Promise.resolve({ update: [] });
-    toggle.click();
-    await settle(fixture);
+    expect(toggle.getAttribute('aria-checked')).toBe('true');
     expect(tooltipFor(toggle)).toBe('Active in catalogue');
+    expect(session.entries().at(-1)?.error).toBe('Server rejected');
   });
 
   it('sends its own command to the method it names', async () => {
     const { toggle, persistence } = await render({
-      method: 'approve',
-      command: (next, cell) => ({ skus: [cell.rowId], params: { approved: next } }),
+      action: {
+        submit: {
+          method: 'approve',
+          command: (next, cell) => ({ skus: [cell.rowId], params: { approved: next } }),
+        },
+      },
     });
 
     toggle.click();

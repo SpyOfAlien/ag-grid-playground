@@ -12,11 +12,13 @@ import {
   type EditorValue,
 } from '../editors/editor';
 import { EDIT_TEMPLATE } from './display-template';
-import { editView, type EditCellParams } from './popover-cell';
+import { editState, type EditAction } from './popover-cell';
+import type { DisplayParams } from '../base/display';
 
-export type DialogCellParams<D extends EditorData<unknown, unknown>, P> = EditCellParams<D, P> & {
-  dialog?: CellDialogOptions;
-};
+export type DialogCellParams<D extends EditorData<unknown, unknown>, P> = DisplayParams<
+  EditorRow<D>,
+  EditorValue<D>
+> & { action: EditAction<D, P> & { dialog?: CellDialogOptions } };
 
 /** Displays a value and edits it in a modal dialog. */
 @Component({
@@ -33,27 +35,36 @@ export class DialogCell<D extends EditorData<unknown, unknown>, P> extends CellB
 > {
   private readonly injector = inject(Injector);
 
-  protected readonly view = computed(() => {
+  protected readonly state = computed(() => {
     const params = this.params();
     const cell = this.cell();
-    return params && cell ? editView(params, cell) : null;
+    return params && cell ? editState(params, cell) : null;
   });
 
   protected open(event: MouseEvent): void {
     event.stopPropagation();
     const params = this.params();
     const cell = this.cell();
-    if (!params || !cell || this.view()?.pen.disabled) return;
-    const { component, data } = params.editor;
+
+    if (!params || !cell || this.state()?.pen.disabled) return;
+
+    const { editor, submit, dialog } = params.action;
+    const { component, data } = editor;
+
     openCellDialog(
       this.injector,
       component,
       (close) =>
         ({
-          ...cellEditorData<EditorRow<D>, EditorValue<D>, EditorNext<D>>(params, cell, close),
+          ...cellEditorData<EditorRow<D>, EditorValue<D>, EditorNext<D>>(
+            params,
+            submit,
+            cell,
+            close,
+          ),
           ...data?.(cell),
         }) as D,
-      params.dialog,
+      dialog,
     );
   }
 }
