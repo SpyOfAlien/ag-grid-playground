@@ -31,8 +31,12 @@ class Host {
   readonly first = signal<TooltipContent | null>('First tip');
 }
 
-/** Stands in for a popover panel opened while the tooltip exists. */
-@Component({ template: 'Panel', changeDetection: ChangeDetectionStrategy.OnPush })
+/** Stands in for a popover panel opened while the tooltip exists, with a tooltip of its own. */
+@Component({
+  imports: [CellsTooltip],
+  template: `<button type="button" id="inside" [cellsTooltip]="'Inside tip'">Inside</button>`,
+  changeDetection: ChangeDetectionStrategy.OnPush,
+})
 class Panel {}
 
 async function setup() {
@@ -260,12 +264,15 @@ describe('CellsTooltip', () => {
   it('shows above an overlay opened while it stayed visible', async () => {
     const { element } = await setup();
     focus(element('first'));
-    TestBed.inject(Overlay).create().attach(new ComponentPortal(Panel));
+    TestBed.inject(Overlay)
+      .create()
+      .attach(new ComponentPortal(Panel))
+      .changeDetectorRef.detectChanges();
 
     // A visible tooltip switches to the hovered element at once, without hiding first.
-    pointer('pointerover', element('second'));
+    pointer('pointerover', document.querySelector('#inside')!);
 
-    expect(tooltip()?.textContent?.trim()).toBe('Second tip');
+    expect(tooltip()?.textContent?.trim()).toBe('Inside tip');
     const container = document.querySelector('.cdk-overlay-container')!;
     expect(container.lastElementChild!.contains(tooltip())).toBe(true);
   });

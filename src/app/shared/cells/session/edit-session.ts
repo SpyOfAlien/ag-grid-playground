@@ -59,7 +59,7 @@ export class EditSession<Row, P extends EditPersistence<Row>> {
     const method = this.persistence[name] as unknown as
       ((payload: unknown) => Promise<Result<Row>>) | undefined;
     // Editors and custom renderers run commands untyped, so a wrong name can get this far.
-    if (typeof method !== 'function')
+    if (typeof method !== 'function' || name in Object.prototype)
       throw new Error(`The persistence has no method ${String(name)}.`);
     const id = this.nextId++;
     this.log.update((log) => [

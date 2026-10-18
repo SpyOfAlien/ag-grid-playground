@@ -183,6 +183,7 @@ export class CellsTooltipService {
     const html = element.getAttribute(HTML);
     const text = element.getAttribute(TEXT) ?? (html === null ? cutOffText(element) : null);
     if (html === null && !text) return this.hide();
+    const appearing = this.shown === null;
     const moved = this.shown !== element;
     if (moved) {
       this.stopWatching?.();
@@ -193,7 +194,9 @@ export class CellsTooltipService {
     }
     const position = (element.getAttribute(POSITION) as TooltipPosition | null) ?? 'below';
     const panel = this.attach(element, position);
-    if (moved) this.raise();
+    // Re-showing the popover replays the fade-in, so not on every move: only on appearing, or on
+    // moving into another overlay (a panel that opened while the tooltip stayed visible).
+    if (appearing || (moved && element.closest('.cdk-overlay-pane'))) this.raise();
     panel.instance.content.set({ text: text ?? '', html, position });
     panel.changeDetectorRef.detectChanges();
     this.overlayRef?.updatePosition();
@@ -236,7 +239,6 @@ export class CellsTooltipService {
   /**
    * The tooltip's overlay is created once, so one opened since (a dropdown panel) would cover it.
    * Native popovers stack in the order they were shown; without them, overlays stack in DOM order.
-   * Called whenever the tooltip moves to an element, since a panel may open while it is visible.
    */
   private raise(): void {
     const host = this.overlayRef?.hostElement;

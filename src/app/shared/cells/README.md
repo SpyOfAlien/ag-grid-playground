@@ -168,7 +168,9 @@ refresh.
   room, so the content keeps its width and alignment. Switches and dropdowns always show.
 - **Empty states.** `withEmptyState({ value, emptyState, renderer, params })` decides per cell
   whether to show text such as `-` or `NA` instead of the value. The empty state becomes the cell
-  value, so Excel exports exactly what is shown, and the renderer is skipped for it.
+  value, so Excel exports exactly what is shown, and the renderer is skipped for it. The answer
+  is kept per row object (rows are immutable), so the rule reads only the value and the row, not
+  page signals.
 - **Alignment** is a column class: `cellClass: 'cells-align-end'`.
 
 `PopoverCellParams` and `DialogCellParams` take the editor's data and the persistence; the row,
@@ -190,8 +192,10 @@ column's `dependsOn`:
   cells' values before applying the rows, and afterwards force-refreshes only those whose value did
   not change (AG Grid already redrew the rest). Columns without `dependsOn` refresh only when their
   own value changes.
-- Cycles throw when the grid is built. A column depending on the field of its own name is not a
-  cycle. In dev mode a name that is neither a column nor a field of any row throws when rows first
+- The grid reads `dependsOn` from its own columns, so a column without a `colId` or `field` counts,
+  and columns set later with `setGridOption('columnDefs', …)` are followed.
+- Cycles throw when the grid is built, or when columns set later bring one. A column depending on
+  the field of its own name is not a cycle. In dev mode a name that is neither a column nor a field of any row throws when rows first
   arrive.
 - Each table declares its own columns, so two tables on one session refresh independently.
 

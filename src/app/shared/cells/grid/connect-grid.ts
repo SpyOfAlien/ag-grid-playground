@@ -12,7 +12,9 @@ export function connectGrid<Row>(api: GridApi<Row>): ConnectedGrid<Row> {
   // From the grid's own columns, so generated ids count and columns set later are followed.
   const build = () =>
     columnDependencyGraph(
-      api.getColumns()?.map((column) => ({ ...column.getColDef(), colId: column.getColId() })) ??
+      api
+        .getColumns()
+        ?.map((column) => ({ colId: column.getColId(), context: column.getColDef().context })) ??
         [],
     );
   let graph = build();

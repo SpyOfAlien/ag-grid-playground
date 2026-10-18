@@ -3,7 +3,8 @@ import { CellsTooltip } from '../tooltip/tooltip';
 import { CellMarker } from './cell-marker';
 import { CellBase } from '../base/base';
 import { cellControl } from '../base/control';
-import { cellDisplay, type DisplayParams } from '../base/display';
+import type { DisplayParams } from '../base/display';
+import { topMarker } from '../base/markers';
 import { runCommand, type ActionParams } from '../base/edit';
 
 /** A switch has no value text, so no `content`: markers and the action only. */
@@ -40,11 +41,11 @@ export class ToggleCell<Row, P> extends CellBase<Row, boolean, ToggleCellParams<
     const params = this.params();
     const cell = this.cell();
     if (!params || !cell) return null;
-    const { marker, tooltipPosition } = cellDisplay(params, cell);
     const header = params.colDef?.headerName ?? '';
     return {
-      marker,
-      tooltipPosition,
+      // A control-only renderer: the marker and position, without content to evaluate.
+      marker: topMarker(params.markers, cell),
+      tooltipPosition: params.tooltipPosition ?? null,
       control: cellControl(params.action, cell, params.context.session, header),
       checked: cell.value === true,
     };

@@ -244,6 +244,9 @@ describe('EditSession', () => {
       'The persistence has no method aprove.',
     );
     expect(edits.entries()).toHaveLength(1);
+    await expect(edits.run({ method: 'constructor' } as never)).rejects.toThrow(
+      'The persistence has no method constructor.',
+    );
   });
 
   it('routes a custom method with its payload and records the command', async () => {
