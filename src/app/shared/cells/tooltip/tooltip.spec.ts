@@ -1,3 +1,5 @@
+import { Overlay } from '@angular/cdk/overlay';
+import { ComponentPortal } from '@angular/cdk/portal';
 import { ChangeDetectionStrategy, Component, signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { CellsTooltip, type TooltipContent } from './tooltip';
@@ -28,6 +30,10 @@ import { CellsTooltip, type TooltipContent } from './tooltip';
 class Host {
   readonly first = signal<TooltipContent | null>('First tip');
 }
+
+/** Stands in for a popover panel opened while the tooltip exists. */
+@Component({ template: 'Panel', changeDetection: ChangeDetectionStrategy.OnPush })
+class Panel {}
 
 async function setup() {
   const fixture = TestBed.createComponent(Host);
@@ -237,6 +243,18 @@ describe('CellsTooltip', () => {
 
     document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
     expect(element('first').hasAttribute('aria-describedby')).toBe(false);
+  });
+
+  it('shows above an overlay opened after it, such as a dropdown panel', async () => {
+    const { element } = await setup();
+    focus(element('first'));
+    element('first').dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    TestBed.inject(Overlay).create().attach(new ComponentPortal(Panel));
+
+    focus(element('second'));
+
+    const container = document.querySelector('.cdk-overlay-container')!;
+    expect(container.lastElementChild!.contains(tooltip())).toBe(true);
   });
 
   it('places the tooltip below by default, or where the element asks', async () => {

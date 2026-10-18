@@ -183,6 +183,7 @@ export class CellsTooltipService {
     const html = element.getAttribute(HTML);
     const text = element.getAttribute(TEXT) ?? (html === null ? cutOffText(element) : null);
     if (html === null && !text) return this.hide();
+    const appearing = !this.shown;
     if (this.shown !== element) {
       this.stopWatching?.();
       if (this.shown) describe(this.shown, false);
@@ -192,6 +193,7 @@ export class CellsTooltipService {
     }
     const position = (element.getAttribute(POSITION) as TooltipPosition | null) ?? 'below';
     const panel = this.attach(element, position);
+    if (appearing) this.raise();
     panel.instance.content.set({ text: text ?? '', html, position });
     panel.changeDetectorRef.detectChanges();
     this.overlayRef?.updatePosition();
@@ -229,6 +231,19 @@ export class CellsTooltipService {
       this.panel = this.overlayRef.attach(new ComponentPortal(CellsTooltipPanel));
     } else this.overlayRef.updatePositionStrategy(position);
     return this.panel!;
+  }
+
+  /**
+   * The tooltip's overlay is created once, so one opened since (a dropdown panel) would cover it.
+   * Native popovers stack in the order they were shown; without them, overlays stack in DOM order.
+   */
+  private raise(): void {
+    const host = this.overlayRef?.hostElement;
+    if (!host) return;
+    if (host.hasAttribute('popover')) {
+      host.hidePopover();
+      host.showPopover();
+    } else if (host.nextElementSibling) host.parentElement?.appendChild(host);
   }
 }
 

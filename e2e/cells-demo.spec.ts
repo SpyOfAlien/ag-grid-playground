@@ -277,6 +277,9 @@ test('price, supplier and date columns edit, guard disabled options and flag ove
 
   const supplier = cell(page, 'SKU-01', 'supplier').getByRole('button');
   await expect(supplier).toHaveText('Acme Industrial Supplies Ltd.');
+  // A tooltip shown before the panel opens must still show above the panel later.
+  const value = cell(page, 'SKU-01', 'stockValue').locator('[data-cells-tooltip-html]');
+  await expectTooltip(page, value, '120 × 1.00 €');
   await supplier.click();
   const options = page.getByRole('group', { name: 'Options' });
   await expect(
@@ -287,6 +290,18 @@ test('price, supplier and date columns edit, guard disabled options and flag ove
   expect(await body.evaluate((element) => element.scrollWidth - element.clientWidth)).toBe(0);
   const acme = options.getByRole('button', { name: 'Acme Industrial Supplies Ltd.' });
   await expectTooltip(page, acme, 'Acme Industrial Supplies Ltd.');
+  // The tooltip shows above the options panel, not under it.
+  await acme.hover();
+  const tip = page.locator('.cells-tooltip');
+  await expect(tip).toHaveText('Acme Industrial Supplies Ltd.');
+  expect(
+    await tip.evaluate((element) => {
+      const box = element.getBoundingClientRect();
+      return element.contains(
+        document.elementFromPoint(box.x + box.width / 2, box.y + box.height / 2),
+      );
+    }),
+  ).toBe(true);
   await options.getByRole('button', { name: 'FixIt Wholesale' }).click();
   await expect(supplier).toHaveText('FixIt Wholesale');
 
