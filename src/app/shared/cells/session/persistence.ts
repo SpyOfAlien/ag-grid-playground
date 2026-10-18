@@ -4,22 +4,13 @@ export interface CellRef {
   readonly columnId: string;
 }
 
-/** Query or body parameters a column adds to its request. */
-export type ApiParams = Readonly<Record<string, string | number | boolean>>;
-
-/** Every command has this shape; each persistence method adds its own fields. */
-export interface Command {
-  readonly source?: CellRef;
-  readonly params?: ApiParams;
-}
-
 export interface FieldChange<Row> {
   readonly rowId: string;
   readonly field: keyof Row & string;
   readonly value: unknown;
 }
 
-export interface SaveCommand<Row> extends Command {
+export interface SavePayload<Row> {
   readonly changes: readonly FieldChange<Row>[];
 }
 
@@ -29,14 +20,14 @@ export type Result<Row> =
 
 /**
  * A grid's persistence. `load` and `save` are required; any other method with the shape
- * `(command) => Promise<Result<Row>>` can be named by a column or called through `run`.
+ * `(payload) => Promise<Result<Row>>` can be named by a column or called through `run`.
  */
 export interface EditPersistence<Row> {
-  load(command?: Command): Promise<Result<Row>>;
-  save(command: SaveCommand<Row>): Promise<Result<Row>>;
+  load(): Promise<Result<Row>>;
+  save(payload: SavePayload<Row>): Promise<Result<Row>>;
 }
 
-type Method = (command: never) => Promise<Result<unknown>>;
+type Method = (payload: never) => Promise<Result<unknown>>;
 
 /** Names of the methods `run` can call. */
 export type MethodOf<P> = {
@@ -44,12 +35,19 @@ export type MethodOf<P> = {
 }[keyof P] &
   string;
 
-/** The command a method accepts. */
-export type CommandOf<P, M extends MethodOf<P>> = P[M] extends (
-  command: infer C extends Command | undefined,
-) => unknown
-  ? C
+/** The payload a method takes; includes `undefined` when the method's is optional or absent. */
+export type PayloadOf<P, M extends MethodOf<P>> = P[M] extends (...args: infer A) => unknown
+  ? A[0]
   : never;
 
-/** The command for a method name, or `never` when the persistence has no such method. */
-export type CommandFor<P, M> = M extends MethodOf<P> ? CommandOf<P, M> : never;
+/** `payload` may be left out when the method takes none or an optional one. */
+type PayloadField<T> = undefined extends T ? { readonly payload?: T } : { readonly payload: T };
+
+/** One method and its payload; `source` is the cell that sent it, when a cell did. */
+export type CommandTo<P, M extends MethodOf<P>> = {
+  readonly method: M;
+  readonly source?: CellRef;
+} & PayloadField<PayloadOf<P, M>>;
+
+/** What `run` takes and an entry keeps: a method name with the payload it accepts. */
+export type Command<P> = { [M in MethodOf<P>]: CommandTo<P, M> }[MethodOf<P>];

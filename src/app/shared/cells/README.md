@@ -1,28 +1,28 @@
 # Cells kit (`@cells`)
 
-Cell renderers for AG Grid with one edit flow: a cell builds a **command**, the grid's **edit
-session** runs it through a **persistence** service, and every grid on that session shows the rows
+Cell renderers for AG Grid with one edit flow: a cell builds a **command** (a method name and its payload), the
+grid's **edit session** runs it through a **persistence** service, and every grid on that session shows the rows
 that come back. The demo at `/cells-demo` (`src/app/features/cells-demo`) uses every part.
 
 ```
-cell ──command──▶ session.run(method, command)
+cell ──command──▶ session.run({ method, payload, source })
                     │ entry { status: 'pending' }      → every control waits ("busy")
                     ▼
-                 persistence[method](command) ──▶ { replace: rows } | { update: rows }
+                 persistence[method](payload) ──▶ { replace: rows } | { update: rows }
                     │ success: entry 'saved' with what changed; each connected grid applies it
                     │ failure: entry 'failed' with the error; grids unchanged; the page reports it
 ```
 
 ## Folders
 
-| Folder       | What is in it                                                                         |
-| ------------ | ------------------------------------------------------------------------------------- |
-| `session/`   | `EditSession`, the persistence contract, `rowChanges`, `applyChanges`                 |
-| `grid/`      | `cellGridOptions`, `connectGrid` (one per table), column reads, keyboard, empty state |
-| `base/`      | `CellBase` and what every renderer uses: `cellDisplay`, `cellControl`, `submitEdit`   |
-| `renderers/` | the six renderers and `CellMarker`                                                    |
-| `editors/`   | `openCellPopover`, `openCellDialog` (`CellDialog`), `FieldEditor`, `DropdownOptions`  |
-| `tooltip/`   | the shared tooltip: one service, the `cellsTooltip` directive                         |
+| Folder       | What is in it                                                                                |
+| ------------ | -------------------------------------------------------------------------------------------- |
+| `session/`   | `EditSession`, the persistence contract, `rowChanges`, `applyChanges`                        |
+| `grid/`      | `cellGridOptions`, `connectGrid` (one per table), column dependencies, keyboard, empty state |
+| `base/`      | `CellBase` and what every renderer uses: `cellDisplay`, `cellControl`, `runCommand`          |
+| `renderers/` | the six renderers and `CellMarker`                                                           |
+| `editors/`   | `openCellPopover`, `openCellDialog` (`CellDialog`), `FieldEditor`, `DropdownOptions`         |
+| `tooltip/`   | the shared tooltip: one service, the `cellsTooltip` directive                                |
 
 ## Setting up a grid
 
@@ -33,7 +33,7 @@ export class InventoryPage {
   readonly options = cellGridOptions(this.session, { columnDefs: inventoryColumns() });
 
   constructor() {
-    void this.session.run('load', {});
+    void this.session.run({ method: 'load' });
   }
 }
 // <ag-grid-angular [gridOptions]="options" />
@@ -51,13 +51,13 @@ export class InventoryPage {
 
 ```ts
 class InventoryPersistence implements EditPersistence<Item> {
-  load(command?: Command): Promise<Result<Item>>; // required
-  save(command: SaveCommand<Item>): Promise<Result<Item>>; // required: field changes
-  approve(command: ApproveCommand): Promise<Result<Item>>; // any extra method
+  load(): Promise<Result<Item>>; // required
+  save(payload: SavePayload<Item>): Promise<Result<Item>>; // required: field changes
+  approve(payload: ApprovePayload): Promise<Result<Item>>; // any extra method
 }
 ```
 
-- Every method takes a command (`{ source?, params? }` plus its own fields) and returns either
+- Every method takes at most one payload, typed by the method itself, and returns either
   `{ replace }` (the full table) or `{ update }` (the changed rows).
 - Client-side and server-side persistence look the same to the kit. A client persistence works
   out the affected rows itself; `applyChanges(rows, rowId, changes)` helps with field changes.
@@ -71,15 +71,18 @@ class InventoryPersistence implements EditPersistence<Item> {
 
 ## Session
 
-- `run(method, command)` is the single entry point for every change: cells, editors, page UI and
-  outside events. It is checked at compile time: the method must exist and the command must
-  match its parameter. A reload from a toolbar is `session.run('load', {})`.
+- `run({ method, payload })` is the single entry point for every change: cells, editors, page UI
+  and outside events. It is checked at compile time: the method must exist and the payload must
+  match its parameter; a method with no payload, or an optional one, can leave `payload` out. The
+  persistence receives only the payload; `source` (the cell that sent it) stays on the entry. A
+  reload from a toolbar is `session.run({ method: 'load' })`.
 - One command at a time. While one runs, `busy()` is true, `run` is refused and controls wait.
   `lock(reason)` / `unlock()` disable every control with a reason, read back as `lockReason()`.
   `disabledReason()` combines both for page UI: the lock first, then "Saving…".
 - Nothing runs after the owning component is destroyed.
 - `entries` is the history. Each entry has `previousId` (the entry just before it, whatever its
-  status), `method`, `command`, `status` and, on failure, `error`. `current` is the latest
+  status), `command` (`{ method, payload, source? }`, so checking the method narrows the payload),
+  `status` and, on failure, `error`. `current` is the latest
   successful entry and `rows` the current table.
 - A successful entry has `changes`, compared with the previous successful table:
 
@@ -109,7 +112,7 @@ control and what it sends). They are checked with `satisfies`:
 {
   field: 'qty',
   headerName: 'Quantity',
-  context: { reads: ['approved', 'reorderLevel'] } satisfies CellColumnContext<Item>,
+  context: { dependsOn: ['approved', 'reorderLevel'] } satisfies CellColumnContext<Item>,
   cellRenderer: PopoverCell,
   cellRendererParams: {
     markers: {
@@ -134,7 +137,7 @@ control and what it sends). They are checked with `satisfies`:
 | -------------- | -------------------------------------------------- | -------------------------------------------------------------- |
 | `TextCell`     | `format`, `tooltip`, `highlighted`, `muted`        | —                                                              |
 | `NumberCell`   | the same plus `number` (locale, decimals, unit)    | —                                                              |
-| `ToggleCell`   | — (the switch is the cell)                         | `allowed`, `label`, `tooltip`, `submit`                        |
+| `ToggleCell`   | — (the switch is the cell)                         | `allowed`, `label`, `tooltip`, `command`                       |
 | `DropdownCell` | `tooltip`, `placeholder` (the label on the button) | the same plus `options`, `equals`; the current option closes   |
 | `PopoverCell`  | `format`, `tooltip`, `highlighted`, `muted`        | the same plus `editor` and `popover`; the pen opens the editor |
 | `DialogCell`   | `format`, `tooltip`, `highlighted`, `muted`        | the same plus `editor` and `dialog`                            |
@@ -155,10 +158,11 @@ refresh.
 - **The control's tooltip**, in order: the session lock; busy (the hint stays); the `allowed`
   reason; the hint. A dropdown is one element, so after those it falls back to `content.tooltip`
   or its cut-off label.
-- **Submit.** Leave `submit` out to save the change to the column's own top-level field. Otherwise
-  it names a persistence method and builds that method's command, checked against each other:
-  `submit: { method: 'approve', command: (_next, cell) => ({ skus: [cell.rowId] }) }`. An editor's
-  `submit(next)` sends the same. The source cell is always attached.
+- **Command.** Leave `command` out to save the change to the column's own top-level field.
+  Otherwise it names a persistence method and builds that method's payload from the new value,
+  checked against each other:
+  `command: { method: 'approve', payload: (_next, cell) => ({ skus: [cell.rowId] }) }`. An
+  editor's `submit(next)` sends the same. The source cell is always attached to the command.
 - **The pen** floats at the end of the cell: hidden until the cell is hovered or has keyboard
   focus, always shown on touch screens, on a backdrop that fades the text beneath it. It takes no
   room, so the content keeps its width and alignment. Switches and dropdowns always show.
@@ -173,26 +177,28 @@ the cell value and what the editor submits all come from the editor's data.
 ## Refreshing only what changed
 
 After a result, AG Grid redraws every cell whose own value changed. A cell whose value stays the
-same but whose rules read another field, such as a lock reading `approved`, says so on its column:
+same but whose rules read another field, such as a lock reading `approved`, lists it in its
+column's `dependsOn`:
 
 ```ts
-{ field: 'name', context: { reads: ['approved', 'discontinued'] } satisfies CellColumnContext<Item> }
+{ field: 'name', context: { dependsOn: ['approved', 'discontinued'] } satisfies CellColumnContext<Item> }
 ```
 
-- Names are row fields or column ids. List what the column reads directly; when a column it
-  reads changes value, the kit follows on to the columns that read that one.
+- Names are row fields or column ids. List only direct dependencies; when a column it depends
+  on changes value, the kit follows on to the columns that depend on that one.
 - Each connected grid takes the changed fields from the entry's `changes`, reads the affected
   cells' values before applying the rows, and afterwards force-refreshes only those whose value did
-  not change (AG Grid already redrew the rest). Columns without `reads` refresh only when their own
-  value changes.
-- Cycles throw when the grid is built. A column reading the field of its own name is not a cycle.
-  In dev mode a name that is neither a column nor a field of any row throws when rows first arrive.
+  not change (AG Grid already redrew the rest). Columns without `dependsOn` refresh only when their
+  own value changes.
+- Cycles throw when the grid is built. A column depending on the field of its own name is not a
+  cycle. In dev mode a name that is neither a column nor a field of any row throws when rows first
+  arrive.
 - Each table declares its own columns, so two tables on one session refresh independently.
 
 ### Measured cost
 
-`npm run test:perf` drives `/cells-perf`: 200 columns × 300 tree rows; ten columns read the field
-that changes. Main-thread time on a dev build in Chrome, median of 10 runs:
+`npm run test:perf` drives `/cells-perf`: 200 columns × 300 tree rows; ten columns depend on the
+field that changes. Main-thread time on a dev build in Chrome, median of 10 runs:
 
 | Columns drawn     | Change                          | Time    | Renderer refreshes |
 | ----------------- | ------------------------------- | ------- | ------------------ |
@@ -261,7 +267,9 @@ another method. `FieldEditor` covers text, number and multi-line fields.
 
 The editor never knows where it is shown. `openCellPopover` puts it in the shared popover, whose
 panel draws the title and arrow; `openCellDialog` puts it in a Material dialog through
-`CellDialog`, which draws the title.
+`CellDialog`, which draws the title. Both take the editor's data without `close`: the opener adds
+it and closes after a successful `submit`, so a renderer only builds plain data with
+`cellEditorData(params, command, cell)` plus what its editor needs.
 
 ## Custom renderers
 
@@ -272,14 +280,14 @@ Extend `CellBase` and use the parts the built-in renderers use:
 | `cell()` (from `CellBase`)                            | `{ rowId, columnId, row, value }` as a signal              |
 | `cellDisplay(params, cell)`                           | from markers and content: text, tooltip, highlight, marker |
 | `cellControl(action, cell, session, defaultName)`     | one control's disabled state, tooltip and name             |
-| `submitEdit(params, action.submit, cell, next)`       | sends the change through the session                       |
+| `runCommand(params, action.command, cell, next)`      | sends the change through the session                       |
 | `cellEditorData`, `openCellPopover`, `openCellDialog` | hosts an editor for the cell                               |
 | `<span [cellsMarker]>`                                | the marker and its tooltip, on the renderer's own element  |
 | `[cellsTooltip]`                                      | a tooltip on any element                                   |
 
 A custom renderer's state signal is usually called `state`. The demo's `ReorderCell` puts a
 switch and a pen in one cell, each with its own `action` block (`{ allowed, label, tooltip,
-submit }`); its pen floats at the end like the built-in ones. Add
+command }`); its pen floats at the end like the built-in ones. Add
 `class: 'cells-cell'` to the host so keyboard handling finds the controls. The kit's global styles
 are in `cells.scss` (included from `src/styles.scss`) and can be themed through its `--cells-*`
 custom properties.

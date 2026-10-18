@@ -4,7 +4,7 @@ import { CellMarker } from './cell-marker';
 import { CellBase } from '../base/base';
 import { cellControl } from '../base/control';
 import { cellDisplay, type DisplayParams } from '../base/display';
-import { submitEdit, type ActionParams } from '../base/edit';
+import { runCommand, type ActionParams } from '../base/edit';
 
 /** A switch has no value text, so no `content`: markers and the action only. */
 export type ToggleCellParams<Row, P> = Omit<DisplayParams<Row, boolean>, 'content'> & {
@@ -56,7 +56,7 @@ export class ToggleCell<Row, P> extends CellBase<Row, boolean, ToggleCellParams<
     const cell = this.cell();
     if (!params || !cell || this.state()?.control.disabled) return;
     // Failures are recorded on the session entry; the page reports them.
-    void submitEdit(params, params.action?.submit, cell, cell.value !== true).catch(
+    void runCommand(params, params.action?.command, cell, cell.value !== true).catch(
       () => undefined,
     );
   }

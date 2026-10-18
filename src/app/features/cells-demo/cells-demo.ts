@@ -52,7 +52,7 @@ export class CellsDemo {
   protected readonly busy = this.session.busy;
 
   constructor() {
-    void this.session.run('load', {});
+    void this.session.run({ method: 'load' });
     // Cells do not show failures; the page reports each failed entry once.
     effect(() => {
       const last = this.session.entries().at(-1);
@@ -64,7 +64,7 @@ export class CellsDemo {
   /** Each mode has its own data; switching reloads from it. */
   protected setMode(mode: PersistenceMode): void {
     this.persistence.mode.set(mode);
-    void this.session.run('load', {});
+    void this.session.run({ method: 'load' });
   }
 
   protected setReadOnly(readOnly: boolean): void {

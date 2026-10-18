@@ -140,7 +140,9 @@ test('dialogs edit notes, several fields at once, and approve through another me
   ).toContainText('approve · saved');
 });
 
-test('changing the reorder level redraws the quantity marker that reads it', async ({ page }) => {
+test('changing the reorder level redraws the quantity marker that depends on it', async ({
+  page,
+}) => {
   await page.goto('/cells-demo');
   const marker = cell(page, 'SKU-01', 'qty').locator('.cells-marker[data-kind="error"]');
   await expect(cell(page, 'SKU-01', 'qty')).toHaveText('120 pcs');

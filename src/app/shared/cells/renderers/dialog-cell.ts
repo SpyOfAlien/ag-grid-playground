@@ -48,22 +48,16 @@ export class DialogCell<D extends EditorData<unknown, unknown>, P> extends CellB
 
     if (!params || !cell || this.state()?.pen.disabled) return;
 
-    const { editor, submit, dialog } = params.action;
+    const { editor, command, dialog } = params.action;
     const { component, data } = editor;
 
     openCellDialog(
       this.injector,
       component,
-      (close) =>
-        ({
-          ...cellEditorData<EditorRow<D>, EditorValue<D>, EditorNext<D>>(
-            params,
-            submit,
-            cell,
-            close,
-          ),
-          ...data?.(cell),
-        }) as D,
+      {
+        ...cellEditorData<EditorRow<D>, EditorValue<D>, EditorNext<D>>(params, command, cell),
+        ...data?.(cell),
+      } as Omit<D, 'close'>,
       dialog,
     );
   }

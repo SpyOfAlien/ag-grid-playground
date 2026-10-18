@@ -8,16 +8,15 @@ export {
   type EntryStatus,
 } from './session/edit-session';
 export type {
-  ApiParams,
   CellRef,
   Command,
-  CommandFor,
-  CommandOf,
+  CommandTo,
   EditPersistence,
   FieldChange,
   MethodOf,
+  PayloadOf,
   Result,
-  SaveCommand,
+  SavePayload,
 } from './session/persistence';
 export { applyChanges } from './session/apply-changes';
 export type { RowChanges, ValueChange } from './session/row-changes';
@@ -29,7 +28,7 @@ export {
   type CellSession,
   type CellsContext,
 } from './grid/cell-grid-options';
-export type { CellColumnContext } from './grid/column-reads';
+export type { CellColumnContext } from './grid/column-dependencies';
 export { withEmptyState, type EmptyStateColumn } from './grid/empty-state';
 export { suppressCellKeyboard } from './grid/keyboard';
 
@@ -42,7 +41,7 @@ export {
   type DisplayParams,
 } from './base/display';
 export { cellControl, type ActionRules, type CellControl } from './base/control';
-export { submitEdit, type ActionParams, type EditTarget, type SubmitParams } from './base/edit';
+export { runCommand, type ActionParams, type EditTarget, type CommandParams } from './base/edit';
 export { formatNumber, type NumberFormat } from './base/format';
 export {
   MARKER_KINDS,

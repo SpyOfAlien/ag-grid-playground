@@ -1,5 +1,5 @@
 import { computed, DestroyRef, inject, signal } from '@angular/core';
-import type { Command, CommandOf, EditPersistence, MethodOf, Result } from './persistence';
+import type { Command, EditPersistence, Result } from './persistence';
 import { rowChanges, type RowChanges } from './row-changes';
 
 export type EntryStatus = 'pending' | 'saved' | 'failed';
@@ -8,8 +8,7 @@ export interface Entry<Row, P> {
   readonly id: number;
   /** The entry immediately before this one, whatever its status. */
   readonly previousId: number | null;
-  readonly method: MethodOf<P>;
-  readonly command: Command | undefined;
+  readonly command: Command<P>;
   readonly status: EntryStatus;
   /** What this entry changed compared with the previous successful table; set only on success. */
   readonly changes?: RowChanges<Row>;
@@ -51,18 +50,20 @@ export class EditSession<Row, P extends EditPersistence<Row>> {
     owner.onDestroy(() => (this.destroyed = true));
   }
 
-  async run<M extends MethodOf<P>>(method: M, command: CommandOf<P, M>): Promise<void> {
+  async run(command: Command<P>): Promise<void> {
     if (this.destroyed) throw new Error('The grid is gone.');
     const reason = this.disabledReason();
     if (reason) throw new Error(reason);
     const id = this.nextId++;
     this.log.update((log) => [
       ...log,
-      { id, previousId: log.at(-1)?.id ?? null, method, command, status: 'pending' },
+      { id, previousId: log.at(-1)?.id ?? null, command, status: 'pending' },
     ]);
-    const call = this.persistence[method] as (command: CommandOf<P, M>) => Promise<Result<Row>>;
+    // The persistence gets only the payload; `source` stays on the entry.
+    const { method: name, payload } = command as { method: keyof P; payload?: unknown };
+    const method = this.persistence[name] as (payload: unknown) => Promise<Result<Row>>;
     try {
-      const result = await call.call(this.persistence, command);
+      const result = await method.call(this.persistence, payload);
       if (this.destroyed) throw new Error('The grid is gone.');
       const previous = this.rows();
       const rows = 'replace' in result ? result.replace : this.merge(result.update);

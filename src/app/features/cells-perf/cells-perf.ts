@@ -18,12 +18,11 @@ import {
   NumberCell,
   TextCell,
   ToggleCell,
-  type Command,
   type DropdownCellParams,
   type NumberCellParams,
   type EditPersistence,
   type Result,
-  type SaveCommand,
+  type SavePayload,
 } from '@cells';
 import { registerDemoGrid } from '../../shared/ag-grid/grid-registration';
 
@@ -70,11 +69,11 @@ function makeRows(): Row[] {
 @Injectable()
 class PerfPersistence implements EditPersistence<Row> {
   rows = makeRows();
-  load(_command?: Command): Promise<Result<Row>> {
+  load(): Promise<Result<Row>> {
     return Promise.resolve({ replace: this.rows });
   }
-  save(command: SaveCommand<Row>): Promise<Result<Row>> {
-    const update = applyChanges(this.rows, (row) => row.id, command.changes);
+  save(payload: SavePayload<Row>): Promise<Result<Row>> {
+    const update = applyChanges(this.rows, (row) => row.id, payload.changes);
     const changed = new Map(update.map((row) => [row.id, row]));
     this.rows = this.rows.map((row) => changed.get(row.id) ?? row);
     return Promise.resolve({ update });
@@ -85,12 +84,12 @@ function columns(): ColDef<Row>[] {
   return Array.from({ length: COLUMNS }, (_, column): ColDef<Row> => {
     const field = `c${column}`;
     // Ten columns read c0 besides their own value, so a change to c0 must refresh them too.
-    const reads = column > 0 && column <= 40 && column % 4 === 0 ? ['c0'] : undefined;
+    const dependsOn = column > 0 && column <= 40 && column % 4 === 0 ? ['c0'] : undefined;
     const base = {
       field,
       headerName: `C${column}`,
       width: 110,
-      context: reads && { reads },
+      context: dependsOn && { dependsOn },
     } as ColDef<Row>;
     switch (column % 4) {
       case 0:
@@ -163,7 +162,7 @@ export class CellsPerf {
   constructor() {
     (window as unknown as { cellsPerf: unknown }).cellsPerf = {
       ready: async () => {
-        await this.session.run('load', {});
+        await this.session.run({ method: 'load' });
         await frames();
         return document.querySelectorAll('.cells-cell').length;
       },
@@ -173,8 +172,9 @@ export class CellsPerf {
       update: async () =>
         this.measure(() => {
           const field = 'c0';
-          return this.session.run('save', {
-            changes: [{ rowId: 'g0-1', field, value: 1000 + this.counter++ }],
+          return this.session.run({
+            method: 'save',
+            payload: { changes: [{ rowId: 'g0-1', field, value: 1000 + this.counter++ }] },
           });
         }),
       /** A reload where one row differs. */
@@ -183,7 +183,7 @@ export class CellsPerf {
           this.persistence.rows = this.persistence.rows.map((row) =>
             row.id === 'g0-2' ? { ...row, c0: 2000 + this.counter++ } : row,
           );
-          return this.session.run('load', {});
+          return this.session.run({ method: 'load' });
         }),
       /** A server reload: every row is a new object, one of them with a different value. */
       serverReplace: async () =>
@@ -191,7 +191,7 @@ export class CellsPerf {
           this.persistence.rows = this.persistence.rows.map((row) =>
             row.id === 'g0-3' ? { ...row, c0: 3000 + this.counter++ } : { ...row },
           );
-          return this.session.run('load', {});
+          return this.session.run({ method: 'load' });
         }),
     };
   }

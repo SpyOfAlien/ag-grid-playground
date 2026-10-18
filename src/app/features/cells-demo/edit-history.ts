@@ -11,8 +11,8 @@ import type { Item } from './inventory.model';
     <ol aria-label="Edit history" class="history">
       @for (item of recent(); track item.entry.id) {
         <li [class]="item.entry.status">
-          {{ item.entry.method }} · {{ item.entry.status }}
-          @if (item.entry.command?.source; as source) {
+          {{ item.entry.command.method }} · {{ item.entry.status }}
+          @if (item.entry.command.source; as source) {
             · {{ source.rowId }} {{ source.columnId }}
           }
           @if (item.entry.error) {
@@ -54,7 +54,7 @@ export class EditHistory {
 function describe(entry: Entry<Item, InventoryPersistence>): string {
   const changes = entry.changes;
   if (!changes) return '';
-  const source = entry.command?.source;
+  const source = entry.command.source;
   const own = source && changes.updated.find((row) => row.rowId === source.rowId);
   if (own)
     return Object.entries(own.fields)

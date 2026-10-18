@@ -15,7 +15,7 @@ async function render(
   persistence = new FakePersistence(),
   session = testSession(persistence),
 ) {
-  await session.run('load', {});
+  await session.run({ method: 'load' });
   const fixture = TestBed.createComponent(ToggleCell<Item, FakePersistence>);
   fixture.componentInstance.agInit(
     rendererParams(session, config, ITEM.active, {
@@ -45,7 +45,6 @@ describe('ToggleCell', () => {
 
     expect(persistence.saved).toEqual([
       {
-        source: { rowId: 'A-1', columnId: 'active' },
         changes: [{ rowId: 'A-1', field: 'active', value: false }],
       },
     ]);
@@ -91,12 +90,12 @@ describe('ToggleCell', () => {
     expect(session.entries().at(-1)?.error).toBe('Server rejected');
   });
 
-  it('sends its own command to the method it names', async () => {
+  it('sends its own payload to the method it names', async () => {
     const { toggle, persistence } = await render({
       action: {
-        submit: {
+        command: {
           method: 'approve',
-          command: (next, cell) => ({ skus: [cell.rowId], params: { approved: next } }),
+          payload: (next, cell) => ({ skus: [cell.rowId], approved: next }),
         },
       },
     });
@@ -104,9 +103,7 @@ describe('ToggleCell', () => {
     toggle.click();
 
     expect(persistence.saved).toEqual([]);
-    expect(persistence.approved).toEqual([
-      { skus: ['A-1'], params: { approved: false }, source: { rowId: 'A-1', columnId: 'active' } },
-    ]);
+    expect(persistence.approved).toEqual([{ skus: ['A-1'], approved: false }]);
   });
 
   it('fails at first render when the grid was not built with cellGridOptions', () => {

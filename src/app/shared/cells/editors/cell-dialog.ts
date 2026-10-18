@@ -14,13 +14,13 @@ export interface CellDialogData {
   selector: 'cells-dialog',
   imports: [MatDialogModule, NgComponentOutlet],
   template: `
-    <h2 mat-dialog-title>{{ frame.title }}</h2>
+    <h2 mat-dialog-title>{{ editor.title }}</h2>
     <mat-dialog-content>
-      <ng-container *ngComponentOutlet="frame.component; inputs: { data: frame.data }" />
+      <ng-container *ngComponentOutlet="editor.component; inputs: { data: editor.data }" />
     </mat-dialog-content>
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class CellDialog {
-  protected readonly frame = inject<CellDialogData>(MAT_DIALOG_DATA);
+  protected readonly editor = inject<CellDialogData>(MAT_DIALOG_DATA);
 }

@@ -3,15 +3,15 @@ import {
   cellGridOptions,
   type CellColumnContext,
   createEditSession,
-  type Command,
   type DialogCellParams,
   type DropdownCellParams,
   type EditorData,
   type EditPersistence,
+  type Entry,
   type MethodOf,
   type PopoverCellParams,
   type Result,
-  type SaveCommand,
+  type SavePayload,
   type ToggleCellParams,
 } from '@cells';
 
@@ -21,9 +21,9 @@ interface Item {
 }
 
 declare class Inventory implements EditPersistence<Item> {
-  load(command?: Command): Promise<Result<Item>>;
-  save(command: SaveCommand<Item>): Promise<Result<Item>>;
-  approve(command: Command & { readonly skus: readonly string[] }): Promise<Result<Item>>;
+  load(): Promise<Result<Item>>;
+  save(payload: SavePayload<Item>): Promise<Result<Item>>;
+  approve(payload: { readonly skus: readonly string[] }): Promise<Result<Item>>;
   toDto(item: Item): object;
 }
 
@@ -42,11 +42,28 @@ const methods: MethodOf<Inventory>[] = ['load', 'save', 'approve'];
 // @ts-expect-error toDto does not return a Result
 const helper: MethodOf<Inventory> = 'toDto';
 
-void session.run('approve', { skus: ['A-1'], params: { source: 'toolbar' } });
+// A command names a method and carries the payload that method takes.
+void session.run({ method: 'approve', payload: { skus: ['A-1'] } });
+void session.run({ method: 'load' });
+// @ts-expect-error approve needs its payload
+void session.run({ method: 'approve' });
+// @ts-expect-error payloads have no shared params bag
+void session.run({ method: 'approve', payload: { skus: [], params: { source: 'toolbar' } } });
 // @ts-expect-error approve needs skus
-void session.run('approve', { changes: [] });
+void session.run({ method: 'approve', payload: { changes: [] } });
 // @ts-expect-error there is no delete method
-void session.run('delete', {});
+void session.run({ method: 'delete' });
+
+// An entry keeps its command whole, so checking the method narrows the payload.
+declare const entry: Entry<Item, Inventory>;
+if (entry.command.method === 'approve') {
+  const skus: readonly string[] = entry.command.payload.skus;
+  void skus;
+}
+if (entry.command.method === 'save') {
+  // @ts-expect-error a save payload has changes, not skus
+  void entry.command.payload.skus;
+}
 
 // A cell grid needs a session, and rows only come from it.
 cellGridOptions(session, { columnDefs: [] });
@@ -58,53 +75,53 @@ cellGridOptions(session, { rowData: [] });
 cellGridOptions(session, { getRowId: () => '' });
 
 // Dependencies live on the columns; grid options take no map.
-const reads = { reads: ['active', 'status'] } satisfies CellColumnContext<Item>;
-cellGridOptions(session, { columnDefs: [{ colId: 'badge', context: reads }] });
+const dependsOn = { dependsOn: ['active', 'status'] } satisfies CellColumnContext<Item>;
+cellGridOptions(session, { columnDefs: [{ colId: 'badge', context: dependsOn }] });
 // @ts-expect-error there is no third argument any more
 cellGridOptions(session, {}, { refreshOnChange: { active: ['status'] } });
 
-// A cell's params have three parts: markers, content and action. `action.submit` picks the
-// persistence method, and its command is checked against it; no type argument names the method.
+// A cell's params have three parts: markers, content and action. `action.command` picks the
+// persistence method, and its payload is checked against it; no type argument names the method.
 const approveToggle = {
   markers: { info: { when: true } },
   action: {
     allowed: ({ row }) => (row.active ? true : 'Inactive items are locked'),
     label: 'Approved',
     tooltip: 'Approve this item',
-    submit: { method: 'approve', command: (_next, cell) => ({ skus: [cell.rowId] }) },
+    command: { method: 'approve', payload: (_next, cell) => ({ skus: [cell.rowId] }) },
   },
 } satisfies ToggleCellParams<Item, Inventory>;
 
-const wrongCommand = {
+const wrongPayload = {
   action: {
-    submit: {
+    command: {
       method: 'approve',
       // @ts-expect-error approve needs skus, not changes
-      command: () => ({ changes: [] }),
+      payload: () => ({ changes: [] }),
     },
   },
 } satisfies ToggleCellParams<Item, Inventory>;
 
 const unknownMethod = {
   action: {
-    submit: {
+    command: {
       // @ts-expect-error there is no delete method
       method: 'delete',
     },
   },
 } satisfies ToggleCellParams<Item, Inventory>;
 
-const approveWithoutCommand = {
+const approveWithoutPayload = {
   action: {
-    // @ts-expect-error a submit block needs its command
-    submit: { method: 'approve' },
+    // @ts-expect-error a command block needs its payload
+    command: { method: 'approve' },
   },
 } satisfies ToggleCellParams<Item, Inventory>;
 
 const missingMethod = {
   action: {
-    // @ts-expect-error a submit block names its method
-    submit: { command: (_next, cell) => ({ skus: [cell.rowId] }) },
+    // @ts-expect-error a command block names its method
+    command: { payload: (_next, cell) => ({ skus: [cell.rowId] }) },
   },
 } satisfies ToggleCellParams<Item, Inventory>;
 
@@ -129,9 +146,9 @@ const countPopover = {
   action: {
     editor: { component: CountEditor, data: () => ({ label: 'Count' }) },
     popover: { title: 'Edit count' },
-    submit: {
+    command: {
       method: 'save',
-      command: (next, cell) => ({ changes: [{ rowId: cell.rowId, field: 'active', value: next }] }),
+      payload: (next, cell) => ({ changes: [{ rowId: cell.rowId, field: 'active', value: next }] }),
     },
   },
   tooltipPosition: 'left',
@@ -147,10 +164,10 @@ const countDialog = {
 const approveDialog = {
   action: {
     editor: { component: CountEditor },
-    submit: {
+    command: {
       method: 'approve',
       // @ts-expect-error next is number | null, not a list of skus
-      command: (next) => ({ skus: next }),
+      payload: (next) => ({ skus: next }),
     },
   },
 } satisfies DialogCellParams<CountData, Inventory>;
@@ -163,7 +180,7 @@ const dropdown = {
 export {
   approveDialog,
   approveToggle,
-  approveWithoutCommand,
+  approveWithoutPayload,
   missingMethod,
   countDialog,
   countPopover,
@@ -174,5 +191,5 @@ export {
   partial,
   toggleContent,
   unknownMethod,
-  wrongCommand,
+  wrongPayload,
 };

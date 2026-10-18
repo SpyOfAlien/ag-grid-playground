@@ -35,7 +35,7 @@ const NAME: PopoverCellParams<NameData, FakePersistence> = {
 
 async function render(config = NAME, persistence = new FakePersistence()) {
   const session = testSession(persistence);
-  await session.run('load', {});
+  await session.run({ method: 'load' });
   const fixture = TestBed.createComponent(PopoverCell<NameData, FakePersistence>);
   fixture.componentInstance.agInit(
     rendererParams(session, config, ITEM.name, {
@@ -73,7 +73,6 @@ describe('PopoverCell', () => {
 
     expect(persistence.saved).toEqual([
       {
-        source: { rowId: 'A-1', columnId: 'name' },
         changes: [{ rowId: 'A-1', field: 'name', value: 'Hex bolt' }],
       },
     ]);

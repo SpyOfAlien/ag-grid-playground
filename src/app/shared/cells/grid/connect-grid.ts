@@ -2,7 +2,7 @@ import { isDevMode } from '@angular/core';
 import type { Column, GridApi, IRowNode } from 'ag-grid-community';
 import type { ConnectedGrid } from '../session/edit-session';
 import type { RowChanges } from '../session/row-changes';
-import type { RefreshGraph } from './column-reads';
+import type { RefreshGraph } from './column-dependencies';
 
 /**
  * Shows session results in one grid. AG Grid refreshes cells whose own value changed; this adds
@@ -15,15 +15,15 @@ export function connectGrid<Row>(api: GridApi<Row>, graph: RefreshGraph): Connec
     api.getColumns()?.find((candidate) => candidate.getColDef().field === name) ??
     null;
 
-  // Names in `reads` are not checked at compile time; the first rows show whether each exists.
+  // Names in `dependsOn` are not checked at compile time; the first rows show whether each exists.
   let checked = !isDevMode();
   const check = (rows: readonly Row[]) => {
     if (checked || !rows.length) return;
     checked = true;
-    for (const { column: reader, name } of graph.reads)
+    for (const { column: dependent, name } of graph.declared)
       if (!column(name) && !rows.some((row) => name in (row as object)))
         throw new Error(
-          `Column ${reader} reads ${name}, which is neither a column nor a row field.`,
+          `Column ${dependent} depends on ${name}, which is neither a column nor a row field.`,
         );
   };
 

@@ -1,7 +1,7 @@
 import type { Injector, InputSignal, Type } from '@angular/core';
 import { MatDialog, type MatDialogRef } from '@angular/material/dialog';
 import type { Cell } from '../base/base';
-import { submitEdit, type EditTarget, type RuntimeSubmit } from '../base/edit';
+import { runCommand, type EditTarget, type RuntimeCommand } from '../base/edit';
 import type { CellSession } from '../grid/cell-grid-options';
 import type { PopoverPlacement } from '../../popover/popover.model';
 import type { PopoverRef } from '../../popover/popover-ref';
@@ -44,36 +44,29 @@ export interface CellDialogOptions {
   height?: number | string;
 }
 
-/** Builds an editor's data for a cell; `close` closes whatever presents the editor. */
+/** What an editor works with for a cell; the opener adds `close`. */
 export function cellEditorData<Row, V, Next>(
   target: EditTarget,
-  submit: RuntimeSubmit<Row, V, Next> | undefined,
+  command: RuntimeCommand<Row, V, Next> | undefined,
   cell: Cell<Row, V>,
-  close: () => void,
-): EditorData<Row, V, Next> {
+): Omit<EditorData<Row, V, Next>, 'close'> {
   return {
     value: cell.value,
     row: cell.row,
     session: target.context.session,
-    close,
-    submit: async (next) => {
-      await submitEdit(target, submit, cell, next);
-      close();
-    },
+    submit: (next) => runCommand(target, command, cell, next),
   };
 }
 
-/** Opens an editor in a popover anchored to the trigger. */
-export function openCellPopover<D>(
+/** Opens an editor in a popover anchored to the trigger; it closes after a successful submit. */
+export function openCellPopover<D extends EditorData<unknown, unknown>>(
   injector: Injector,
   trigger: HTMLElement,
   component: Type<CellEditor<D>>,
-  data: (close: () => void) => D,
+  data: Omit<D, 'close'>,
   options: CellPopoverOptions = {},
 ): PopoverRef<CellEditor<D>> {
-  let ref: PopoverRef<CellEditor<D>> | undefined;
-  const close = () => ref?.close();
-  ref = injector.get(PopoverService).open(component, {
+  const ref: PopoverRef<CellEditor<D>> = injector.get(PopoverService).open(component, {
     trigger,
     injector,
     ariaLabel: options.title ?? 'Edit',
@@ -85,28 +78,30 @@ export function openCellPopover<D>(
       width: options.width,
       arrow: options.arrow ?? true,
     },
-    initialize: (content) => content.setInput('data', data(close)),
+    initialize: (content) =>
+      content.setInput(
+        'data',
+        withClose(data, () => ref.close()),
+      ),
   });
   return ref;
 }
 
-/** Opens an editor in a modal dialog with a title. */
-export function openCellDialog<D>(
+/** Opens an editor in a modal dialog with a title; it closes after a successful submit. */
+export function openCellDialog<D extends EditorData<unknown, unknown>>(
   injector: Injector,
   component: Type<CellEditor<D>>,
-  data: (close: () => void) => D,
+  data: Omit<D, 'close'>,
   options: CellDialogOptions = {},
 ): MatDialogRef<CellDialog> {
   const size = (value: number | string | undefined) =>
     typeof value === 'number' ? `${value}px` : value;
-  let ref: MatDialogRef<CellDialog> | undefined;
-  const close = () => ref?.close();
-  ref = injector.get(MatDialog).open(CellDialog, {
+  const ref: MatDialogRef<CellDialog> = injector.get(MatDialog).open(CellDialog, {
     injector,
     data: {
       title: options.title ?? 'Edit',
       component,
-      data: data(close),
+      data: withClose(data, () => ref.close()),
     } satisfies CellDialogData,
     width: size(options.width),
     height: size(options.height),
@@ -115,4 +110,22 @@ export function openCellDialog<D>(
     exitAnimationDuration: 0,
   });
   return ref;
+}
+
+/**
+ * Adds the host's `close` to an editor's data, and closes after a submit that succeeds. A failed
+ * submit rejects and leaves the editor open. `close` runs only after the host has opened.
+ */
+function withClose<D extends EditorData<unknown, unknown>>(
+  data: Omit<D, 'close'>,
+  close: () => void,
+): D {
+  return {
+    ...data,
+    close,
+    submit: async (next: unknown) => {
+      await data.submit(next);
+      close();
+    },
+  } as unknown as D;
 }

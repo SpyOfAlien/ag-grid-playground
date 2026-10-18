@@ -7,7 +7,7 @@ import {
   cellControl,
   FieldEditor,
   openCellPopover,
-  submitEdit,
+  runCommand,
   type ActionParams,
   type FieldEditorData,
 } from '@cells';
@@ -75,7 +75,7 @@ export class ReorderCell extends CellBase<Item, null, ReorderCellParams> {
     const params = this.params();
     const cell = this.cell();
     if (!params || !cell || this.state()?.toggle.disabled) return;
-    void submitEdit(params, params.toggle.submit, cell, !cell.row.reorder).catch(() => undefined);
+    void runCommand(params, params.toggle.command, cell, !cell.row.reorder).catch(() => undefined);
   }
 
   protected edit(event: MouseEvent): void {
@@ -87,13 +87,13 @@ export class ReorderCell extends CellBase<Item, null, ReorderCellParams> {
       this.injector,
       event.currentTarget as HTMLElement,
       FieldEditor<Item, number>,
-      (close): FieldEditorData<Item, number> => ({
-        ...cellEditorData(params, params.level.submit, cell, close),
+      {
+        ...cellEditorData(params, params.level.command, cell),
         value: cell.row.reorderLevel,
         label: 'Reorder level',
         mode: 'number',
         validators: [Validators.required, Validators.min(0)],
-      }),
+      } satisfies Omit<FieldEditorData<Item, number>, 'close'>,
       { title: 'Reorder level', width: 280 },
     );
   }

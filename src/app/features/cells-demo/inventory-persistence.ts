@@ -1,11 +1,11 @@
 import { Injectable, signal } from '@angular/core';
-import type { Command, EditPersistence, Result, SaveCommand } from '@cells';
+import type { EditPersistence, Result, SavePayload } from '@cells';
 import { applyInventoryChanges, approveItems } from './inventory-rules';
 import { seedItems, type Item } from './inventory.model';
 
 export type PersistenceMode = 'client' | 'server';
 
-export interface ApproveCommand extends Command {
+export interface ApprovePayload {
   readonly skus: readonly string[];
 }
 
@@ -22,31 +22,31 @@ export class InventoryPersistence implements EditPersistence<Item> {
   private client = seedItems();
   private server = seedItems();
 
-  async load(_command?: Command): Promise<Result<Item>> {
+  async load(): Promise<Result<Item>> {
     if (this.mode() === 'client') return { replace: this.client };
     await this.respond(false);
     return { replace: this.server };
   }
 
-  async save(command: SaveCommand<Item>): Promise<Result<Item>> {
+  async save(payload: SavePayload<Item>): Promise<Result<Item>> {
     if (this.mode() === 'client') {
-      const update = applyInventoryChanges(this.client, command.changes);
+      const update = applyInventoryChanges(this.client, payload.changes);
       this.client = merge(this.client, update);
       return { update };
     }
     await this.respond();
-    const update = applyInventoryChanges(this.server, command.changes);
+    const update = applyInventoryChanges(this.server, payload.changes);
     this.server = merge(this.server, update);
     return { update };
   }
 
-  async approve(command: ApproveCommand): Promise<Result<Item>> {
+  async approve(payload: ApprovePayload): Promise<Result<Item>> {
     if (this.mode() === 'client') {
-      this.client = approveItems(this.client, command.skus);
+      this.client = approveItems(this.client, payload.skus);
       return { replace: this.client };
     }
     await this.respond();
-    this.server = approveItems(this.server, command.skus);
+    this.server = approveItems(this.server, payload.skus);
     return { replace: this.server };
   }
 

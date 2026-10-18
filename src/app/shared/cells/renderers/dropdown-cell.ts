@@ -100,11 +100,11 @@ export class DropdownCell<Row, V, P> extends CellBase<Row, V, DropdownCellParams
       this.injector,
       trigger,
       DropdownOptions<Row, V>,
-      (close) => ({
-        ...cellEditorData<Row, V, V>(params, params.action.submit, cell, close),
+      {
+        ...cellEditorData<Row, V, V>(params, params.action.command, cell),
         options: state.options,
         equals: params.action.equals,
-      }),
+      },
       // Like mat-select: below the trigger, left-aligned, at least as wide, no arrow.
       {
         placement: 'bottomLeft',

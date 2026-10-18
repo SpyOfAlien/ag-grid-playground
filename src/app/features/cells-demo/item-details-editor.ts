@@ -4,7 +4,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import type { CellEditor, EditorData } from '@cells';
-import type { ApproveCommand } from './inventory-persistence';
+import type { ApprovePayload } from './inventory-persistence';
 import type { Item } from './inventory.model';
 
 export interface ItemDraft {
@@ -15,7 +15,7 @@ export interface ItemDraft {
 
 export type ItemDetailsData = EditorData<Item, null, ItemDraft>;
 
-/** Edits several fields in one command, or approves the item through another method. */
+/** Edits several fields in one payload, or approves the item through another method. */
 @Component({
   selector: 'app-item-details-editor',
   imports: [ReactiveFormsModule, MatFormFieldModule, MatInputModule, MatButtonModule],
@@ -79,9 +79,9 @@ export class ItemDetailsEditor implements CellEditor<ItemDetailsData>, OnInit {
 
   protected approve(): Promise<void> {
     const data = this.data();
-    const command: ApproveCommand = { skus: [data.row.sku] };
+    const payload: ApprovePayload = { skus: [data.row.sku] };
     return this.attempt(async () => {
-      await data.session.run('approve', command);
+      await data.session.run({ method: 'approve', payload });
       data.close();
     });
   }

@@ -91,22 +91,16 @@ export class PopoverCell<D extends EditorData<unknown, unknown>, P> extends Cell
     const params = this.params();
     const cell = this.cell();
     if (!params || !cell || this.state()?.pen.disabled) return;
-    const { editor, submit, popover } = params.action;
+    const { editor, command, popover } = params.action;
     const { component, data } = editor;
     openCellPopover(
       this.injector,
       event.currentTarget as HTMLElement,
       component,
-      (close) =>
-        ({
-          ...cellEditorData<EditorRow<D>, EditorValue<D>, EditorNext<D>>(
-            params,
-            submit,
-            cell,
-            close,
-          ),
-          ...data?.(cell),
-        }) as D,
+      {
+        ...cellEditorData<EditorRow<D>, EditorValue<D>, EditorNext<D>>(params, command, cell),
+        ...data?.(cell),
+      } as Omit<D, 'close'>,
       popover,
     );
   }

@@ -7,7 +7,7 @@ import {
   type GridApi,
 } from 'ag-grid-community';
 import { createEditSession } from '../session/edit-session';
-import type { Command, EditPersistence, Result, SaveCommand } from '../session/persistence';
+import type { EditPersistence, Result, SavePayload } from '../session/persistence';
 import { cellGridOptions } from './cell-grid-options';
 import { suppressCellKeyboard } from './keyboard';
 
@@ -26,10 +26,10 @@ class FakePersistence implements EditPersistence<Item> {
     ],
   };
   saveResult: Result<Item> = { update: [] };
-  load(_command?: Command): Promise<Result<Item>> {
+  load(): Promise<Result<Item>> {
     return Promise.resolve(this.loadResult);
   }
-  save(_command: SaveCommand<Item>): Promise<Result<Item>> {
+  save(_payload: SavePayload<Item>): Promise<Result<Item>> {
     return Promise.resolve(this.saveResult);
   }
 }
@@ -75,7 +75,7 @@ describe('cellGridOptions', () => {
     const api = await mount();
     cleanup.push(() => api.destroy());
 
-    await session.run('load', {});
+    await session.run({ method: 'load' });
 
     expect(shown(api)).toEqual([
       { sku: 'A-1', qty: 5 },
@@ -87,11 +87,11 @@ describe('cellGridOptions', () => {
     const { session, persistence, mount } = setup();
     const api = await mount();
     cleanup.push(() => api.destroy());
-    await session.run('load', {});
+    await session.run({ method: 'load' });
     const untouched = api.getRowNode('B-2')?.data;
     persistence.saveResult = { update: [{ sku: 'A-1', qty: 7 }] };
 
-    await session.run('save', { changes: [] });
+    await session.run({ method: 'save', payload: { changes: [] } });
 
     expect(api.getRowNode('A-1')?.data).toEqual({ sku: 'A-1', qty: 7 });
     expect(api.getRowNode('B-2')?.data).toBe(untouched);
@@ -99,7 +99,7 @@ describe('cellGridOptions', () => {
 
   it('shows the current rows in a grid that connects after loading', async () => {
     const { session, mount } = setup();
-    await session.run('load', {});
+    await session.run({ method: 'load' });
 
     const api = await mount();
     cleanup.push(() => api.destroy());
@@ -112,13 +112,13 @@ describe('cellGridOptions', () => {
     const first = await mount();
     const second = await mount();
     cleanup.push(() => second.destroy());
-    await session.run('load', {});
+    await session.run({ method: 'load' });
     expect(shown(first)).toEqual(shown(second));
 
     const transactions = vi.spyOn(first, 'applyTransaction');
     first.destroy();
     persistence.saveResult = { update: [{ sku: 'B-2', qty: 3 }] };
-    await session.run('save', { changes: [] });
+    await session.run({ method: 'save', payload: { changes: [] } });
 
     expect(second.getRowNode('B-2')?.data).toEqual({ sku: 'B-2', qty: 3 });
     expect(transactions).not.toHaveBeenCalled();

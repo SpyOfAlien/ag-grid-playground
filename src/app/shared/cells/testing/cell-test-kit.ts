@@ -3,7 +3,7 @@ import { TestBed } from '@angular/core/testing';
 import type { ICellRendererParams } from 'ag-grid-community';
 import { cellSession, type CellsContext } from '../grid/cell-grid-options';
 import { createEditSession, type EditSession } from '../session/edit-session';
-import type { Command, EditPersistence, Result, SaveCommand } from '../session/persistence';
+import type { EditPersistence, Result, SavePayload } from '../session/persistence';
 
 export interface Item {
   readonly sku: string;
@@ -23,23 +23,28 @@ export const ITEM: Item = {
   locked: false,
 };
 
+interface ApprovePayload {
+  readonly skus: readonly string[];
+  readonly approved?: boolean;
+}
+
 export class FakePersistence implements EditPersistence<Item> {
-  readonly saved: SaveCommand<Item>[] = [];
+  readonly saved: SavePayload<Item>[] = [];
   next: () => Promise<Result<Item>> = () => Promise.resolve({ update: [] });
 
-  load(_command?: Command): Promise<Result<Item>> {
+  load(): Promise<Result<Item>> {
     return Promise.resolve({ replace: [ITEM] });
   }
 
-  save(command: SaveCommand<Item>): Promise<Result<Item>> {
-    this.saved.push(command);
+  save(payload: SavePayload<Item>): Promise<Result<Item>> {
+    this.saved.push(payload);
     return this.next();
   }
 
-  readonly approved: (Command & { readonly skus: readonly string[] })[] = [];
+  readonly approved: ApprovePayload[] = [];
 
-  approve(command: Command & { readonly skus: readonly string[] }): Promise<Result<Item>> {
-    this.approved.push(command);
+  approve(payload: ApprovePayload): Promise<Result<Item>> {
+    this.approved.push(payload);
     return this.next();
   }
 }

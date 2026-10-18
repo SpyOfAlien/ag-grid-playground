@@ -9,7 +9,7 @@ import {
   type ICellRendererParams,
 } from 'ag-grid-community';
 import { createEditSession } from '../session/edit-session';
-import type { Command, EditPersistence, Result, SaveCommand } from '../session/persistence';
+import type { EditPersistence, Result, SavePayload } from '../session/persistence';
 import { cellGridOptions } from './cell-grid-options';
 
 ModuleRegistry.registerModules([AllCommunityModule]);
@@ -29,10 +29,10 @@ const ROWS: Item[] = [
 class FakePersistence implements EditPersistence<Item> {
   loadResult: Result<Item> = { replace: ROWS };
   saveResult: Result<Item> = { update: [] };
-  load(_command?: Command): Promise<Result<Item>> {
+  load(): Promise<Result<Item>> {
     return Promise.resolve(this.loadResult);
   }
-  save(_command: SaveCommand<Item>): Promise<Result<Item>> {
+  save(_payload: SavePayload<Item>): Promise<Result<Item>> {
     return Promise.resolve(this.saveResult);
   }
 }
@@ -73,22 +73,22 @@ const COLUMNS: ColDef<Item>[] = [
   probe('other', ({ data }) => data?.sku),
 ];
 
-/** What each column's display reads besides its own value, by column id. */
-type Reads = Record<string, string[]>;
+/** What each column's display depends on besides its own value, by column id. */
+type DependsOn = Record<string, string[]>;
 
-const withReads = (reads: Reads, columnDefs: ColDef<Item>[]) =>
+const withDependencies = (dependsOn: DependsOn, columnDefs: ColDef<Item>[]) =>
   columnDefs.map((column) =>
-    reads[column.colId ?? '']
-      ? { ...column, context: { reads: reads[column.colId ?? ''] } }
+    dependsOn[column.colId ?? '']
+      ? { ...column, context: { dependsOn: dependsOn[column.colId ?? ''] } }
       : column,
   );
 
-async function setup(reads: Reads, columns = COLUMNS) {
+async function setup(dependsOn: DependsOn, columns = COLUMNS) {
   const persistence = new FakePersistence();
   const session = TestBed.runInInjectionContext(() =>
     createEditSession(persistence, (item: Item) => item.sku),
   );
-  const columnDefs = withReads(reads, columns);
+  const columnDefs = withDependencies(dependsOn, columns);
   const api = await new Promise<GridApi<Item>>((ready) => {
     const grid = createGrid<Item>(
       document.body.appendChild(document.createElement('div')),
@@ -99,7 +99,7 @@ async function setup(reads: Reads, columns = COLUMNS) {
       }),
     );
   });
-  await session.run('load', {});
+  await session.run({ method: 'load' });
   const text = (rowId: string, colId: string) =>
     document.querySelector(`[row-id="${rowId}"] [col-id="${colId}"]`)?.textContent?.trim();
   await vi.waitFor(() => expect(text('B-2', columnDefs.at(-1)?.colId ?? '')).toContain('|out'));
@@ -110,14 +110,14 @@ async function setup(reads: Reads, columns = COLUMNS) {
 /** Lets AG Grid finish rendering before counting. */
 const rendered = () => new Promise((done) => setTimeout(done, 50));
 
-describe('column reads', () => {
+describe('column dependencies', () => {
   afterEach(() => (document.body.innerHTML = ''));
 
   it('forces columns that read a changed field, leaves the rest to AG Grid, and refreshes each once', async () => {
     const { session, persistence, api, text } = await setup({ label: ['qty'] });
 
     persistence.saveResult = { update: [{ ...ROWS[1], qty: 4 }] };
-    await session.run('save', { changes: [] });
+    await session.run({ method: 'save', payload: { changes: [] } });
     await rendered();
 
     expect(text('B-2', 'qty')).toBe('4|in');
@@ -131,7 +131,7 @@ describe('column reads', () => {
     const { session, persistence, api, text } = await setup({ total: ['qty'], label: ['total'] });
 
     persistence.saveResult = { update: [{ ...ROWS[1], qty: 4 }] };
-    await session.run('save', { changes: [] });
+    await session.run({ method: 'save', payload: { changes: [] } });
     await rendered();
 
     expect(text('B-2', 'total')).toBe('12|in');
@@ -144,7 +144,7 @@ describe('column reads', () => {
     const { session, persistence, api } = await setup({ qty: ['approved'], total: ['qty'] });
 
     persistence.saveResult = { update: [{ ...ROWS[1], approved: true }] };
-    await session.run('save', { changes: [] });
+    await session.run({ method: 'save', payload: { changes: [] } });
     await rendered();
 
     expect(Object.fromEntries(refreshes)).toEqual({ 'B-2:qty': 1 });
@@ -155,7 +155,7 @@ describe('column reads', () => {
     const { session, persistence, api, text } = await setup({ label: ['qty'] });
 
     persistence.loadResult = { replace: [ROWS[0], { ...ROWS[1], qty: 2 }] };
-    await session.run('load', {});
+    await session.run({ method: 'load' });
     await rendered();
 
     expect(text('B-2', 'label')).toBe('B-2|in');
@@ -170,23 +170,23 @@ describe('column reads', () => {
 
     expect(() =>
       cellGridOptions(session, {
-        columnDefs: withReads({ qty: ['total'], total: ['qty'] }, COLUMNS),
+        columnDefs: withDependencies({ qty: ['total'], total: ['qty'] }, COLUMNS),
       }),
-    ).toThrow('Column reads have a cycle: total → qty → total');
+    ).toThrow('Column dependencies have a cycle: total → qty → total');
   });
 
   it('rejects a read that is neither a column nor a field when rows arrive', async () => {
     await expect(setup({ label: ['qtty'] })).rejects.toThrow(
-      'Column label reads qtty, which is neither a column nor a row field.',
+      'Column label depends on qtty, which is neither a column nor a row field.',
     );
   });
 
-  it('refreshes a column that shares its name with the field it reads but shows something else', async () => {
+  it('refreshes a column that shares its name with the field it depends on but shows something else', async () => {
     const columns = [probe('qty', ({ data }) => data?.sku)];
     const { session, persistence, api, text } = await setup({ qty: ['qty'] }, columns);
 
     persistence.saveResult = { update: [{ ...ROWS[1], qty: 4 }] };
-    await session.run('save', { changes: [] });
+    await session.run({ method: 'save', payload: { changes: [] } });
     await rendered();
 
     expect(text('B-2', 'qty')).toBe('B-2|in');

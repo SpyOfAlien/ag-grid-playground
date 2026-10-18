@@ -26,8 +26,8 @@ import type { InventoryPersistence } from './inventory-persistence';
 import { DEMO_TODAY, type Category, type Item, type Supplier } from './inventory.model';
 
 type P = InventoryPersistence;
-/** Fields and columns a column's rules read besides its own value. */
-type Reads = CellColumnContext<Item>;
+/** Fields and columns a column's rules depend on besides its own value. */
+type Depends = CellColumnContext<Item>;
 type NumberEditor = FieldEditorData<Item, number>;
 type TextEditor = FieldEditorData<Item, string>;
 
@@ -53,7 +53,7 @@ export function inventoryColumns(): ColDef<Item>[] {
     { field: 'sku', headerName: 'SKU', width: 110, pinned: 'left' },
     {
       field: 'name',
-      context: { reads: ['approved', 'discontinued'] } satisfies Reads,
+      context: { dependsOn: ['approved', 'discontinued'] } satisfies Depends,
       headerName: 'Name',
       width: 200,
       cellRenderer: PopoverCell,
@@ -78,7 +78,7 @@ export function inventoryColumns(): ColDef<Item>[] {
     },
     {
       field: 'qty',
-      context: { reads: ['approved', 'reorderLevel'] } satisfies Reads,
+      context: { dependsOn: ['approved', 'reorderLevel'] } satisfies Depends,
       headerName: 'Quantity',
       width: 150,
       cellClass: 'cells-align-end',
@@ -107,7 +107,7 @@ export function inventoryColumns(): ColDef<Item>[] {
     },
     {
       field: 'stockValue',
-      context: { reads: ['qty', 'unitPrice'] } satisfies Reads,
+      context: { dependsOn: ['qty', 'unitPrice'] } satisfies Depends,
       headerName: 'Stock value',
       width: 150,
       cellClass: 'cells-align-end',
@@ -125,7 +125,7 @@ export function inventoryColumns(): ColDef<Item>[] {
     },
     {
       field: 'unitPrice',
-      context: { reads: ['approved'] } satisfies Reads,
+      context: { dependsOn: ['approved'] } satisfies Depends,
       headerName: 'Unit price',
       width: 140,
       cellClass: 'cells-align-end',
@@ -148,7 +148,7 @@ export function inventoryColumns(): ColDef<Item>[] {
     },
     {
       field: 'supplier',
-      context: { reads: ['approved'] } satisfies Reads,
+      context: { dependsOn: ['approved'] } satisfies Depends,
       headerName: 'Supplier',
       width: 190,
       cellRenderer: DropdownCell,
@@ -203,7 +203,7 @@ export function inventoryColumns(): ColDef<Item>[] {
     },
     {
       field: 'category',
-      context: { reads: ['approved'] } satisfies Reads,
+      context: { dependsOn: ['approved'] } satisfies Depends,
       headerName: 'Category',
       width: 160,
       cellRenderer: DropdownCell,
@@ -221,7 +221,7 @@ export function inventoryColumns(): ColDef<Item>[] {
     },
     {
       field: 'active',
-      context: { reads: ['approved'] } satisfies Reads,
+      context: { dependsOn: ['approved'] } satisfies Depends,
       headerName: 'Active',
       width: 100,
       cellRenderer: ToggleCell,
@@ -235,7 +235,7 @@ export function inventoryColumns(): ColDef<Item>[] {
     },
     {
       colId: 'reorder',
-      context: { reads: ['approved', 'reorder', 'reorderLevel'] } satisfies Reads,
+      context: { dependsOn: ['approved', 'reorder', 'reorderLevel'] } satisfies Depends,
       headerName: 'Reorder',
       width: 200,
       valueGetter: () => null,
@@ -243,18 +243,18 @@ export function inventoryColumns(): ColDef<Item>[] {
       cellRendererParams: {
         toggle: {
           allowed: unlessApproved,
-          submit: {
+          command: {
             method: 'save',
-            command: (reorder, cell) => ({
+            payload: (reorder, cell) => ({
               changes: [{ rowId: cell.rowId, field: 'reorder', value: reorder }],
             }),
           },
         },
         level: {
           allowed: unlessApproved,
-          submit: {
+          command: {
             method: 'save',
-            command: (level, cell) => ({
+            payload: (level, cell) => ({
               changes: [{ rowId: cell.rowId, field: 'reorderLevel', value: level }],
             }),
           },
@@ -291,10 +291,10 @@ export function inventoryColumns(): ColDef<Item>[] {
         action: {
           editor: { component: ItemDetailsEditor },
           dialog: { title: 'Item details', width: 420 },
-          // One command changes several fields.
-          submit: {
+          // One payload changes several fields.
+          command: {
             method: 'save',
-            command: (draft, cell) => ({
+            payload: (draft, cell) => ({
               changes: (Object.keys(draft) as (keyof ItemDraft)[]).map((field) => ({
                 rowId: cell.rowId,
                 field,

@@ -26,7 +26,7 @@ async function render(
   config: { label?: CellRule<Item, string, string> } = {},
 ) {
   const session = testSession(persistence);
-  await session.run('load', {});
+  await session.run({ method: 'load' });
   const fixture = TestBed.createComponent(DropdownCell<Item, string, FakePersistence>);
   fixture.componentInstance.agInit(
     rendererParams(session, { ...CATEGORIES, action: { ...CATEGORIES.action, ...config } }, value, {
@@ -79,7 +79,6 @@ describe('DropdownCell', () => {
 
     expect(persistence.saved).toEqual([
       {
-        source: { rowId: 'A-1', columnId: 'category' },
         changes: [{ rowId: 'A-1', field: 'category', value: 'tools' }],
       },
     ]);
