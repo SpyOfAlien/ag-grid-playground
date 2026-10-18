@@ -35,7 +35,7 @@ export type FieldEditorData<Row, V extends string | number> = EditorData<Row, V,
         <p class="cells-error" role="alert">{{ error() }}</p>
       }
       <div class="cells-editor-actions">
-        <button mat-flat-button type="submit" [disabled]="saving()">
+        <button mat-flat-button type="submit" [disabled]="saving()" disabledInteractive>
           {{ saving() ? 'Saving…' : 'Save' }}
         </button>
         <button mat-button type="button" (click)="data().close()">Cancel</button>

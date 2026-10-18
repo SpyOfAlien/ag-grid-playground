@@ -257,6 +257,19 @@ describe('CellsTooltip', () => {
     expect(container.lastElementChild!.contains(tooltip())).toBe(true);
   });
 
+  it('shows above an overlay opened while it stayed visible', async () => {
+    const { element } = await setup();
+    focus(element('first'));
+    TestBed.inject(Overlay).create().attach(new ComponentPortal(Panel));
+
+    // A visible tooltip switches to the hovered element at once, without hiding first.
+    pointer('pointerover', element('second'));
+
+    expect(tooltip()?.textContent?.trim()).toBe('Second tip');
+    const container = document.querySelector('.cdk-overlay-container')!;
+    expect(container.lastElementChild!.contains(tooltip())).toBe(true);
+  });
+
   it('places the tooltip below by default, or where the element asks', async () => {
     const { element } = await setup();
 

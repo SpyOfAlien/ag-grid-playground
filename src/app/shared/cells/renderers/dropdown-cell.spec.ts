@@ -112,4 +112,26 @@ describe('DropdownCell', () => {
       'Category is retired',
     );
   });
+
+  it('keeps the chosen option focusable while saving and sends it once', async () => {
+    const persistence = new FakePersistence();
+    let finish!: () => void;
+    persistence.next = () => new Promise((done) => (finish = () => done({ update: [] })));
+    const { button, fixture } = await render('hw', persistence);
+    button.click();
+    await fixture.whenStable();
+
+    option('Tools')!.focus();
+    option('Tools')!.click();
+    await fixture.whenStable();
+    // Disabling the focused option would drop keyboard focus to the page.
+    expect(option('Tools')!.disabled).toBe(false);
+    expect(option('Tools')!.getAttribute('aria-disabled')).toBe('true');
+    option('Tools')!.click();
+    expect(persistence.saved).toHaveLength(1);
+
+    finish();
+    await settle(fixture);
+    expect(option('Tools')).toBeUndefined();
+  });
 });

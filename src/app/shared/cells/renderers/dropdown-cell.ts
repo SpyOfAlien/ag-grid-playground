@@ -3,7 +3,8 @@ import { CellsTooltip } from '../tooltip/tooltip';
 import { CellMarker } from './cell-marker';
 import { CellBase, evaluate, type CellRule } from '../base/base';
 import { cellControl } from '../base/control';
-import { cellDisplay, type ContentParams, type DisplayParams } from '../base/display';
+import type { ContentParams, DisplayParams } from '../base/display';
+import { topMarker } from '../base/markers';
 import type { ActionParams } from '../base/edit';
 import { DropdownOptions } from '../editors/dropdown-options';
 import { cellEditorData, openCellPopover } from '../editors/editor';
@@ -68,7 +69,6 @@ export class DropdownCell<Row, V, P> extends CellBase<Row, V, DropdownCellParams
     const selected =
       value == null ? null : (options.find((option) => equals(option.value, value)) ?? null);
     const text = selected?.label ?? content?.placeholder ?? '';
-    const { marker, tooltipPosition } = cellDisplay(params, cell);
     const control = cellControl(
       action,
       cell,
@@ -76,8 +76,8 @@ export class DropdownCell<Row, V, P> extends CellBase<Row, V, DropdownCellParams
       params.colDef?.headerName ?? '',
     );
     return {
-      marker,
-      tooltipPosition,
+      marker: topMarker(params.markers, cell),
+      tooltipPosition: params.tooltipPosition ?? null,
       control,
       // One element: the control's status or hint first, then the label's own tooltip.
       tooltip: control.tooltip ?? evaluate(content?.tooltip ?? null, cell),

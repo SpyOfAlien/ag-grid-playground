@@ -235,6 +235,17 @@ describe('EditSession', () => {
     expect(edits.rows()).toEqual([]);
   });
 
+  it('names a method the persistence does not have and records nothing', async () => {
+    const edits = session();
+    await edits.run({ method: 'load' });
+
+    // Editors run commands through the untyped cell session, so a typo reaches run.
+    await expect(edits.run({ method: 'aprove' } as never)).rejects.toThrow(
+      'The persistence has no method aprove.',
+    );
+    expect(edits.entries()).toHaveLength(1);
+  });
+
   it('routes a custom method with its payload and records the command', async () => {
     class ApprovingPersistence extends FakePersistence {
       received: readonly string[] = [];

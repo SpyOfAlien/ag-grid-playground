@@ -70,4 +70,24 @@ describe('withEmptyState', () => {
     expect(cell('A-1')?.querySelector('b')).toBeNull();
     expect(cell('B-2')?.textContent?.trim()).toBe('NA');
   });
+
+  it('decides once per row for both the value and the renderer', () => {
+    const decide = vi.fn((qty: number | null | undefined) => (qty == null ? '-' : null));
+    const column = withEmptyState<Item, number>({
+      value: (item) => item.qty,
+      emptyState: decide,
+      renderer: QtyRenderer,
+    });
+    const row: Item = { sku: 'A-1', qty: null, discontinued: false };
+    const getter = column.valueGetter as (params: { data: Item }) => unknown;
+    const selector = column.cellRendererSelector as (params: { data: Item }) => unknown;
+
+    expect(getter({ data: row })).toBe('-');
+    expect(selector({ data: row })).toBeUndefined();
+    expect(decide).toHaveBeenCalledTimes(1);
+
+    // Rows are immutable: a changed row is a new object and is decided again.
+    expect(getter({ data: { ...row, qty: 3 } })).toBe(3);
+    expect(decide).toHaveBeenCalledTimes(2);
+  });
 });

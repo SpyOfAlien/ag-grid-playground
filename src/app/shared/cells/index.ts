@@ -75,7 +75,6 @@ export {
   PopoverCell,
   editState,
   type EditAction,
-  type EditCellParams,
   type EditorConfig,
   type PopoverCellParams,
 } from './renderers/popover-cell';

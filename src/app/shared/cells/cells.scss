@@ -302,6 +302,11 @@
     cursor: default;
     opacity: 0.38;
   }
+
+  // While saving: focusable, but it does nothing.
+  &[aria-disabled='true'] {
+    cursor: progress;
+  }
 }
 
 .cells-option-label {

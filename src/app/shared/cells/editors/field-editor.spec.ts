@@ -69,13 +69,17 @@ describe('FieldEditor', () => {
 
     button('Save').click();
     await fixture.whenStable();
-    expect(button('Saving…').disabled).toBe(true);
+    // Stays focusable while saving, so keyboard focus is not dropped; a second press does nothing.
+    expect(button('Saving…').disabled).toBe(false);
+    expect(button('Saving…').getAttribute('aria-disabled')).toBe('true');
+    button('Saving…').click();
+    await fixture.whenStable();
     expect(calls.submitted).toEqual([12]);
 
     fail(new Error('Exceeds capacity'));
     await settle(fixture);
     expect(host.querySelector('[role="alert"]')?.textContent?.trim()).toBe('Exceeds capacity');
-    expect(button('Save').disabled).toBe(false);
+    expect(button('Save').getAttribute('aria-disabled')).not.toBe('true');
     expect(calls.closed).toBe(0);
   });
 

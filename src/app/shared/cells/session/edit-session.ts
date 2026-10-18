@@ -54,14 +54,18 @@ export class EditSession<Row, P extends EditPersistence<Row>> {
     if (this.destroyed) throw new Error('The grid is gone.');
     const reason = this.disabledReason();
     if (reason) throw new Error(reason);
+    // The persistence gets only the payload; `source` stays on the entry.
+    const { method: name, payload } = command as { method: keyof P; payload?: unknown };
+    const method = this.persistence[name] as unknown as
+      ((payload: unknown) => Promise<Result<Row>>) | undefined;
+    // Editors and custom renderers run commands untyped, so a wrong name can get this far.
+    if (typeof method !== 'function')
+      throw new Error(`The persistence has no method ${String(name)}.`);
     const id = this.nextId++;
     this.log.update((log) => [
       ...log,
       { id, previousId: log.at(-1)?.id ?? null, command, status: 'pending' },
     ]);
-    // The persistence gets only the payload; `source` stays on the entry.
-    const { method: name, payload } = command as { method: keyof P; payload?: unknown };
-    const method = this.persistence[name] as (payload: unknown) => Promise<Result<Row>>;
     try {
       const result = await method.call(this.persistence, payload);
       if (this.destroyed) throw new Error('The grid is gone.');

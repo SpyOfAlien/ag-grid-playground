@@ -2,13 +2,21 @@ import { isDevMode } from '@angular/core';
 import type { Column, GridApi, IRowNode } from 'ag-grid-community';
 import type { ConnectedGrid } from '../session/edit-session';
 import type { RowChanges } from '../session/row-changes';
-import type { RefreshGraph } from './column-dependencies';
+import { columnDependencyGraph, type RefreshGraph } from './column-dependencies';
 
 /**
  * Shows session results in one grid. AG Grid refreshes cells whose own value changed; this adds
  * a forced refresh only for columns that read a changed field but whose own value did not change.
  */
-export function connectGrid<Row>(api: GridApi<Row>, graph: RefreshGraph): ConnectedGrid<Row> {
+export function connectGrid<Row>(api: GridApi<Row>): ConnectedGrid<Row> {
+  // From the grid's own columns, so generated ids count and columns set later are followed.
+  const build = () =>
+    columnDependencyGraph(
+      api.getColumns()?.map((column) => ({ ...column.getColDef(), colId: column.getColId() })) ??
+        [],
+    );
+  let graph = build();
+
   // Names are column ids, falling back to a column's field.
   const column = (name: string): Column | null =>
     api.getColumn(name) ??
@@ -17,6 +25,10 @@ export function connectGrid<Row>(api: GridApi<Row>, graph: RefreshGraph): Connec
 
   // Names in `dependsOn` are not checked at compile time; the first rows show whether each exists.
   let checked = !isDevMode();
+  api.addEventListener('newColumnsLoaded', () => {
+    graph = build();
+    checked = !isDevMode();
+  });
   const check = (rows: readonly Row[]) => {
     if (checked || !rows.length) return;
     checked = true;

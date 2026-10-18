@@ -124,6 +124,30 @@ describe('cellGridOptions', () => {
     expect(transactions).not.toHaveBeenCalled();
   });
 
+  it('lets each grid go when two grids share one options object', async () => {
+    const { session, persistence } = setup();
+    let ready = 0;
+    const options = cellGridOptions(session, {
+      columnDefs: [{ field: 'sku' }, { field: 'qty' }],
+      onGridReady: () => ready++,
+    });
+    const mountShared = () =>
+      createGrid<Item>(document.body.appendChild(document.createElement('div')), options);
+    const first = mountShared();
+    const second = mountShared();
+    cleanup.push(() => second.destroy());
+    await vi.waitFor(() => expect(ready).toBe(2));
+    await session.run({ method: 'load' });
+
+    const transactions = vi.spyOn(first, 'applyTransaction');
+    first.destroy();
+    persistence.saveResult = { update: [{ sku: 'B-2', qty: 3 }] };
+    await session.run({ method: 'save', payload: { changes: [] } });
+
+    expect(second.getRowNode('B-2')?.data).toEqual({ sku: 'B-2', qty: 3 });
+    expect(transactions).not.toHaveBeenCalled();
+  });
+
   it('lets keys reach controls inside cells by default, keeping the caller defaults', () => {
     const { session } = setup();
 

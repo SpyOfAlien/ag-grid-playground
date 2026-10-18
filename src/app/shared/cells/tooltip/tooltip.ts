@@ -183,8 +183,8 @@ export class CellsTooltipService {
     const html = element.getAttribute(HTML);
     const text = element.getAttribute(TEXT) ?? (html === null ? cutOffText(element) : null);
     if (html === null && !text) return this.hide();
-    const appearing = !this.shown;
-    if (this.shown !== element) {
+    const moved = this.shown !== element;
+    if (moved) {
       this.stopWatching?.();
       if (this.shown) describe(this.shown, false);
       this.shown = element;
@@ -193,7 +193,7 @@ export class CellsTooltipService {
     }
     const position = (element.getAttribute(POSITION) as TooltipPosition | null) ?? 'below';
     const panel = this.attach(element, position);
-    if (appearing) this.raise();
+    if (moved) this.raise();
     panel.instance.content.set({ text: text ?? '', html, position });
     panel.changeDetectorRef.detectChanges();
     this.overlayRef?.updatePosition();
@@ -236,13 +236,19 @@ export class CellsTooltipService {
   /**
    * The tooltip's overlay is created once, so one opened since (a dropdown panel) would cover it.
    * Native popovers stack in the order they were shown; without them, overlays stack in DOM order.
+   * Called whenever the tooltip moves to an element, since a panel may open while it is visible.
    */
   private raise(): void {
     const host = this.overlayRef?.hostElement;
     if (!host) return;
     if (host.hasAttribute('popover')) {
-      host.hidePopover();
-      host.showPopover();
+      // Like CDK's own calls: some browsers throw for a popover in an unexpected state.
+      try {
+        host.hidePopover();
+        host.showPopover();
+      } catch {
+        // Stacking stays as it was; the tooltip still shows.
+      }
     } else if (host.nextElementSibling) host.parentElement?.appendChild(host);
   }
 }

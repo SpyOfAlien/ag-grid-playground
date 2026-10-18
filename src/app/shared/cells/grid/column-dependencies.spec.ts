@@ -193,4 +193,38 @@ describe('column dependencies', () => {
     expect(Object.fromEntries(refreshes)).toEqual({ 'B-2:qty': 1 });
     api.destroy();
   });
+
+  it('refreshes a column with no colId or field from what it depends on', async () => {
+    const unnamed: ColDef<Item> = {
+      valueGetter: ({ data }) => data?.sku,
+      cellRenderer: Probe,
+      context: { dependsOn: ['qty'] },
+    };
+    const { session, persistence, api } = await setup({}, [
+      unnamed,
+      probe('qty', ({ data }) => data?.qty),
+    ]);
+    const id = api.getColumns()![0].getColId();
+
+    persistence.saveResult = { update: [{ ...ROWS[1], qty: 4 }] };
+    await session.run({ method: 'save', payload: { changes: [] } });
+    await rendered();
+
+    expect(refreshes.get(`B-2:${id}`)).toBe(1);
+    api.destroy();
+  });
+
+  it('follows columns set after the grid was built', async () => {
+    const { session, persistence, api, text } = await setup({});
+    api.setGridOption('columnDefs', withDependencies({ label: ['qty'] }, COLUMNS));
+    await rendered();
+    refreshes.clear();
+
+    persistence.saveResult = { update: [{ ...ROWS[1], qty: 4 }] };
+    await session.run({ method: 'save', payload: { changes: [] } });
+    await rendered();
+
+    expect(text('B-2', 'label')).toBe('B-2|in');
+    api.destroy();
+  });
 });

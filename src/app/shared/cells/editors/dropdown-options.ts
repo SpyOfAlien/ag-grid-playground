@@ -24,7 +24,8 @@ export type DropdownOptionsData<Row, V> = EditorData<Row, V> & {
           class="cells-option"
           [attr.aria-current]="$index === selectedIndex() || null"
           [attr.cdkFocusInitial]="$index === selectedIndex() ? '' : null"
-          [disabled]="option.disabled || saving()"
+          [disabled]="option.disabled"
+          [attr.aria-disabled]="saving() || null"
           [cellsTooltip]="null"
           [cellsTooltipOverflow]="true"
           (click)="choose(option)"
@@ -50,8 +51,10 @@ export class DropdownOptions<Row, V> implements CellEditor<DropdownOptionsData<R
   });
 
   protected async choose(option: DropdownOption<V>): Promise<void> {
+    // Options stay focusable while saving (disabling the focused one drops keyboard focus).
+    if (this.saving()) return;
     const data = this.data();
-    if (this.data().options.indexOf(option) === this.selectedIndex()) return data.close();
+    if (data.options.indexOf(option) === this.selectedIndex()) return data.close();
     this.saving.set(true);
     this.error.set('');
     try {

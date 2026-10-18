@@ -1,5 +1,5 @@
 import type { Signal } from '@angular/core';
-import type { GridOptions } from 'ag-grid-community';
+import type { GridApi, GridOptions } from 'ag-grid-community';
 import type { EditSession } from '../session/edit-session';
 import type { CellRef, Command, EditPersistence } from '../session/persistence';
 import { connectGrid } from './connect-grid';
@@ -33,19 +33,22 @@ export function cellGridOptions<Row, P extends EditPersistence<Row>>(
   session: EditSession<Row, P>,
   options: Omit<GridOptions<Row>, 'context' | 'rowData' | 'getRowId'>,
 ): GridOptions<Row> {
-  const graph = columnDependencyGraph(options.columnDefs ?? []);
-  let disconnect: (() => void) | undefined;
+  // Rejects a cycle now rather than at first render; the grid rebuilds the graph from its columns.
+  columnDependencyGraph(options.columnDefs ?? []);
+  // One options object can back several grids; each connects and disconnects on its own.
+  const disconnects = new Map<GridApi<Row>, () => void>();
   return {
     ...options,
     context: { session: cellSession(session) } satisfies CellsContext,
     getRowId: ({ data }) => session.rowId(data),
     defaultColDef: { suppressKeyboardEvent: suppressCellKeyboard, ...options.defaultColDef },
     onGridReady: (event) => {
-      disconnect = session.connect(connectGrid(event.api, graph));
+      disconnects.set(event.api, session.connect(connectGrid(event.api)));
       options.onGridReady?.(event);
     },
     onGridPreDestroyed: (event) => {
-      disconnect?.();
+      disconnects.get(event.api)?.();
+      disconnects.delete(event.api);
       options.onGridPreDestroyed?.(event);
     },
   };

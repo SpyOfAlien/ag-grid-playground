@@ -8,7 +8,7 @@ import {
 } from '@angular/core';
 import { CellsTooltip } from '../tooltip/tooltip';
 import { CellMarker } from './cell-marker';
-import { CellBase, evaluate, type Cell, type CellParams, type CellRule } from '../base/base';
+import { CellBase, type Cell, type CellParams } from '../base/base';
 import { cellControl, type ActionRules } from '../base/control';
 import { cellDisplay, type DisplayParams } from '../base/display';
 import type { ActionParams } from '../base/edit';
@@ -40,11 +40,6 @@ export type EditAction<D extends EditorData<unknown, unknown>, P> = ActionParams
   P,
   EditorNext<D>
 > & { editor: EditorConfig<D> };
-
-export type EditCellParams<D extends EditorData<unknown, unknown>, P> = DisplayParams<
-  EditorRow<D>,
-  EditorValue<D>
-> & { action: EditAction<D, P> };
 
 export type PopoverCellParams<D extends EditorData<unknown, unknown>, P> = DisplayParams<
   EditorRow<D>,
