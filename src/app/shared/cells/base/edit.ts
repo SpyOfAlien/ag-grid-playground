@@ -43,7 +43,8 @@ export function runCommand<Row, V, Next>(
 ): Promise<void> {
   const payload = command?.payload
     ? command.payload(next, cell)
-    : saveToOwnField(target, cell, next);
+    : ownFieldPayload(target, cell, next);
+
   return target.context.session.run({
     method: command?.method ?? 'save',
     payload,
@@ -51,8 +52,8 @@ export function runCommand<Row, V, Next>(
   });
 }
 
-/** Without a `command`, a change is a save of the column's own top-level field. */
-function saveToOwnField<Row, V>(
+/** The default save's payload: without a `command`, a change goes to the column's own field. */
+function ownFieldPayload<Row, V>(
   target: EditTarget,
   cell: Cell<Row, V>,
   value: unknown,
