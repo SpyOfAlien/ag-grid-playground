@@ -85,9 +85,12 @@ export class PopoverCell<D extends EditorData<unknown, unknown>, P> extends Cell
     event.stopPropagation();
     const params = this.params();
     const cell = this.cell();
+
     if (!params || !cell || this.state()?.pen.disabled) return;
+
     const { editor, command, popover } = params.action;
     const { component, data } = editor;
+
     openCellPopover(
       this.injector,
       event.currentTarget as HTMLElement,

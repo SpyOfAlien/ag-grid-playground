@@ -61,7 +61,9 @@ export class DropdownCell<Row, V, P> extends CellBase<Row, V, DropdownCellParams
   protected readonly state = computed(() => {
     const params = this.params();
     const cell = this.cell();
+
     if (!params || !cell) return null;
+
     const { action, content } = params;
     const options = evaluate(action.options, cell);
     const equals = action.equals ?? Object.is;
@@ -69,12 +71,14 @@ export class DropdownCell<Row, V, P> extends CellBase<Row, V, DropdownCellParams
     const selected =
       value == null ? null : (options.find((option) => equals(option.value, value)) ?? null);
     const text = selected?.label ?? content?.placeholder ?? '';
+
     const control = cellControl(
       action,
       cell,
       params.context.session,
       params.colDef?.headerName ?? '',
     );
+
     return {
       marker: topMarker(params.markers, cell),
       tooltipPosition: params.tooltipPosition ?? null,
@@ -94,8 +98,11 @@ export class DropdownCell<Row, V, P> extends CellBase<Row, V, DropdownCellParams
     const params = this.params();
     const cell = this.cell();
     const state = this.state();
+
     if (!params || !cell || !state || state.control.disabled) return;
+
     const trigger = event.currentTarget as HTMLElement;
+
     openCellPopover(
       this.injector,
       trigger,

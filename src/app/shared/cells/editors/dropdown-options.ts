@@ -53,10 +53,14 @@ export class DropdownOptions<Row, V> implements CellEditor<DropdownOptionsData<R
   protected async choose(option: DropdownOption<V>): Promise<void> {
     // Options stay focusable while saving (disabling the focused one drops keyboard focus).
     if (this.saving()) return;
+
     const data = this.data();
+
     if (data.options.indexOf(option) === this.selectedIndex()) return data.close();
+
     this.saving.set(true);
     this.error.set('');
+
     try {
       await data.submit(option.value);
     } catch (error: unknown) {

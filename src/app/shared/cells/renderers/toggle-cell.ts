@@ -40,8 +40,11 @@ export class ToggleCell<Row, P> extends CellBase<Row, boolean, ToggleCellParams<
   protected readonly state = computed(() => {
     const params = this.params();
     const cell = this.cell();
+
     if (!params || !cell) return null;
+
     const header = params.colDef?.headerName ?? '';
+
     return {
       // A control-only renderer: the marker and position, without content to evaluate.
       marker: topMarker(params.markers, cell),
@@ -55,7 +58,9 @@ export class ToggleCell<Row, P> extends CellBase<Row, boolean, ToggleCellParams<
     event.stopPropagation();
     const params = this.params();
     const cell = this.cell();
+
     if (!params || !cell || this.state()?.control.disabled) return;
+
     // Failures are recorded on the session entry; the page reports them.
     void runCommand(params, params.action?.command, cell, cell.value !== true).catch(
       () => undefined,

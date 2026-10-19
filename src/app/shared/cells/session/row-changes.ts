@@ -55,6 +55,7 @@ function changedFields<Row>(was: Row, row: Row): Record<string, ValueChange> | n
   for (const key in now)
     if (old[key] !== now[key]) (fields ??= {})[key] = { before: old[key], after: now[key] };
 
+  // Fields missing from the new row; the first loop never visits them.
   for (const key in old)
     if (!(key in now)) (fields ??= {})[key] = { before: old[key], after: undefined };
 

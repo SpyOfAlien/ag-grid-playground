@@ -86,7 +86,9 @@ export class CellsTooltipService {
   /** Starts listening once; called by every `cellsTooltip` directive. */
   start(): void {
     if (this.started) return;
+
     this.started = true;
+
     const listeners: [string, (event: Event) => void][] = [
       ['focusin', (event) => this.keyboard && this.show(target(event))],
       ['pointerover', (event) => !isTouch(event) && this.hover(target(event))],
@@ -100,6 +102,7 @@ export class CellsTooltipService {
       ['pointercancel', () => this.hide()],
     ];
     for (const [type, listener] of listeners) this.document.addEventListener(type, listener, true);
+
     this.lifetime.onDestroy(() => {
       for (const [type, listener] of listeners)
         this.document.removeEventListener(type, listener, true);
@@ -112,7 +115,9 @@ export class CellsTooltipService {
   private scrolled(event: Event): void {
     const element = this.shown;
     const container = event.target instanceof Element ? event.target : null;
+
     if (!element || (container && !container.contains(element))) return;
+
     const area = container?.getBoundingClientRect() ?? {
       top: 0,
       left: 0,
@@ -125,6 +130,7 @@ export class CellsTooltipService {
       box.top < area.bottom &&
       box.right > area.left &&
       box.left < area.right;
+
     // A pending hover is not cancelled: the pointer may still rest on an element.
     if (visible) this.overlayRef?.updatePosition();
     else this.hide(false);
@@ -138,6 +144,7 @@ export class CellsTooltipService {
   private press(event: Event): void {
     this.keyboard = false;
     this.hide();
+
     const element = target(event);
     if (isTouch(event) && element) this.timer = setTimeout(() => this.show(element), TOUCH_HOLD);
   }
@@ -159,20 +166,26 @@ export class CellsTooltipService {
   private leave(event: MouseEvent): void {
     clearTimeout(this.timer);
     const next = event.relatedTarget instanceof Node ? event.relatedTarget : null;
+
     // The pointer may rest on the tooltip itself, or move to another element with a tooltip.
     if (next && (this.overlayRef?.overlayElement.contains(next) || this.shown?.contains(next)))
       return;
+
     if (next instanceof Element && next.closest(ANY_TOOLTIP)) return;
+
     this.hide();
   }
 
   /** `cancelPending` is false for scrolling, which must not cancel a hover still waiting. */
   private hide(cancelPending = true): void {
     if (cancelPending) clearTimeout(this.timer);
+
     if (!this.shown) return;
+
     describe(this.shown, false);
     this.shown = null;
     this.stopWatching?.();
+
     this.panel?.instance.content.set(null);
     this.panel?.changeDetectorRef.detectChanges();
   }
@@ -180,23 +193,31 @@ export class CellsTooltipService {
   private show(element: HTMLElement | null): void {
     // Teardown can move focus (a closing popover restores it) after this injector is gone.
     if (!element || this.lifetime.destroyed) return;
+
     const html = element.getAttribute(HTML);
     const text = element.getAttribute(TEXT) ?? (html === null ? cutOffText(element) : null);
+
     if (html === null && !text) return this.hide();
+
     const appearing = this.shown === null;
     const moved = this.shown !== element;
+
     if (moved) {
       this.stopWatching?.();
       if (this.shown) describe(this.shown, false);
+
       this.shown = element;
       this.stopWatching = this.watch(element);
       describe(element, true);
     }
+
     const position = (element.getAttribute(POSITION) as TooltipPosition | null) ?? 'below';
     const panel = this.attach(element, position);
+
     // Re-showing the popover replays the fade-in, so not on every move: only on appearing, or on
     // moving into another overlay (a panel that opened while the tooltip stayed visible).
     if (appearing || (moved && element.closest('.cdk-overlay-pane'))) this.raise();
+
     panel.instance.content.set({ text: text ?? '', html, position });
     panel.changeDetectorRef.detectChanges();
     this.overlayRef?.updatePosition();
@@ -206,6 +227,7 @@ export class CellsTooltipService {
   private watch(element: HTMLElement): () => void {
     const stopRemoval = observePopoverAnchor([element], () => this.hide());
     const content = new MutationObserver(() => this.show(element));
+
     // Text changes matter too: a cut-off text tooltip shows the element's own text.
     content.observe(element, {
       attributeFilter: [TEXT, HTML, OVERFLOW],
@@ -213,6 +235,7 @@ export class CellsTooltipService {
       subtree: true,
       characterData: true,
     });
+
     return () => {
       stopRemoval();
       content.disconnect();

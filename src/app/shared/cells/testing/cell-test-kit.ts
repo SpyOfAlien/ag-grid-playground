@@ -85,7 +85,10 @@ export async function settle(fixture: { whenStable(): Promise<unknown> }): Promi
 export function tooltipFor(element: Element): string | null {
   document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Tab', bubbles: true }));
   element.dispatchEvent(new FocusEvent('focusin', { bubbles: true }));
+
   const text = document.querySelector('.cells-tooltip')?.textContent?.trim() ?? null;
+
   element.dispatchEvent(new FocusEvent('focusout', { bubbles: true }));
+
   return text;
 }

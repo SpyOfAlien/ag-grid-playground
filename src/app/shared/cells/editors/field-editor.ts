@@ -61,9 +61,12 @@ export class FieldEditor<Row, V extends string | number>
 
   protected async save(): Promise<void> {
     this.control.markAsTouched();
+
     if (this.control.invalid || this.saving()) return;
+
     this.saving.set(true);
     this.error.set('');
+
     try {
       await this.data().submit(this.control.value);
     } catch (error: unknown) {

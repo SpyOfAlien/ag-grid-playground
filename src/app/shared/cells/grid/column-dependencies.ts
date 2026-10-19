@@ -27,6 +27,7 @@ export function columnDependencyGraph<Row>(
 ): RefreshGraph {
   const edges = new Map<string, string[]>();
   const declared: { column: string; name: string }[] = [];
+
   for (const column of leaves(columnDefs)) {
     const id = column.colId ?? column.field;
     const dependsOn = (column.context as CellColumnContext<Row> | undefined)?.dependsOn ?? [];
@@ -36,31 +37,39 @@ export function columnDependencyGraph<Row>(
         declared.push({ column: id, name });
       }
   }
+
   const state = new Map<string, 'visiting' | 'done'>();
   const visit = (name: string, path: string[]): void => {
     if (state.get(name) === 'done') return;
+
     if (state.get(name) === 'visiting')
       throw new Error(`Column dependencies have a cycle: ${[...path, name].join(' → ')}`);
+
     state.set(name, 'visiting');
+
     // A column depending on the field of its own name is not a cycle.
     for (const dependent of edges.get(name) ?? [])
       if (dependent !== name) visit(dependent, [...path, name]);
     state.set(name, 'done');
   };
   for (const name of edges.keys()) visit(name, []);
+
   const dependents = (name: string) => edges.get(name) ?? [];
+
   return {
     declared,
     dependents,
     reachable(names) {
       const found = new Set<string>();
       const queue = [...names];
+
       for (let name = queue.shift(); name !== undefined; name = queue.shift())
         for (const dependent of dependents(name))
           if (!found.has(dependent)) {
             found.add(dependent);
             queue.push(dependent);
           }
+
       return found;
     },
   };

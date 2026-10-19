@@ -48,23 +48,31 @@ export function connectGrid<Row>(api: GridApi<Row>): ConnectedGrid<Row> {
     },
     apply(result, changes) {
       check('replace' in result ? result.replace : result.update);
+
       const snapshots = snapshotBefore(api, graph, column, changes);
+
       if ('replace' in result) api.setGridOption('rowData', [...result.replace]);
       else api.applyTransaction({ update: [...result.update] });
+
       for (const { node, fields, before } of snapshots) {
         const forced: Column[] = [];
         const seen = new Set<string>();
         const queue = [...fields];
+
         for (let name = queue.shift(); name !== undefined; name = queue.shift())
           for (const dependent of graph.dependents(name)) {
             const target = column(dependent);
+
             if (seen.has(dependent) || !target) continue;
+
             seen.add(dependent);
+
             // A changed value was refreshed by AG Grid; its own dependents may need a refresh.
             if (api.getCellValue({ rowNode: node, colKey: target }) !== before.get(dependent))
               queue.push(dependent);
             else forced.push(target);
           }
+
         if (forced.length) api.refreshCells({ rowNodes: [node], columns: forced, force: true });
       }
     },
@@ -89,13 +97,17 @@ function snapshotBefore<Row>(
   for (const { rowId, fields: changed } of changes.updated) {
     const fields = Object.keys(changed);
     const node = api.getRowNode(rowId);
+
     if (!node) continue;
+
     const before = new Map<string, unknown>();
     for (const name of graph.reachable(fields)) {
       const target = column(name);
       if (target) before.set(name, api.getCellValue({ rowNode: node, colKey: target }));
     }
+
     if (before.size) snapshots.push({ node, fields, before });
   }
+
   return snapshots;
 }
