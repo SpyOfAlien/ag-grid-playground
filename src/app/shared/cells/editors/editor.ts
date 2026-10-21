@@ -2,7 +2,7 @@ import type { Injector, InputSignal, Type } from '@angular/core';
 import { MatDialog, type MatDialogRef } from '@angular/material/dialog';
 import type { Cell } from '../base/base';
 import { runCommand, type EditTarget, type RuntimeCommand } from '../base/edit';
-import type { CellSession } from '../grid/cell-grid-options';
+import type { CellSession } from '../grid/cells-context';
 import type { PopoverPlacement } from '../../popover/popover.model';
 import type { PopoverRef } from '../../popover/popover-ref';
 import { PopoverService } from '../../popover/popover-service';

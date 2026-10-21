@@ -1,7 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { Validators } from '@angular/forms';
 import { ITEM, settle, type Item } from '../testing/cell-test-kit';
-import type { CellSession } from '../grid/cell-grid-options';
+import type { CellSession } from '../grid/cells-context';
 import { FieldEditor, type FieldEditorData } from './field-editor';
 
 function editor<V extends string | number>(

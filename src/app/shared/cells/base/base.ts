@@ -1,7 +1,7 @@
 import { computed, Directive, isDevMode, signal } from '@angular/core';
 import type { ICellRendererAngularComp } from 'ag-grid-angular';
 import type { ICellRendererParams } from 'ag-grid-community';
-import type { CellsContext } from '../grid/cell-grid-options';
+import type { CellsContext } from '../grid/cells-context';
 
 /** What every rule and formatter receives. */
 export interface Cell<Row, V> {

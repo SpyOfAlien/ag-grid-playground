@@ -1,6 +1,6 @@
 import type { Cell } from './base';
 import type { ActionRules } from './control';
-import type { CellsContext } from '../grid/cell-grid-options';
+import type { CellsContext } from '../grid/cells-context';
 import type { MethodOf, PayloadOf, SavePayload } from '../session/persistence';
 
 /**

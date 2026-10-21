@@ -1,7 +1,7 @@
 // Test-only helpers: renderer params backed by a real EditSession and an in-memory persistence.
 import { TestBed } from '@angular/core/testing';
 import type { ICellRendererParams } from 'ag-grid-community';
-import { cellSession, type CellsContext } from '../grid/cell-grid-options';
+import { cellSession, type CellsContext } from '../grid/cells-context';
 import { createEditSession, type EditSession } from '../session/edit-session';
 import type { EditPersistence, Result, SavePayload } from '../session/persistence';
 

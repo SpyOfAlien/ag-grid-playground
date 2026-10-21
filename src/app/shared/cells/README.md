@@ -15,14 +15,14 @@ cell ──command──▶ session.run({ method, payload, source })
 
 ## Folders
 
-| Folder       | What is in it                                                                                |
-| ------------ | -------------------------------------------------------------------------------------------- |
-| `session/`   | `EditSession`, the persistence contract, `rowChanges`, `applyChanges`                        |
-| `grid/`      | `cellGridOptions`, `connectGrid` (one per table), column dependencies, keyboard, empty state |
-| `base/`      | `CellBase` and what every renderer uses: `cellDisplay`, `cellControl`, `runCommand`          |
-| `renderers/` | the six renderers and `CellMarker`                                                           |
-| `editors/`   | `openCellPopover`, `openCellDialog` (`CellDialog`), `FieldEditor`, `DropdownOptions`         |
-| `tooltip/`   | the shared tooltip: one service, the `cellsTooltip` directive                                |
+| Folder       | What is in it                                                                                                |
+| ------------ | ------------------------------------------------------------------------------------------------------------ |
+| `session/`   | `EditSession`, the persistence contract, `rowChanges`, `applyChanges`                                        |
+| `grid/`      | `cellGridOptions`, `CellsContext`, `connectGrid` (one per table), column dependencies, keyboard, empty state |
+| `base/`      | `CellBase` and what every renderer uses: `cellDisplay`, `cellControl`, `runCommand`                          |
+| `renderers/` | the six renderers and `CellMarker`                                                                           |
+| `editors/`   | `openCellPopover`, `openCellDialog` (`CellDialog`), `FieldEditor`, `DropdownOptions`                         |
+| `tooltip/`   | the shared tooltip: one service, the `cellsTooltip` directive                                                |
 
 ## Setting up a grid
 

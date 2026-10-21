@@ -1,4 +1,4 @@
-import { cellSession } from '../grid/cell-grid-options';
+import { cellSession } from '../grid/cells-context';
 import { FakePersistence, ITEM, testSession } from '../testing/cell-test-kit';
 import { runCommand } from './edit';
 

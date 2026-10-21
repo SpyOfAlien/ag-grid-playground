@@ -1,5 +1,5 @@
 import { evaluate, type Cell, type CellRule } from './base';
-import type { CellSession } from '../grid/cell-grid-options';
+import type { CellSession } from '../grid/cells-context';
 import type { TooltipContent } from '../tooltip/tooltip';
 
 /** The control the user touches: whether it can be used, its name and its hint. */

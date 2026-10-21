@@ -22,12 +22,8 @@ export { applyChanges } from './session/apply-changes';
 export type { RowChanges, ValueChange } from './session/row-changes';
 
 // Grid wiring
-export {
-  cellGridOptions,
-  cellSession,
-  type CellSession,
-  type CellsContext,
-} from './grid/cell-grid-options';
+export { cellGridOptions } from './grid/cell-grid-options';
+export { cellSession, type CellSession, type CellsContext } from './grid/cells-context';
 export type { CellColumnContext } from './grid/column-dependencies';
 export { withEmptyState, type EmptyStateColumn } from './grid/empty-state';
 export { suppressCellKeyboard } from './grid/keyboard';
