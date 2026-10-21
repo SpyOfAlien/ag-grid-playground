@@ -8,8 +8,10 @@ import {
   type GridOptions,
   type GridReadyEvent,
 } from 'ag-grid-community';
-import { createEquipmentColumns } from './equipment-columns';
-import { EQUIPMENT_GROUPS, EQUIPMENT_ROWS, type EquipmentRow } from './equipment-data';
+import { buildEquipmentColumnDefs } from './equipment-backend-columns';
+import { EQUIPMENT_COLUMN_PAYLOAD, EQUIPMENT_ROWS, type EquipmentRow } from './equipment-data';
+
+const CHANGE_COUNT = EQUIPMENT_ROWS.filter((row) => row.changed).length;
 
 @Component({
   selector: 'app-equipment-column-groups',
@@ -27,9 +29,10 @@ import { EQUIPMENT_GROUPS, EQUIPMENT_ROWS, type EquipmentRow } from './equipment
           </button>
         </div>
       </header>
-      <!-- Header row above the filter row, so rail headers can paint the filter-row slot. -->
+      <!-- Header row above the filter row, so rail headers can paint the filter-row slot.
+           Pinned filter cells go above both, so a rail scrolled under them stays hidden. -->
       <ag-grid-angular
-        class="equipment-grid [&_.ag-header-row-column]:z-3"
+        class="equipment-grid [&_.ag-header-row-column]:z-3 [&_.ag-header-row-filter_:is(.ag-grid-pinned-left-cells,.ag-grid-pinned-right-cells)]:z-4"
         [modules]="modules"
         [gridOptions]="options"
         [rowData]="rowData"
@@ -49,7 +52,11 @@ export class EquipmentColumnGroups {
   protected readonly modules = [AllCommunityModule];
   protected readonly rowData = EQUIPMENT_ROWS;
   protected readonly options: GridOptions<EquipmentRow> = {
-    columnDefs: createEquipmentColumns(),
+    columnDefs: buildEquipmentColumnDefs(
+      EQUIPMENT_COLUMN_PAYLOAD.groups,
+      EQUIPMENT_COLUMN_PAYLOAD.columns,
+      { changeCountFor: () => CHANGE_COUNT },
+    ),
     defaultColDef: {
       minWidth: 90,
       sortable: true,
@@ -106,7 +113,9 @@ export class EquipmentColumnGroups {
   }
 
   protected setGroupsExpanded(open: boolean): void {
-    this.gridApi?.setColumnGroupState(EQUIPMENT_GROUPS.map(({ id }) => ({ groupId: id, open })));
+    this.gridApi?.setColumnGroupState(
+      EQUIPMENT_COLUMN_PAYLOAD.groups.map(({ code }) => ({ groupId: code, open })),
+    );
     void this.liveAnnouncer.announce(
       open ? 'All column groups expanded.' : 'All column groups collapsed.',
     );
