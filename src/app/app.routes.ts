@@ -34,13 +34,18 @@ export const routes: Routes = [
   {
     path: 'tooltip-perf',
     title: 'Cells · Tooltip performance',
-    loadComponent: () =>
-      import('./features/tooltip-perf/tooltip-perf').then((m) => m.TooltipPerf),
+    loadComponent: () => import('./features/tooltip-perf/tooltip-perf').then((m) => m.TooltipPerf),
   },
   {
     path: 'cells-perf',
     title: 'Cells · Performance',
     loadComponent: () => import('./features/cells-perf/cells-perf').then((m) => m.CellsPerf),
+  },
+  {
+    path: 'tree-table-lab',
+    title: 'Tree table lab',
+    loadComponent: () =>
+      import('./features/tree-table-lab/tree-table-lab').then((m) => m.TreeTableLab),
   },
   { path: '**', redirectTo: 'grid-demo' },
 ];

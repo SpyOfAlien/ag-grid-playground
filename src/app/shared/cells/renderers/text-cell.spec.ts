@@ -36,9 +36,9 @@ describe('TextCell', () => {
     const host = await render(
       {
         markers: {
-          info: { when: true, tooltip: 'Imported' },
-          error: { when: () => false, tooltip: 'Broken' },
-          warning: { when: ({ row }) => row.sku === 'A-1', tooltip: 'Review required' },
+          info: ['Imported'],
+          error: [() => false],
+          warning: [({ row }) => row.sku === 'A-1' && 'Review required'],
         },
       },
       'Bolt',

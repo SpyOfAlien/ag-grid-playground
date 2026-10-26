@@ -363,6 +363,12 @@
   animation: cells-tooltip-in 150ms cubic-bezier(0, 0, 0.2, 1);
 }
 
+// Several marker messages of one kind.
+.cells-tooltip-list {
+  margin: 0;
+  padding-inline-start: 16px;
+}
+
 @keyframes cells-tooltip-in {
   from {
     opacity: 0;

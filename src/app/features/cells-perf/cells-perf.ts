@@ -97,7 +97,7 @@ function columns(): ColDef<Row>[] {
           ...base,
           cellRenderer: NumberCell,
           cellRendererParams: {
-            markers: { warning: { when: ({ value }) => (value ?? 0) < 20 } },
+            markers: { warning: [({ value }) => (value ?? 0) < 20 && 'Low stock'] },
             content: { number: { decimals: 0 } },
           } satisfies NumberCellParams<Row>,
         };

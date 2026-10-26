@@ -83,7 +83,7 @@ cellGridOptions(session, {}, { refreshOnChange: { active: ['status'] } });
 // A cell's params have three parts: markers, content and action. `action.command` picks the
 // persistence method, and its payload is checked against it; no type argument names the method.
 const approveToggle = {
-  markers: { info: { when: true } },
+  markers: { info: ['Imported'] },
   action: {
     allowed: ({ row }) => (row.active ? true : 'Inactive items are locked'),
     label: 'Approved',

@@ -59,8 +59,8 @@ export function inventoryColumns(): ColDef<Item>[] {
       cellRenderer: PopoverCell,
       cellRendererParams: {
         markers: {
-          warning: { when: ({ value }) => !value, tooltip: 'Name is missing' },
-          special: { when: ({ row }) => row.discontinued, tooltip: 'Discontinued item' },
+          warning: [({ value }) => !value && 'Name is missing'],
+          special: [({ row }) => row.discontinued && 'Discontinued item'],
         },
         action: {
           allowed: unlessApproved,
@@ -88,10 +88,10 @@ export function inventoryColumns(): ColDef<Item>[] {
         renderer: PopoverCell,
         params: {
           markers: {
-            error: {
-              when: ({ row, value }) => (value ?? 0) < row.reorderLevel,
-              tooltip: ({ row }) => `Below the reorder level of ${row.reorderLevel}`,
-            },
+            error: [
+              ({ row, value }) =>
+                (value ?? 0) < row.reorderLevel && `Below the reorder level of ${row.reorderLevel}`,
+            ],
           },
           content: { format: (qty) => `${qty} pcs` },
           action: {
@@ -113,7 +113,7 @@ export function inventoryColumns(): ColDef<Item>[] {
       cellClass: 'cells-align-end',
       cellRenderer: NumberCell,
       cellRendererParams: {
-        markers: { systemGenerated: { when: true, tooltip: 'Calculated from quantity and price' } },
+        markers: { systemGenerated: ['Calculated from quantity and price'] },
         content: {
           number: EURO,
           highlighted: ({ value }) => (value ?? 0) > 20_000,
@@ -154,10 +154,7 @@ export function inventoryColumns(): ColDef<Item>[] {
       cellRenderer: DropdownCell,
       cellRendererParams: {
         markers: {
-          warning: {
-            when: ({ value }) => value === 'legacy',
-            tooltip: 'Supplier takes no new orders',
-          },
+          warning: [({ value }) => value === 'legacy' && 'Supplier takes no new orders'],
         },
         content: { placeholder: 'No supplier' },
         action: {
@@ -178,7 +175,7 @@ export function inventoryColumns(): ColDef<Item>[] {
       cellRenderer: TextCell,
       cellRendererParams: {
         markers: {
-          info: { when: ({ value }) => !!value?.startsWith('Yard'), tooltip: 'Outdoor storage' },
+          info: [({ value }) => !!value?.startsWith('Yard') && 'Outdoor storage'],
         },
         content: {
           tooltip: ({ value }) =>
@@ -193,7 +190,7 @@ export function inventoryColumns(): ColDef<Item>[] {
       width: 150,
       cellRenderer: TextCell,
       cellRendererParams: {
-        markers: { warning: { when: ({ value }) => age(value) > 90, tooltip: 'Recount overdue' } },
+        markers: { warning: [({ value }) => age(value) > 90 && 'Recount overdue'] },
         content: {
           format: (date) => (date ? DATE.format(Date.parse(date)) : ''),
           tooltip: ({ value }) => `Counted ${age(value)} days ago`,

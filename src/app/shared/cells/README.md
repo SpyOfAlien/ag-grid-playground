@@ -116,7 +116,7 @@ control and what it sends). They are checked with `satisfies`:
   cellRenderer: PopoverCell,
   cellRendererParams: {
     markers: {
-      error: { when: ({ row, value }) => (value ?? 0) < row.reorderLevel, tooltip: 'Below reorder level' },
+      error: [({ row, value }) => (value ?? 0) < row.reorderLevel && 'Below reorder level'],
     },
     content: {
       format: (qty) => `${qty} pcs`,
@@ -147,8 +147,18 @@ signals (page state such as a read-only switch); the cell redraws when they chan
 refresh.
 
 - **Markers.** Six fixed kinds in priority order: `error`, `warning`, `userEdited`,
-  `systemGenerated`, `info`, `special`. Only the highest active one is drawn, with its tooltip, in
-  the cell's start padding: text lines up whether a cell has a marker or not.
+  `systemGenerated`, `info`, `special`. Each kind is a list of rules (`MarkerRule`): a rule
+  returns its message when it applies to the cell, otherwise nothing (`null`, `false`,
+  `undefined` or `''`). The message is the condition, so there is no separate `when` to keep in
+  step with it. Like other rules it may be a fixed value, for a marker that is always on:
+  `systemGenerated: ['Calculated from quantity and price']`. A kind may be left out or
+  `undefined`.
+  - Only the highest kind with a message is drawn, in the cell's start padding: text lines up
+    whether a cell has a marker or not. Lower kinds are not checked.
+  - Its tooltip is the message, or a list when several rules of that kind apply, so a second
+    problem is not hidden behind the first.
+  - Name a rule after what it flags and keep it next to the columns that use it; the column then
+    reads as the list of what it flags: `warning: [belowReorderLevel, recountOverdue]`.
 - **Content.** `format(value, cell)` is also called for empty values. It changes only what is
   drawn; the cell value, and therefore export, stays raw. `content.tooltip` is about the value;
   without one, text that is cut off shows in full on hover.
@@ -224,8 +234,9 @@ cell finds its error by lookup, not by reading the history.
 All kit tooltips go through one shared tooltip that behaves and looks like Angular Material's
 `matTooltip`, without its per-element cost:
 
-- A `tooltip` rule (content, action or marker) returns text or `{ html: '<b>…</b>' }`. HTML is
-  sanitized by Angular before it is shown. Lock and `allowed` reasons are text.
+- A `tooltip` rule (content or action) returns text or `{ html: '<b>…</b>' }`. HTML is
+  sanitized by Angular before it is shown. Lock and `allowed` reasons and marker messages are
+  text; several marker messages show as an escaped list.
 - `[cellsTooltipOverflow]="true"` shows an element's own text when it, or text inside it, is cut
   off and it has no other tooltip. The kit's value text and dropdown labels use it.
 - `tooltipPosition` places a column's tooltips: `above`, `below` (default), `left`, `right`,
