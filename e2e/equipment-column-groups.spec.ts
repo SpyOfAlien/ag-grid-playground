@@ -5,8 +5,22 @@ const group = (page: Page, id: string) => page.locator(`.ag-header-group-cell[co
 const header = (page: Page, id: string) =>
   page.locator(`.ag-header-cell[col-id="${id}"]:not(.ag-floating-filter)`);
 
+const controls = (page: Page) => page.getByRole('group', { name: 'Table controls' });
+const control = (page: Page, name: string) =>
+  controls(page).getByRole('button', { name, exact: true });
+
 async function toggleGroup(page: Page, id: string): Promise<void> {
   await group(page, id).locator('.ag-header-expand-icon:visible').click();
+}
+
+/** Uses the single Expand all / Collapse all toggle, flipping it first when needed. */
+async function setAllGroups(page: Page, open: boolean): Promise<void> {
+  const [action, next] = open ? ['Expand all', 'Collapse all'] : ['Collapse all', 'Expand all'];
+  if (await control(page, next).isVisible()) {
+    await control(page, next).click();
+  }
+  await control(page, action).click();
+  await expect(control(page, next)).toBeVisible();
 }
 
 test.beforeEach(async ({ page }) => {
@@ -35,13 +49,13 @@ test('nested groups collapse to rails and reopen with keyboard and mouse', async
   await toggleGroup(page, 'maintenance');
   await expect(header(page, 'workOrder')).toBeVisible();
   await expect(header(page, 'maintenance-rail')).toHaveCount(0);
-  await page.getByRole('button', { name: 'Collapse all', exact: true }).click();
+  await setAllGroups(page, false);
   await expect(header(page, 'clinical-rail')).toBeVisible();
   await expect(header(page, 'bed')).toHaveCount(0);
   await expect(page.locator('.cdk-live-announcer-element')).toHaveText(
     'All column groups collapsed.',
   );
-  await page.getByRole('button', { name: 'Expand all', exact: true }).click();
+  await setAllGroups(page, true);
   await expect(header(page, 'workOrder')).toBeVisible();
   await expect(header(page, 'calibrationDue')).toBeVisible();
   await expect(page.locator('.cdk-live-announcer-element')).toHaveText(
@@ -74,8 +88,8 @@ test('expanded group names are not visually clipped after mouse, keyboard or bul
   await page.keyboard.press('Enter');
   await expect(maintenanceName).toHaveCSS('clip-path', 'none');
 
-  await page.getByRole('button', { name: 'Collapse all', exact: true }).click();
-  await page.getByRole('button', { name: 'Expand all', exact: true }).click();
+  await setAllGroups(page, false);
+  await setAllGroups(page, true);
   for (const id of [
     'maintenance',
     'clinical',
@@ -149,24 +163,78 @@ test('filters and sorting operate on equipment data', async ({ page }) => {
   await expect(header(page, 'id')).toHaveAttribute('aria-sort', 'descending');
 });
 
-test('the page shows only the table and its group controls', async ({ page }) => {
-  // Only the toolbar (title + group controls) and the grid are on the page.
+test('the page shows only the table and its toolbar', async ({ page }) => {
+  // Only the toolbar (title + table controls) and the grid are on the page.
   await expect(page.locator('main > :not(.equipment-toolbar, ag-grid-angular)')).toHaveCount(0);
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('Hospital equipment');
   await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
-  await expect(page.getByRole('toolbar', { name: 'Column groups' }).getByRole('button')).toHaveText(
-    ['Expand all', 'Collapse all'],
+  // Some groups start collapsed, so the toggle offers Expand all.
+  await expect(controls(page).getByRole('button')).toHaveText([
+    'Expand all',
+    'Setting column',
+    'Full Screen',
+    'Add Column',
+    'Add Row',
+  ]);
+  await expect(control(page, 'Setting column')).toBeDisabled();
+  await expect(control(page, 'Add Column')).toBeDisabled();
+  // The app shell's demo nav sits outside the page.
+  await expect(page.getByRole('main').getByRole('navigation')).toHaveCount(0);
+});
+
+test('the group toggle label follows manual expansion', async ({ page }) => {
+  await setAllGroups(page, true);
+  await toggleGroup(page, 'maintenance');
+  await expect(control(page, 'Expand all')).toBeVisible();
+  await toggleGroup(page, 'maintenance');
+  await expect(control(page, 'Collapse all')).toBeVisible();
+  // Focus stays on the toggle after it flips.
+  await control(page, 'Collapse all').click();
+  await expect(control(page, 'Expand all')).toBeFocused();
+});
+
+test('Hide Filter/Search hides the filter row and keeps typed filters', async ({ page }) => {
+  const hideFilters = controls(page).getByLabel('Hide Filter/Search');
+  await page.locator('.ag-floating-filter[col-id="deviceType"] input').fill('Infusion Pump');
+  await expect(page.locator('.ag-row[row-id="1"]')).toHaveCount(0);
+  await hideFilters.check();
+  await expect(page.locator('.ag-floating-filter')).toHaveCount(0);
+  await expect(page.locator('.ag-row[row-id="1"]')).toHaveCount(0);
+  await hideFilters.uncheck();
+  await expect(page.locator('.ag-floating-filter[col-id="deviceType"] input')).toHaveValue(
+    'Infusion Pump',
   );
-  await expect(page.getByRole('navigation')).toHaveCount(0);
+});
+
+test('Add Row appends a blank row and announces it', async ({ page }) => {
+  await control(page, 'Add Row').click();
+  const added = page.locator('.ag-row[row-id="25"]');
+  await expect(added.first()).toBeVisible();
+  await expect(added.locator('.ag-cell[col-id="deviceType"]')).toHaveText('');
+  await expect(added.locator('app-revised-cell')).toHaveCount(0);
+  await expect(page.locator('.cdk-live-announcer-element')).toHaveText('Row 25 added.');
+});
+
+test('Full Screen toggles the table in and out of full screen', async ({ page }) => {
+  await control(page, 'Full Screen').click();
+  await expect(control(page, 'Exit Full Screen')).toBeVisible();
+  expect(await page.evaluate(() => document.fullscreenElement?.className)).toContain(
+    'equipment-demo',
+  );
+  await control(page, 'Exit Full Screen').click();
+  await expect(control(page, 'Full Screen')).toBeVisible();
+  expect(await page.evaluate(() => document.fullscreenElement)).toBeNull();
 });
 
 test('has no axe violations in the reference, collapsed, expanded and mobile layouts', async ({
   page,
 }) => {
   expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
-  await page.getByRole('button', { name: 'Collapse all', exact: true }).click();
+  await setAllGroups(page, false);
   expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
-  await page.getByRole('button', { name: 'Expand all', exact: true }).click();
+  await setAllGroups(page, true);
+  expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
+  await controls(page).getByLabel('Hide Filter/Search').check();
   expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
   await page.reload();
   await page.setViewportSize({ width: 390, height: 844 });

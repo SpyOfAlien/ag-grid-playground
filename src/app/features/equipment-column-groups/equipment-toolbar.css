@@ -1,0 +1,84 @@
+/* Tokens are inherited from app-equipment-column-groups (equipment-column-groups.css). */
+:host {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--spacing-lg);
+}
+
+.toolbar-check {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  color: var(--color-gray-800);
+  font-size: 12px;
+  line-height: 18px;
+  font-weight: 600;
+  cursor: pointer;
+
+  input {
+    width: 16px;
+    height: 16px;
+    margin: 0;
+    accent-color: var(--color-brand-600);
+    cursor: pointer;
+  }
+}
+
+.toolbar-button {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  min-height: 32px;
+  padding: var(--spacing-xs) var(--spacing-lg);
+  border: 1px solid var(--color-border-primary);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-primary);
+  color: var(--color-gray-800);
+  font: inherit;
+  font-size: 12px;
+  line-height: 18px;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+
+  &:hover:enabled {
+    background: var(--color-gray-50);
+  }
+  &:disabled {
+    background: var(--color-gray-50);
+    color: var(--color-gray-400);
+    border-color: var(--color-border-secondary);
+    cursor: not-allowed;
+  }
+}
+
+.toolbar-button-primary:enabled {
+  border-color: var(--color-brand-600);
+  color: var(--color-brand-600);
+}
+
+.toolbar-button:focus-visible,
+.toolbar-check input:focus-visible {
+  outline: 2px solid var(--color-brand-600);
+  outline-offset: 2px;
+}
+
+.toolbar-icon {
+  flex: none;
+  width: 16px;
+  height: 16px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* Separates view controls from data actions. */
+.toolbar-divider {
+  width: 1px;
+  height: 24px;
+  background: var(--color-border-secondary);
+}

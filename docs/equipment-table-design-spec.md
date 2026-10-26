@@ -1,6 +1,6 @@
 # Equipment table — design spec
 
-Design reference for the `/equipment-column-groups` demo: a full-page AG Grid table of ICU equipment with nested, collapsible column groups. The page shows only the table and a slim toolbar with **Expand all** / **Collapse all**; a visually hidden `<h1>` gives it a title and a `role="status"` paragraph announces bulk expand/collapse to screen readers.
+Design reference for the `/equipment-column-groups` demo: a full-page AG Grid table of ICU equipment with nested, collapsible column groups. The page shows only the table and a slim toolbar (`equipment-toolbar.ts`): **Hide Filter/Search**, a single **Expand all** / **Collapse all** toggle (it reads Collapse all only while every group is open), **Setting column**, **Full Screen**, then **Add Column** and **Add Row**. Setting column and Add Column are disabled placeholders; a visually hidden `<h1>` gives it a title and a `role="status"` paragraph announces bulk expand/collapse to screen readers.
 
 Code: `src/app/features/equipment-column-groups/` · Tests: `e2e/equipment-column-groups.spec.ts`.
 
@@ -70,7 +70,7 @@ app-equipment-column-groups {
 | Region | Size | Notes |
 | --- | --- | --- |
 | Page | full viewport height | the grid fills the page |
-| Toolbar | 32px buttons | padding 6px 12px, right-aligned, gap 12px, bottom border `--color-border-secondary`; buttons radius 8, 1px `--color-border-primary`, 12/18 semibold `--color-gray-800` |
+| Toolbar | 32px buttons | padding 6px 12px, right-aligned, wraps on narrow screens, gap 12px, bottom border `--color-border-secondary`; buttons radius 8, 1px `--color-border-primary`, 12/18 semibold `--color-gray-800`, 16px stroke icons; Add Column / Add Row use `--color-brand-600` border and text; a 1px divider separates view controls from data actions; disabled buttons use `--color-gray-400` on `--color-gray-50` |
 | Table header | label cell + 44px filter row | labels bottom-aligned (padding-bottom 16px) |
 | Table row | 44px | cell padding 12px |
 
