@@ -1,8 +1,9 @@
-import type { RowData } from '../tree-table.model';
+import type { RowRecord, TableRecords } from '../tree-table.model';
 
-export type SeedRow = Pick<RowData, 'path' | 'partCode'> & Partial<Omit<RowData, 'id' | 'parent'>>;
+export type SeedRow = Pick<RowRecord, 'path' | 'partCode'> &
+  Partial<Omit<RowRecord, 'id' | 'parent'>>;
 
-const DEFAULTS: Omit<RowData, 'id' | 'path' | 'parent' | 'partCode' | 'partName' | 'level'> = {
+const DEFAULTS: Omit<RowRecord, 'id' | 'path' | 'parent' | 'partCode' | 'partName' | 'level'> = {
   unit: 'pcs',
   quantity: 0,
   shippedQuantity: 0,
@@ -27,11 +28,10 @@ const DEFAULTS: Omit<RowData, 'id' | 'path' | 'parent' | 'partCode' | 'partName'
   emptiesTracked: false,
   packNotes: '',
   autoReorder: false,
-  edited: [],
 };
 
 /** Fills every field, takes the id and name from the path and marks rows that have children. */
-export function buildRows(seed: readonly SeedRow[]): RowData[] {
+export function buildRows(seed: readonly SeedRow[]): RowRecord[] {
   const key = (path: readonly string[]) => path.join('/');
   const parents = new Set(
     seed.filter((row) => row.path.length > 1).map((row) => key(row.path.slice(0, -1))),
@@ -44,4 +44,16 @@ export function buildRows(seed: readonly SeedRow[]): RowData[] {
     id: key(row.path),
     parent: parents.has(key(row.path)),
   }));
+}
+
+/**
+ * The records a table loads, as the backend sends them: the active rows, and each row as it was
+ * created. `editedSince` holds, per row id, the values users have changed since; the original
+ * puts them back.
+ */
+export function tableRecords(
+  active: readonly RowRecord[],
+  editedSince: Readonly<Record<string, Partial<RowRecord>>> = {},
+): TableRecords {
+  return { active, original: active.map((row) => ({ ...row, ...editedSince[row.id] })) };
 }

@@ -53,8 +53,17 @@ export interface RowData {
   readonly packNotes: string;
   /** The planning system sets the replenishment time. */
   readonly autoReorder: boolean;
-  /** Fields a user changed, for the "edited" marker. */
-  readonly edited: readonly (keyof RowData)[];
+  /** The row as it was created; an editable field that differs from it was edited by a user. */
+  readonly original: RowRecord;
+}
+
+/** One record as the backend sends it: a row without its original. */
+export type RowRecord = Omit<RowData, 'original'>;
+
+/** What a table loads: each row's active record, and its record as it was created. */
+export interface TableRecords {
+  readonly active: readonly RowRecord[];
+  readonly original: readonly RowRecord[];
 }
 
 /** One saved column: array order is column order. */

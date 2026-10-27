@@ -19,7 +19,7 @@ import {
 import type { TreeTablePersistence } from '../../tree-table-persistence';
 import type { Col, RowData } from '../../tree-table.model';
 import { withEdited } from './marker-rules';
-import type { Field } from './columns';
+import type { EditableField } from './columns';
 
 type P = TreeTablePersistence;
 
@@ -28,7 +28,7 @@ export type EditRule = (cell: { row: RowData }) => true | string;
 
 export interface EditOptions<V> {
   /** The row field the column shows and saves; defaults to the column id. */
-  field?: Field;
+  field?: EditableField;
   /** The rules of each marker kind; the builder adds "edited by a user". */
   markers?: Markers<RowData, V>;
   /** Defaults to the table's edit rule. */
@@ -47,19 +47,19 @@ export interface EditColumns {
     options?: EditOptions<number>,
   ): Col;
   /** A short text edited in a popover. */
-  editText(colId: Field, headerName: string, options?: EditOptions<string>): Col;
+  editText(colId: EditableField, headerName: string, options?: EditOptions<string>): Col;
   /** Longer text edited in a dialog; the cell shows the first line. */
-  editNotes(colId: Field, headerName: string, options?: EditOptions<string>): Col;
+  editNotes(colId: EditableField, headerName: string, options?: EditOptions<string>): Col;
   /** One choice from a fixed list. */
   dropdown(
-    colId: Field,
+    colId: EditableField,
     headerName: string,
     choices: readonly { value: string; label: string }[],
     options?: EditOptions<string>,
   ): Col;
   /** A switch; `hint` is its tooltip for each state. */
   toggle(
-    colId: Field,
+    colId: EditableField,
     headerName: string,
     hint: (on: boolean) => string,
     options?: EditOptions<boolean>,
@@ -69,7 +69,7 @@ export interface EditColumns {
 export function editColumns(canEdit: EditRule): EditColumns {
   return {
     editNumber: (colId, headerName, format, options = {}) => {
-      const field = options.field ?? (colId as Field);
+      const field = options.field ?? (colId as EditableField);
       const label = options.label ?? headerName;
       return {
         colId,

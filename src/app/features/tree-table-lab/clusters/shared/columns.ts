@@ -8,9 +8,11 @@ import {
   type NumberFormat,
   type TextCellParams,
 } from '@cells';
-import type { Col, RowData } from '../../tree-table.model';
+import type { Col, RowData, RowRecord } from '../../tree-table.model';
 
 export type Field = keyof RowData & string;
+/** Fields an edit can change: not the row's identity, its place in the tree or its original. */
+export type EditableField = Exclude<keyof RowRecord, 'id' | 'path' | 'parent'>;
 export type Depends = CellColumnContext<RowData>;
 
 /** A number column's display: its format and the rules of each marker kind. */

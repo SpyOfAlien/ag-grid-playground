@@ -3,7 +3,7 @@ import type { MarkerRule } from '@cells';
 import { byTable } from '../by-table';
 import type { Group, RowData } from '../tree-table.model';
 import type { ClusterContext } from './shared/cluster-context';
-import { leaf, text, WHOLE, type Depends, type Field } from './shared/columns';
+import { leaf, text, WHOLE, type Depends, type EditableField } from './shared/columns';
 
 // --- Quantity marker rules --------------------------------------------------------------------
 
@@ -26,7 +26,10 @@ export function coreCluster({ table, editNumber }: ClusterContext): Group {
         byTable(table, { default: 'Quantity', outbound: 'Shipped qty' }),
         WHOLE,
         {
-          field: byTable<Field>(table, { default: 'quantity', outbound: 'shippedQuantity' }),
+          field: byTable<EditableField>(table, {
+            default: 'quantity',
+            outbound: 'shippedQuantity',
+          }),
           markers: {
             warning: byTable(table, { outbound: [notFullyShipped] }),
           },

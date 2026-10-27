@@ -1,12 +1,12 @@
 // Shared by the BOM and inbound tables: the parts of one rear-axle module.
-import { buildRows } from './seed';
+import { buildRows, tableRecords } from './seed';
 
 const AXLE = 'Rear axle module';
 const HUB = [AXLE, 'Wheel hub assembly'];
 const BRAKE = [AXLE, 'Brake assembly'];
 const DRIVE = [AXLE, 'Drive unit'];
 
-export const bomInboundRows = () =>
+const activeRows = () =>
   buildRows([
     {
       path: [AXLE],
@@ -233,3 +233,16 @@ export const bomInboundRows = () =>
       replenishmentDays: 5,
     },
   ]);
+
+const id = (...path: string[]) => path.join('/');
+
+/** The active rows, and each row as created: users have changed these values since. */
+export const bomInboundRecords = () =>
+  tableRecords(activeRows(), {
+    [id(...HUB, 'Hub bearing')]: { emptiesTracked: false },
+    [id(...HUB, 'Wheel stud')]: { packSize: 400 },
+    [id(...BRAKE, 'Brake disc')]: { transportMode: 'Road' },
+    [id(...BRAKE, 'Brake caliper')]: { unitCost: 115 },
+    [id(...DRIVE, 'Electric motor')]: { packNotes: '' },
+    [id(...DRIVE, 'Gearbox')]: { carrier: 'Fastline' },
+  });

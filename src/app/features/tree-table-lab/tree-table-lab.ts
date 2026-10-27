@@ -8,8 +8,8 @@ import {
 import { MatButtonToggleModule } from '@angular/material/button-toggle';
 import { MatTabsModule } from '@angular/material/tabs';
 import { createEditSession } from '@cells';
-import { bomInboundRows } from './data/bom-inbound-rows';
-import { outboundRows } from './data/outbound-rows';
+import { bomInboundRecords } from './data/bom-inbound-rows';
+import { outboundRecords } from './data/outbound-rows';
 import { LAB_USERS, LabUser } from './lab-user';
 import { TableTab } from './table-tab';
 import { rowId, TreeTablePersistence } from './tree-table-persistence';
@@ -97,8 +97,11 @@ export class TreeTableLab {
 
   // Sessions live on the page, so edits survive switching tabs. BOM and inbound share one: the
   // same rows, shown through different columns.
-  private readonly bomInbound = createEditSession(new TreeTablePersistence(bomInboundRows), rowId);
-  private readonly outbound = createEditSession(new TreeTablePersistence(outboundRows), rowId);
+  private readonly bomInbound = createEditSession(
+    new TreeTablePersistence(bomInboundRecords),
+    rowId,
+  );
+  private readonly outbound = createEditSession(new TreeTablePersistence(outboundRecords), rowId);
 
   /** Each table's view, kept while its tab is closed. */
   protected readonly views: Record<TableType, WritableSignal<ViewState | undefined>> = {

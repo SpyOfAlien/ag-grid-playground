@@ -1,5 +1,5 @@
 // The outbound table: shipments to customer plants, each with its order lines.
-import { buildRows } from './seed';
+import { buildRows, tableRecords } from './seed';
 
 const LYON = 'Plant Lyon';
 const GDANSK = 'Plant Gdańsk';
@@ -7,7 +7,7 @@ const LYON_1 = [LYON, 'Shipment SH-7701'];
 const LYON_2 = [LYON, 'Shipment SH-7702'];
 const GDANSK_1 = [GDANSK, 'Shipment SH-7810'];
 
-export const outboundRows = () =>
+const activeRows = () =>
   buildRows([
     { path: [LYON], partCode: 'CUS-LYO', transportMode: 'Road', carrier: 'Nordfrakt' },
     {
@@ -156,3 +156,13 @@ export const outboundRows = () =>
       replenishmentDays: 7,
     },
   ]);
+
+const id = (...path: string[]) => path.join('/');
+
+/** The active rows, and each row as created: users have changed these values since. */
+export const outboundRecords = () =>
+  tableRecords(activeRows(), {
+    [id(...LYON_2, 'Rear axle module')]: { carrier: 'Nordfrakt' },
+    [id(...GDANSK_1, 'Drive unit')]: { unitCost: 1250 },
+    [id(...GDANSK_1, 'Wheel hub assembly')]: { packType: 'KLT 6428' },
+  });
