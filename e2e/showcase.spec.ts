@@ -22,7 +22,7 @@ test('one small table covers every edit type and resets saved changes', async ({
   await expect(cell.locator('.grid-cell-content')).toHaveText('Simple showcase');
   await page.getByRole('button', { name: 'Reset demo' }).click();
   await expect(cell.locator('.grid-cell-content')).toHaveText('Material 00001');
-  await page.getByRole('link', { name: 'Standalone popover demo' }).click();
+  await page.getByRole('main').getByRole('link', { name: 'Standalone popover demo' }).click();
   await expect(page).toHaveURL(/popover-demo$/);
 });
 
@@ -63,11 +63,14 @@ test('column grouping has its own plain table, layout reset and navigation to th
   await expect(id).toHaveAttribute('aria-sort', 'none');
   await expect(id).toHaveAttribute('aria-colindex', '1');
   expect(await id.evaluate((element) => element.getBoundingClientRect().width)).toBe(130);
-  await page.getByRole('link', { name: 'Cell system demo', exact: true }).click();
+  await page.getByRole('main').getByRole('link', { name: 'Cell system demo', exact: true }).click();
   await expect(page).toHaveURL(/\/grid-demo$/);
   await expect(page.getByRole('heading', { name: 'Cell editor showcase' })).toBeVisible();
   await expect(page.locator('ag-grid-angular')).toHaveCount(1);
-  await page.getByRole('link', { name: 'Column grouping demo', exact: true }).click();
+  await page
+    .getByRole('main')
+    .getByRole('link', { name: 'Column grouping demo', exact: true })
+    .click();
   await expect(page).toHaveURL(/\/column-group-demo$/);
   await expect(page.locator('app-ungroup-header')).toHaveCount(0);
 });
