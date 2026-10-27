@@ -1,4 +1,10 @@
 import { ChangeDetectionStrategy, Component, input, model, output } from '@angular/core';
+import {
+  EquipmentColumnsMenu,
+  type EquipmentColumnCheckbox,
+  type EquipmentGroupMode,
+  type EquipmentGroupSwitch,
+} from './equipment-columns-menu';
 
 // Tailwind classes, written out in full so Tailwind can find them when scanning.
 // Tokens (--color-*, --radius-md) come from equipment-column-groups.css.
@@ -10,50 +16,29 @@ const ICON =
   'size-4 flex-none fill-none stroke-current stroke-2 [stroke-linecap:round] [stroke-linejoin:round]';
 
 /**
- * Table controls above the equipment table: view controls (filter row, column groups,
- * column settings, full screen) and data actions (add column, add row).
- * Setting column and Add Column are placeholders until those features exist.
+ * Table controls for the equipment table, shown above it and again mid-page below it: view
+ * controls (the Columns menu, which holds every column control, and full screen) and data
+ * actions (add row).
  */
 @Component({
   selector: 'app-equipment-toolbar',
+  imports: [EquipmentColumnsMenu],
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: {
     role: 'group',
-    'aria-label': 'Table controls',
+    '[attr.aria-label]': 'label()',
     class: 'flex flex-wrap items-center justify-end gap-3',
   },
   template: `
-    <label
-      class="inline-flex items-center gap-2 text-[12px] leading-[18px] font-semibold text-[var(--color-gray-800)] cursor-pointer"
-    >
-      <input
-        #filterCheckbox
-        type="checkbox"
-        class="m-0 size-4 cursor-pointer accent-brand-600 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600"
-        [checked]="filtersHidden()"
-        (change)="filtersHidden.set(filterCheckbox.checked)"
-      />
-      Hide Filter/Search
-    </label>
-    <button type="button" class="${BUTTON}" (click)="groupsToggle.emit()">
-      <svg class="${ICON}" viewBox="0 0 24 24" aria-hidden="true">
-        @if (groupsExpanded()) {
-          <path d="M7 20l5-5 5 5M7 4l5 5 5-5" />
-        } @else {
-          <path d="M7 15l5 5 5-5M7 9l5-5 5 5" />
-        }
-      </svg>
-      {{ groupsExpanded() ? 'Collapse all' : 'Expand all' }}
-    </button>
-    <button type="button" class="${BUTTON}" disabled>
-      <svg class="${ICON}" viewBox="0 0 24 24" aria-hidden="true">
-        <path d="M4 6h9M17 6h3M4 12h3M11 12h9M4 18h11M19 18h1" />
-        <circle cx="15" cy="6" r="2" />
-        <circle cx="9" cy="12" r="2" />
-        <circle cx="17" cy="18" r="2" />
-      </svg>
-      Setting column
-    </button>
+    <app-equipment-columns-menu
+      [groups]="groups()"
+      [columns]="columns()"
+      [groupMode]="groupMode()"
+      [(filtersHidden)]="filtersHidden"
+      (groupModeSet)="groupModeSet.emit($event)"
+      (groupSet)="groupSet.emit($event)"
+      (columnSet)="columnSet.emit($event)"
+    />
     <button type="button" class="${BUTTON}" (click)="fullScreenToggle.emit()">
       <svg class="${ICON}" viewBox="0 0 24 24" aria-hidden="true">
         @if (fullScreen()) {
@@ -66,22 +51,25 @@ const ICON =
     </button>
     <!-- Separates view controls from data actions. -->
     <span class="h-6 w-px bg-[var(--color-border-secondary)]" aria-hidden="true"></span>
-    <button type="button" class="${PRIMARY_BUTTON}" disabled>
-      <svg class="${ICON}" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>
-      Add Column
-    </button>
     <button type="button" class="${PRIMARY_BUTTON}" (click)="rowAdd.emit()">
-      <svg class="${ICON}" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>
+      <svg class="${ICON}" viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M12 5v14M5 12h14" />
+      </svg>
       Add Row
     </button>
   `,
 })
 export class EquipmentToolbar {
-  /** True when every column group is open; the toggle then offers Collapse all. */
-  readonly groupsExpanded = input.required<boolean>();
+  /** Names this toolbar apart from the other copy of it. */
+  readonly label = input.required<string>();
+  readonly groups = input.required<readonly EquipmentGroupSwitch[]>();
+  readonly columns = input.required<readonly EquipmentColumnCheckbox[]>();
+  readonly groupMode = input.required<EquipmentGroupMode>();
   readonly fullScreen = input(false);
   readonly filtersHidden = model(false);
-  readonly groupsToggle = output();
+  readonly groupModeSet = output<EquipmentGroupMode>();
+  readonly groupSet = output<{ code: string; open: boolean }>();
+  readonly columnSet = output<{ code: string; visible: boolean }>();
   readonly fullScreenToggle = output();
   readonly rowAdd = output();
 }
