@@ -1,3 +1,5 @@
+> **Original design reference.** This is the first design for the tree tables, kept for its reasoning; its code is not kept in sync. For the code as it is now, see [tree-table-column-layouts.md](../tree-table-column-layouts.md).
+
 AG Grid Tree Tables – Final Solution
 Angular + AG Grid Enterprise. Tables: BOM, inbound, outbound.
 Structure: table → mode → sub-mode → clusters → columns
