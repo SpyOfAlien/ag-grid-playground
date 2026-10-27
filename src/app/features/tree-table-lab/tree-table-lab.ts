@@ -1,28 +1,21 @@
-import {
-  ChangeDetectionStrategy,
-  Component,
-  inject,
-  signal,
-  type WritableSignal,
-} from '@angular/core';
-import { MatButtonToggleModule } from '@angular/material/button-toggle';
+import { ChangeDetectionStrategy, Component, signal, type WritableSignal } from '@angular/core';
 import { MatTabsModule } from '@angular/material/tabs';
 import { createEditSession } from '@cells';
 import { bomInboundRecords } from './data/bom-inbound-rows';
 import { outboundRecords } from './data/outbound-rows';
-import { LAB_USERS, LabUser } from './lab-user';
+import { SESSION_USER } from './layout-api/column-layout-api.interceptor';
 import { TableTab } from './table-tab';
 import { rowId, TreeTablePersistence } from './tree-table-persistence';
 import type { TableType, ViewState } from './tree-table.model';
 import { resolveView } from './views';
 
 /**
- * Three tree tables in tabs, to check which columns each view shows and that the user's column
- * choices are saved per user, table, mode and sub-mode.
+ * Three tree tables in tabs, to check which columns each view shows and that the signed-in user's
+ * column choices are saved per table, mode and sub-mode.
  */
 @Component({
   selector: 'app-tree-table-lab',
-  imports: [MatButtonToggleModule, MatTabsModule, TableTab],
+  imports: [MatTabsModule, TableTab],
   template: `
     <main class="page">
       <header class="header">
@@ -30,22 +23,10 @@ import { resolveView } from './views';
           <h1>Tree table lab</h1>
           <p class="hint">
             Switch mode and sub-mode, then hide or show columns from the Columns panel on the grid's
-            right edge. Each view keeps its own choice per user.
+            right edge. Each view keeps its own choice.
           </p>
         </div>
-        <div class="user">
-          <span id="lab-user-label">Signed in as</span>
-          <mat-button-toggle-group
-            hideSingleSelectionIndicator
-            aria-labelledby="lab-user-label"
-            [value]="user.id()"
-            (change)="user.id.set($event.value)"
-          >
-            @for (id of users; track id) {
-              <mat-button-toggle [value]="id">{{ id }}</mat-button-toggle>
-            }
-          </mat-button-toggle-group>
-        </div>
+        <p class="user">Signed in with SSO as {{ user }}</p>
       </header>
 
       <mat-tab-group mat-stretch-tabs="false" animationDuration="0ms">
@@ -85,16 +66,12 @@ import { resolveView } from './views';
       max-width: 720px;
     }
     .user {
-      display: flex;
-      align-items: center;
-      gap: 12px;
+      margin: 0;
     }
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class TreeTableLab {
-  protected readonly user = inject(LabUser);
-
   // Sessions live on the page, so edits survive switching tabs. BOM and inbound share one: the
   // same rows, shown through different columns.
   private readonly bomInbound = createEditSession(
@@ -110,7 +87,7 @@ export class TreeTableLab {
     outbound: signal(resolveView('outbound')),
   };
 
-  protected readonly users = LAB_USERS;
+  protected readonly user = SESSION_USER;
   protected readonly tabs = [
     { table: 'bom', label: 'BOM', session: this.bomInbound },
     { table: 'inbound', label: 'Inbound', session: this.bomInbound },

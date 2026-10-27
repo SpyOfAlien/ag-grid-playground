@@ -25,7 +25,6 @@ import {
   savedColumns,
   toolPanelLayout,
 } from './column-layout';
-import { LabUser } from './lab-user';
 import type { TreeTablePersistence } from './tree-table-persistence';
 import type { RowData, TableType, ViewState } from './tree-table.model';
 import { resolveView } from './views';
@@ -95,7 +94,6 @@ interface Applied {
 })
 export class TreeTable {
   private readonly layouts = inject(ColumnLayoutService);
-  private readonly user = inject(LabUser);
 
   readonly tableType = input.required<TableType>();
   readonly session = input.required<EditSession<RowData, TreeTablePersistence>>();
@@ -119,7 +117,7 @@ export class TreeTable {
       onGridReady: ({ api }) => {
         api.setGridAriaProperty('label', `${untracked(this.tableType)} table`);
         this.api = api;
-        this.show(untracked(this.resolvedView), untracked(this.user.id));
+        this.show();
       },
       onGridPreDestroyed: () => (this.api = undefined),
       // The tool panel is built lazily; give it this view's layout once it opens.
@@ -136,14 +134,13 @@ export class TreeTable {
   private applying = false;
   /** The view whose layout the grid shows now; user changes are saved under its key. */
   private applied: Applied | null = null;
-  private loadedUser: string | null = null;
-  private loadingUser: string | null = null;
+  /** The saved layouts are loading; the view shown once they arrive is the one current then. */
+  private loading = false;
 
   constructor() {
     effect(() => {
-      const view = this.resolvedView();
-      const user = this.user.id();
-      untracked(() => this.show(view, user));
+      this.resolvedView();
+      untracked(() => this.show());
     });
   }
 
@@ -153,16 +150,15 @@ export class TreeTable {
     this.layouts.reset(key).subscribe(() => this.applyLayout(this.resolvedView()));
   }
 
-  /** Applies the view's layout, loading the user's saved layouts first when needed. */
-  private show(view: ViewState | undefined, user: string): void {
-    if (!this.api) return;
-    if (this.loadedUser === user) return this.applyLayout(view);
-    if (this.loadingUser === user) return;
-    this.loadingUser = user;
-    this.layouts.loadAll(this.tableType()).subscribe(() => {
-      if (this.user.id() !== user) return;
-      this.loadedUser = user;
-      this.loadingUser = null;
+  /**
+   * Applies the current view's layout, loading the saved layouts first when needed. If they fail
+   * to load, the view shows its defaults.
+   */
+  private show(): void {
+    if (!this.api || this.loading) return;
+    this.loading = true;
+    this.layouts.load(this.tableType()).subscribe(() => {
+      this.loading = false;
       this.applyLayout(this.resolvedView());
     });
   }
@@ -180,8 +176,8 @@ export class TreeTable {
     this.syncToolPanel();
     this.applying = false;
 
-    // The user has nothing saved for this view yet: store what they see now.
-    if (!saved) this.layouts.save(key, savedColumns(table, view, api.getColumnState()));
+    // Nothing is saved until the user changes a column, so a view they never touched follows
+    // later changes to its defaults.
     this.layoutKeyChange.emit(key);
     this.emitVisible();
   }

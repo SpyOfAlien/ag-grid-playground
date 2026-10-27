@@ -21,6 +21,8 @@ export class ColumnLayoutStore {
   private readonly log = signal<readonly ApiCall[]>([]);
   private nextCall = 1;
 
+  /** Answer every GET with an error, to check the table falls back to its defaults. */
+  readonly failLoads = signal(false);
   readonly data = this.db.asReadonly();
   readonly calls = this.log.asReadonly();
 

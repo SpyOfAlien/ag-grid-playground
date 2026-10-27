@@ -1,15 +1,6 @@
-import {
-  ChangeDetectionStrategy,
-  Component,
-  computed,
-  inject,
-  input,
-  model,
-  signal,
-} from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, input, model, signal } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import type { EditSession } from '@cells';
-import { LabUser } from './lab-user';
 import { LayoutInspector } from './layout-inspector';
 import { TreeTable, type VisibleColumn } from './tree-table';
 import type { TreeTablePersistence } from './tree-table-persistence';
@@ -54,7 +45,7 @@ import { hasModes } from './views';
           </ul>
         </section>
       </div>
-      <app-layout-inspector [user]="user.id()" [layoutKey]="layoutKey()" />
+      <app-layout-inspector [layoutKey]="layoutKey()" />
     </div>
   `,
   styles: `
@@ -113,8 +104,6 @@ import { hasModes } from './views';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class TableTab {
-  protected readonly user = inject(LabUser);
-
   readonly table = input.required<TableType>();
   readonly session = input.required<EditSession<RowData, TreeTablePersistence>>();
   readonly view = model<ViewState | undefined>();

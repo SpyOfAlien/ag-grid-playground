@@ -1,6 +1,6 @@
 # Tree table column layouts — views, scope and saved layouts
 
-How the `/tree-table-lab` tables decide which columns to show, and how each user's column choices are saved per table, mode and sub-mode.
+How the `/tree-table-lab` tables decide which columns to show, and how the signed-in user's column choices are saved per table, mode and sub-mode.
 
 Code: `src/app/features/tree-table-lab/` · Route: `/tree-table-lab` · Fake API: `layout-api/`
 
@@ -12,6 +12,8 @@ The lab has three AG Grid tree tables in tabs: **BOM**, **Inbound** and **Outbou
 - Inbound and Outbound have **modes** (Transportation, Packaging, Days on hand, Capital employed, Replenishment time). Some modes have **sub-modes** (Transportation → All / Transportation / Empties).
 
 Each view puts a set of **clusters** (column groups) in scope. Columns out of scope are hidden and cannot be turned on. Columns in scope can be hidden, shown, moved and resized by the user from the Columns panel, and that layout is saved **per user, per table, per mode and sub-mode**.
+
+Users sign in with SSO. The server knows the user from the session, so the client never names one: there is no user switch, and no request carries a user id.
 
 The grid's column defs are set once and never change. A view switch only applies column state, so the grid is never rebuilt: filters, sorting, expansion and selection survive it.
 
@@ -28,22 +30,21 @@ The grid's column defs are set once and never change. A view switch only applies
 
 ## 3. Files
 
-| File                       | Role                                                                       |
-| -------------------------- | -------------------------------------------------------------------------- |
-| `tree-table-lab.ts`        | Page: user switch, tabs, the edit sessions and each table's view           |
-| `table-tab.ts`             | One tab: view switcher, reset button, grid, visible-column list, inspector |
-| `view-switcher.ts`         | Mode and sub-mode toggle buttons                                           |
-| `views.ts`                 | Modes, sub-modes and which clusters each view puts in scope                |
-| `clusters/index.ts`        | Cluster registry and display order                                         |
-| `clusters/<name>.ts`       | One cluster each                                                           |
-| `clusters/shared/`         | Column builders, edit builders, the per-table context, shared marker rules |
-| `by-table.ts`              | `byTable()`: pick a per-table value at build time                          |
-| `column-layout.ts`         | Pure functions: column defs per table, layout key, column state for a view |
-| `column-layout.service.ts` | Loads, caches and saves layouts over HTTP                                  |
-| `tree-table.ts`            | The grid: applies a view's layout and saves user changes                   |
-| `layout-api/`              | In-memory fake backend (interceptor + store)                               |
-| `layout-inspector.ts`      | Shows the saved JSON, the user's keys and the API calls                    |
-| `lab-user.ts`              | The signed-in user (`anna` or `ben`)                                       |
+| File                       | Role                                                                        |
+| -------------------------- | --------------------------------------------------------------------------- |
+| `tree-table-lab.ts`        | Page: tabs, the edit sessions and each table's view                         |
+| `table-tab.ts`             | One tab: view switcher, reset button, grid, visible-column list, inspector  |
+| `view-switcher.ts`         | Mode and sub-mode toggle buttons                                            |
+| `views.ts`                 | Modes, sub-modes and which clusters each view puts in scope                 |
+| `clusters/index.ts`        | Cluster registry and display order                                          |
+| `clusters/<name>.ts`       | One cluster each                                                            |
+| `clusters/shared/`         | Column builders, edit builders, the per-table context, shared marker rules  |
+| `by-table.ts`              | `byTable()`: pick a per-table value at build time                           |
+| `column-layout.ts`         | Pure functions: column defs per table, layout key, column state for a view  |
+| `column-layout.service.ts` | Loads, caches and saves layouts over HTTP                                   |
+| `tree-table.ts`            | The grid: applies a view's layout and saves user changes                    |
+| `layout-api/`              | In-memory fake backend (interceptor + store); `SESSION_USER` is its session |
+| `layout-inspector.ts`      | Shows the saved JSON, the user's keys and the API calls; can fail loads     |
 
 ## 4. Declaring columns
 
@@ -146,24 +147,25 @@ AG Grid reads `initialHide` only when the grid is created; later visibility come
 ### 5.2 Flow
 
 ```
-onGridReady ──┐
-effect(view, user) ──┴─► show(view, user)
-                          ├─ user's layouts not loaded? → GET /api/column-layouts/<table> → applyLayout(current view)
-                          └─ loaded → applyLayout(view)
+onGridReady ───┐
+effect(view) ──┴─► show()
+                    └─ layouts.load(table)          // GET once per table; cached afterwards
+                         └─ applyLayout(current view)
 
 applyLayout(view)
   key   = layoutKey(table, view)
-  saved = layouts.get(key)
+  saved = layouts.get(key)    // undefined: nothing saved, or the load failed
   applying = true
   api.applyColumnState({ state: buildColumnState(table, view, saved), applyOrder: true })
   applied = { key, view }
   syncToolPanel()            // Columns panel lists only this view's clusters
   applying = false
-  if (!saved) layouts.save(key, savedColumns(...))   // first visit: PUT the defaults
   emit layoutKey and visible columns
 ```
 
-`show` loads each user's layouts once per table; `loadingUser` stops a second `GET` while one is in flight. After the `GET` it applies the view current at that moment, not the one that started the load.
+- `load` answers at once once a table has loaded. While a `GET` is in flight, `loading` ignores further view switches; when it returns, the grid applies the view current at that moment, not the one that started the load.
+- **A failed `GET`** emits `false` and caches nothing, so the view shows its defaults. The table is not marked loaded, so the next view switch tries the `GET` again.
+- **Nothing is saved on a visit.** A view the user never changed has no saved layout and follows its defaults, including later changes to them.
 
 ### 5.3 `buildColumnState`
 
@@ -187,7 +189,7 @@ safetyStock  hide:true   width:120   own default
 …every other column   hide:true      out of scope
 ```
 
-`savedColumns` then saves the five in-scope columns under `inbound:daysOnHand`.
+Nothing is saved yet. Once the user changes a column, `savedColumns` saves the five in-scope columns under `inbound:daysOnHand`.
 
 ## 6. Saving
 
@@ -199,7 +201,7 @@ layoutKey('inbound', { mode: 'daysOnHand' }); // inbound:daysOnHand
 layoutKey('inbound', { mode: 'transport', subMode: 'all' }); // inbound:transport:all
 ```
 
-One saved layout per user per key. The key is used for the cache (`user|key`), the API URL, the per-key save timer, reset, and the inspector. Because the sub-mode is part of the key, Transportation → All and Transportation → Empties are separate layouts even though they share columns. The key starts with the table so `GET /<table>` can return a table's layouts by prefix. The user is not in the key; it goes in the `X-Lab-User` header.
+One saved layout per user per key. The key is used for the cache, the API URL, the per-key save timer, reset, and the inspector. Because the sub-mode is part of the key, Transportation → All and Transportation → Empties are separate layouts even though they share columns. The key starts with the table so `GET /<table>` can return a table's layouts by prefix. The user is not in the key: the server stores layouts by the session's user and key.
 
 ### 6.2 User changes
 
@@ -212,23 +214,24 @@ It saves `savedColumns(table, applied.view, api.getColumnState())` under `applie
 
 ### 6.3 `ColumnLayoutService`
 
-| Method                   | Does                                                                                        |
-| ------------------------ | ------------------------------------------------------------------------------------------- |
-| `loadAll(table)`         | `GET` the user's layouts for the table and cache them; skips keys with a save still pending |
-| `get(key)`               | Cached layout for the current user                                                          |
-| `save(key, layout)`      | Cache and `PUT` now (first layout of a view)                                                |
-| `queueSave(key, layout)` | Cache now, `PUT` after 500 ms of no further change; one timer per user and key              |
-| `reset(key)`             | Cancel pending save, drop from cache, `DELETE`                                              |
+| Method                   | Does                                                                                                                                                         |
+| ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `load(table)`            | `GET` the table's layouts once and cache them, skipping keys with a save still pending. Emits `true`, or `false` if the `GET` failed (tried again next call) |
+| `get(key)`               | Cached layout                                                                                                                                                |
+| `queueSave(key, layout)` | Cache now, `PUT` after 500 ms of no further change; one timer per key                                                                                        |
+| `reset(key)`             | Cancel pending save, drop from cache, `DELETE`                                                                                                               |
+
+On `pagehide` the service sends every save still waiting at once, with `keepalive` so the request outlives the page. `keepalive` needs the fetch backend, so `app.config.ts` provides `HttpClient` with `withFetch()`.
 
 ### 6.4 API
 
-| Method   | URL                          | Body / response                               |
-| -------- | ---------------------------- | --------------------------------------------- |
-| `GET`    | `/api/column-layouts/:table` | `{ [layoutKey]: SavedColumn[] }` for the user |
-| `PUT`    | `/api/column-layouts/:key`   | `SavedColumn[]` → 204                         |
-| `DELETE` | `/api/column-layouts/:key`   | 204                                           |
+| Method   | URL                          | Body / response                                         |
+| -------- | ---------------------------- | ------------------------------------------------------- |
+| `GET`    | `/api/column-layouts/:table` | `{ [layoutKey]: SavedColumn[] }` for the session's user |
+| `PUT`    | `/api/column-layouts/:key`   | `SavedColumn[]` → 204                                   |
+| `DELETE` | `/api/column-layouts/:key`   | 204                                                     |
 
-All need the `X-Lab-User` header (else 401). In the lab, `columnLayoutApiInterceptor` (registered in `app.config.ts`) answers from `ColumnLayoutStore` with 150 ms latency. The store is memory only: **a reload clears every layout.**
+The server takes the user from the SSO session; a request without one is the auth layer's 401. In the lab, `columnLayoutApiInterceptor` (registered in `app.config.ts`) answers from `ColumnLayoutStore` with 150 ms latency, as `SESSION_USER` (`anna`). The store is memory only: **a reload clears every layout.**
 
 ## 7. How to use
 
@@ -240,12 +243,12 @@ npm start
 
 Open `http://127.0.0.1:4200/tree-table-lab`, then:
 
-1. On **Inbound** as **anna**, the API log shows `GET /inbound` and `PUT inbound:transport:all`.
-2. Pick sub-mode **Empties**: only Item and Empties show; a new key is saved.
-3. Open **Columns** on the grid's right edge and hide a column: about 0.5 s later a `PUT` appears and the saved JSON changes.
+1. Open **Inbound**: the API log shows `GET /inbound` and nothing else; the store is empty.
+2. Pick sub-mode **Empties**: only Item and Empties show. Nothing is saved.
+3. Open **Columns** on the grid's right edge and hide a column: about 0.5 s later a `PUT` appears and the saved JSON shows.
 4. Go to **All** and back to **Empties**: each keeps its own choice.
-5. Switch to **ben**: a fresh `GET`, defaults, an empty store. Back to **anna**: her layout is still there.
-6. **Reset this view to default**: `DELETE`, then a `PUT` of the defaults.
+5. **Reset this view to default**: `DELETE`, the defaults come back, and nothing is saved.
+6. Tick **Fail layout loads**, then open **Outbound** (not loaded yet): the `GET` fails and the default view shows. Untick it and switch mode: the `GET` runs again and saved layouts apply.
 
 ### 7.2 Add a column to a cluster
 
@@ -271,7 +274,7 @@ Use `byTable(table, …)` inside the cluster for the header, field, markers or e
 
 ### 7.6 Use a real backend
 
-Remove `columnLayoutApiInterceptor` from `app.config.ts` and serve the three endpoints in §6.4, taking the user from the session instead of `X-Lab-User`. `ColumnLayoutService` needs no change beyond the header.
+Remove `columnLayoutApiInterceptor` and `ColumnLayoutStore`, and serve the three endpoints in §6.4, storing layouts by the session's user and key. `ColumnLayoutService` needs no change: the app's SSO interceptor or session cookie authenticates its requests. If the app can switch accounts without a page reload, clear the service's cache on sign-out.
 
 ## 8. Rules
 
@@ -284,4 +287,7 @@ Remove `columnLayoutApiInterceptor` from `app.config.ts` and serve the three end
 
 ## 9. Tests
 
-`clusters/shared/marker-rules.spec.ts` covers the shared marker rules. Nothing tests the layout flow yet; `buildColumnState`, `savedColumns`, `layoutKey`, `clustersInScope` and `resolveView` are pure functions and the natural place to start.
+- `clusters/shared/marker-rules.spec.ts` covers the shared marker rules.
+- `column-layout.service.spec.ts` covers the service: no user is sent, one load per table, a failed load, a waiting change winning over the server copy, the save delay, the `pagehide` send, and reset.
+
+`buildColumnState`, `savedColumns`, `layoutKey`, `clustersInScope` and `resolveView` are pure functions and not tested yet.

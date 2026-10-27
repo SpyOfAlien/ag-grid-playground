@@ -5,12 +5,16 @@ import type { SavedColumn } from '../tree-table.model';
 import { ColumnLayoutStore } from './column-layout-store';
 
 export const LAYOUT_API = '/api/column-layouts';
-export const USER_HEADER = 'X-Lab-User';
+/**
+ * The user the SSO session belongs to. A real server reads it from the session cookie or token;
+ * the client never sends it.
+ */
+export const SESSION_USER = 'anna';
 const LATENCY = 150;
 
 /**
  * Answers the column-layout endpoints from the in-memory store, like a server would:
- *   GET    /api/column-layouts/:table → { [layoutKey]: SavedColumn[] } for the user
+ *   GET    /api/column-layouts/:table → { [layoutKey]: SavedColumn[] } for the session's user
  *   PUT    /api/column-layouts/:key   ← SavedColumn[]
  *   DELETE /api/column-layouts/:key
  * Every other request goes to the real HTTP chain.
@@ -19,9 +23,8 @@ export const columnLayoutApiInterceptor: HttpInterceptorFn = (request, next) => 
   if (!request.url.startsWith(`${LAYOUT_API}/`)) return next(request);
 
   const store = inject(ColumnLayoutStore);
-  const user = request.headers.get(USER_HEADER);
   const id = decodeURIComponent(request.url.slice(LAYOUT_API.length + 1));
-  store.record(request.method, request.url, user ?? '(none)');
+  store.record(request.method, request.url, SESSION_USER);
 
   const respond = (body: unknown) =>
     timer(LATENCY).pipe(mergeMap(() => of(new HttpResponse({ status: 200, body }))));
@@ -30,21 +33,22 @@ export const columnLayoutApiInterceptor: HttpInterceptorFn = (request, next) => 
       mergeMap(() => throwError(() => new HttpErrorResponse({ status, error: { message } }))),
     );
 
-  if (!user) return fail(401, 'No user.');
   switch (request.method) {
     case 'GET':
-      return respond(store.layoutsFor(user, id));
+      return store.failLoads()
+        ? fail(503, 'Layouts are unavailable.')
+        : respond(store.layoutsFor(SESSION_USER, id));
     case 'PUT':
       return timer(LATENCY).pipe(
         mergeMap(() => {
-          store.put(user, id, request.body as SavedColumn[]);
+          store.put(SESSION_USER, id, request.body as SavedColumn[]);
           return of(new HttpResponse({ status: 204 }));
         }),
       );
     case 'DELETE':
       return timer(LATENCY).pipe(
         mergeMap(() => {
-          store.remove(user, id);
+          store.remove(SESSION_USER, id);
           return of(new HttpResponse({ status: 204 }));
         }),
       );
