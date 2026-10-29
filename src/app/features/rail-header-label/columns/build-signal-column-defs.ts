@@ -3,6 +3,7 @@ import { buildSignalStructureTree } from '../signal-structure-tree';
 import type { SignalColumn, SignalGroup, SignalRow, SignalStructureNode } from '../signal.model';
 import { FilterRowCell, type FilterRowCellParams } from '../renderers/filter-row-cell';
 import { RailLabelHeader } from '../rail-label-header';
+import { ColumnHeaderLabel } from '../edit/column-header-label';
 
 export const ROW_NO_COL_ID = '__rowNo';
 export const REVISION_COL_ID = '__revision';
@@ -82,6 +83,8 @@ function toLeafColDef(
     floatingFilterComponent: FilterRowCell,
     floatingFilterComponentParams: filterParams,
     suppressFloatingFilterButton: true,
+    // The name, with the edit-mode checkbox; AG Grid keeps its own header icons around it.
+    headerComponentParams: { innerHeaderComponent: ColumnHeaderLabel },
   };
 }
 

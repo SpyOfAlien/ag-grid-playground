@@ -129,3 +129,153 @@ test('passes axe, collapsed and expanded', async ({ page }) => {
     expect(results.violations, state).toEqual([]);
   }
 });
+
+test.describe('edit mode: header checkboxes and Replace Value', () => {
+  const header = (page: Page, colId: string) =>
+    page.locator(`.ag-header-cell[col-id="${colId}"]:not(.ag-floating-filter)`);
+  const tick = (page: Page, name: string) =>
+    page.getByRole('checkbox', { name: `Tick ${name} for Replace Value` });
+  const dialog = (page: Page) => page.getByRole('dialog', { name: 'Replace Value' });
+  const chips = (page: Page) => dialog(page).locator('.p-chip-label');
+  const cellText = (page: Page, rowIndex: number, colId: string) =>
+    page.locator(`.ag-row[row-index="${rowIndex}"] [col-id="${colId}"]`).textContent();
+
+  /**
+   * Right-click where the header is on screen. locator.click() would first scroll it into view,
+   * and for the sticky header that scrolls the table back to the top.
+   */
+  async function rightClick(page: Page, colId: string): Promise<void> {
+    const box = (await header(page, colId).boundingBox())!;
+    await page.mouse.click(box.x + box.width / 2, box.y + box.height - 16, { button: 'right' });
+  }
+
+  async function openReplaceFrom(page: Page, colId: string): Promise<void> {
+    await rightClick(page, colId);
+    await page.getByRole('menuitem', { name: 'Replace Value' }).click();
+    await expect(dialog(page)).toBeVisible();
+    // Let the menu and the popup finish animating (axe reads colours mid-fade otherwise).
+    await expect(page.locator('.p-contextmenu')).toHaveCount(0);
+    await expect(dialog(page)).toHaveCSS('opacity', '1');
+  }
+
+  test.beforeEach(async ({ page }) => {
+    await page.getByRole('button', { name: 'Edit' }).click();
+  });
+
+  test('data column headers get a checkbox; No#, Revision and rails do not', async ({ page }) => {
+    await expect(tick(page, 'Signal Type')).toBeVisible();
+    await expect(header(page, '__rowNo').getByRole('checkbox')).toHaveCount(0);
+    await expect(header(page, '__revision').getByRole('checkbox')).toHaveCount(0);
+    await expect(page.locator('.ag-header-cell.signal-rail').getByRole('checkbox')).toHaveCount(0);
+    await tick(page, 'Signal Type').check();
+    await page.getByRole('button', { name: 'Done' }).click();
+    await expect(page.locator('app-column-header-label p-checkbox')).toHaveCount(0);
+    // Leaving edit mode clears the ticks.
+    await page.getByRole('button', { name: 'Edit' }).click();
+    await expect(tick(page, 'Signal Type')).not.toBeChecked();
+  });
+
+  test('right-click on a data header opens a menu with only Replace Value', async ({ page }) => {
+    await rightClick(page, 'signalType');
+    await expect(page.getByRole('menuitem')).toHaveText(['Replace Value']);
+    await page.keyboard.press('Escape');
+    await expect(page.getByRole('menuitem')).toHaveCount(0);
+    // Not on columns without a checkbox, nor outside edit mode.
+    await rightClick(page, '__rowNo');
+    await expect(page.getByRole('menuitem')).toHaveCount(0);
+    await page.getByRole('button', { name: 'Done' }).click();
+    await rightClick(page, 'signalType');
+    await expect(page.getByRole('menuitem')).toHaveCount(0);
+  });
+
+  test('the popup starts with the right-clicked and ticked columns, in table order', async ({
+    page,
+  }) => {
+    await tick(page, 'Equipment Type').check();
+    await tick(page, 'Signal Type').check();
+    await openReplaceFrom(page, 'areaShort');
+    await expect(chips(page)).toHaveText([
+      'Signal Type',
+      'Area Ref/Bay Ref Short Name',
+      'Equipment Type',
+    ]);
+  });
+
+  test('Confirm needs a value and a column; columns are added and removed', async ({ page }) => {
+    await openReplaceFrom(page, 'signalType');
+    const confirm = dialog(page).getByRole('button', { name: 'Confirm' });
+    await expect(confirm).toBeDisabled();
+    await dialog(page).getByRole('textbox', { name: 'Value' }).fill('   ');
+    await expect(confirm).toBeDisabled();
+    await dialog(page).getByRole('textbox', { name: 'Value' }).fill('Mix');
+    await expect(confirm).toBeEnabled();
+    await dialog(page)
+      .getByRole('button', { name: /remove/i })
+      .click();
+    await expect(chips(page)).toHaveCount(0);
+    await expect(confirm).toBeDisabled();
+    await dialog(page).getByRole('combobox', { name: 'Search or add a Column' }).fill('remar');
+    await dialog(page).getByRole('button', { name: 'Add Column' }).click();
+    await expect(chips(page)).toHaveText(['Remarks']);
+    await expect(confirm).toBeEnabled();
+  });
+
+  test('Replace is a draft on loaded rows, kept in place, and on rows loaded later', async ({
+    page,
+  }) => {
+    await scrollGrid(page, 200, 0);
+    const scrollTop = () =>
+      page.evaluate(() => document.querySelector('.ag-grid-viewport')!.scrollTop);
+    // The grid settles the offset while the next blocks load; measure once it has.
+    let before = -1;
+    await expect
+      .poll(async () => {
+        const now = await scrollTop();
+        const settled = now === before;
+        before = now;
+        return settled;
+      })
+      .toBe(true);
+    await openReplaceFrom(page, 'signalType');
+    await dialog(page).getByRole('textbox', { name: 'Value' }).fill('Mix');
+    await dialog(page).getByRole('button', { name: 'Confirm' }).click();
+    await expect(dialog(page)).toBeHidden();
+    await expect.poll(() => cellText(page, 5, 'signalType')).toBe('Mix');
+    // No reload: the table kept its scroll position.
+    expect(await scrollTop()).toBe(before);
+    // Row 59 is in a block (20 rows each) not loaded when Replace was confirmed.
+    await expect(page.locator('.ag-row[row-index="59"]')).toHaveCount(0);
+    await scrollGrid(page, 99999, 0);
+    await expect.poll(() => cellText(page, 59, 'signalType')).toBe('Mix');
+    // Other columns are untouched.
+    expect(await cellText(page, 59, 'equipmentType')).not.toBe('Mix');
+  });
+
+  test('from the keyboard: the menu opens under the header, focus comes back', async ({ page }) => {
+    await header(page, 'signalType').focus();
+    // The context-menu key / Shift+F10: a contextmenu event without a pointer position.
+    await header(page, 'signalType').evaluate((el) =>
+      el.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, clientX: 0, clientY: 0 })),
+    );
+    const menu = page.getByRole('menu');
+    await expect(menu).toBeVisible();
+    const headerBox = (await header(page, 'signalType').boundingBox())!;
+    const menuBox = (await menu.boundingBox())!;
+    expect(Math.abs(menuBox.y - (headerBox.y + headerBox.height))).toBeLessThan(8);
+    await page.keyboard.press('ArrowDown');
+    await page.keyboard.press('Enter');
+    await expect(dialog(page)).toBeVisible();
+    await page.keyboard.press('Escape');
+    await expect(dialog(page)).toBeHidden();
+    await expect(header(page, 'signalType')).toBeFocused();
+  });
+
+  test('passes axe in edit mode, with the popup open', async ({ page }) => {
+    await tick(page, 'Signal Type').check();
+    expect(
+      (await new AxeBuilder({ page }).include('app-rail-header-label').analyze()).violations,
+    ).toEqual([]);
+    await openReplaceFrom(page, 'equipmentType');
+    expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
+  });
+});

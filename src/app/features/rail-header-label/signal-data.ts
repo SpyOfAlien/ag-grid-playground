@@ -302,10 +302,12 @@ function matchesFilter(
 
 /**
  * Stand-in for the signal API: filters and sorts the rows the way the backend would, then
- * serves the requested block a moment later.
+ * serves the requested block a moment later, with the front-end drafts applied.
  */
 export function createSignalDatasource(
   rows: () => readonly SignalRow[],
+  /** Front-end drafts to show on each row as it arrives (SignalDrafts.applyTo). */
+  withDrafts: (row: SignalRow) => SignalRow = (row) => row,
 ): IServerSideDatasource<SignalRow> {
   return {
     getRows(params: IServerSideGetRowsParams<SignalRow>) {
@@ -330,8 +332,13 @@ export function createSignalDatasource(
             return 0;
           })
         : matching;
+      // Filtered and sorted on the saved values, as the backend would: a draft is only shown,
+      // so a search for a drafted value doesn't find it until the draft is saved.
       setTimeout(() =>
-        params.success({ rowData: sorted.slice(startRow, endRow), rowCount: sorted.length }),
+        params.success({
+          rowData: sorted.slice(startRow, endRow).map(withDrafts),
+          rowCount: sorted.length,
+        }),
       );
     },
   };
