@@ -38,13 +38,16 @@
     }
   }
 
-  /* Down over the filter row: the rails' row goes over it, and every header row's pinned cells
-     over both, from the group rows the rail header spans to the filter row. */
+  /* Down over the filter row: the rails' row goes over it, and the filter row's pinned cells
+     over both. Only the filter row's: the pinned header cells (No#) sit in the rails' row and
+     reach up through the group rows, whose own pinned containers are opaque and empty, so lifting
+     those would cover them. The rail's part in the group rows is cut at the pinned edge anyway
+     (below). */
   .ag-header-row-column {
     z-index: 3;
   }
 
-  .ag-header-row :is(.ag-grid-pinned-left-cells, .ag-grid-pinned-right-cells) {
+  .ag-header-row-filter :is(.ag-grid-pinned-left-cells, .ag-grid-pinned-right-cells) {
     z-index: 4;
   }
 
