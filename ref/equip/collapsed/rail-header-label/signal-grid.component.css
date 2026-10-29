@@ -1,0 +1,321 @@
+@import "ag-grid-community/styles/ag-grid.css";
+@import "ag-grid-community/styles/ag-theme-quartz.css";
+
+.ag-theme-quartz {
+  --ag-font-family: var(--font-sans);
+  --ag-font-size: 13px;
+  --ag-foreground-color: var(--p-text-color);
+  --ag-background-color: var(--p-surface-0);
+  --ag-accent-color: var(--p-primary-color);
+  --ag-border-color: var(--p-surface-200);
+  --ag-header-background-color: var(--p-surface-900);
+  --ag-header-foreground-color: var(--p-surface-0);
+  --ag-header-height: 34px;
+  --ag-row-height: 32px;
+  --ag-row-hover-color: color-mix(in srgb, var(--p-primary-color) 5%, transparent);
+  --ag-selected-row-background-color: color-mix(in srgb, var(--p-primary-color) 10%, transparent);
+  --ag-odd-row-background-color: var(--p-surface-50);
+  --ag-range-selection-border-color: var(--p-primary-color);
+  --ag-input-focus-border-color: var(--p-primary-color);
+  --ag-wrapper-border-radius: 0;
+  --ag-cell-horizontal-padding: 10px;
+  --ag-row-border-width: 0px;
+  --ag-cell-horizontal-border: none;
+
+  .ag-header-group-cell,
+  .ag-header-cell {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+  }
+
+  .ag-header-group-cell {
+    font-weight: 700;
+    text-transform: uppercase;
+  }
+
+  .ag-cell.cell-row-index {
+    color: var(--p-text-muted-color);
+    font-size: 11px;
+  }
+
+  .ag-cell.cell-locked {
+    background: color-mix(in srgb, var(--p-surface-500) 10%, transparent);
+    color: var(--p-text-muted-color);
+    cursor: not-allowed;
+  }
+
+  .ag-cell.cell-revision {
+    background: color-mix(in srgb, var(--p-primary-color) 4%, transparent);
+    color: var(--p-text-muted-color);
+    font-size: 12px;
+  }
+
+  .header-revision {
+    background: var(--p-primary-700);
+  }
+
+  .ag-cell.cell-mandatory-empty,
+  .ag-cell.cell-dirty {
+    background: color-mix(in srgb, var(--p-yellow-500) 16%, transparent);
+  }
+
+  .ag-cell.cell-mandatory-empty {
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--p-yellow-500) 55%, transparent);
+  }
+
+  .ag-cell.cell-dirty {
+    font-weight: 600;
+  }
+
+  .ag-cell.cell-invalid {
+    background: color-mix(in srgb, var(--p-red-500) 10%, transparent);
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--p-red-500) 60%, transparent);
+  }
+
+  .ag-row.row-dirty {
+    box-shadow: inset 3px 0 0 var(--p-yellow-600);
+  }
+
+  .ag-row.row-removed .ag-cell,
+  .ag-cell.column-removed {
+    background: color-mix(in srgb, var(--p-red-500) 8%, transparent);
+    color: var(--p-red-600);
+    text-decoration: line-through;
+  }
+
+  .ag-row.row-removed .ag-cell.cell-input,
+  .ag-cell.column-removed.cell-input {
+    cursor: default;
+  }
+
+  .ag-row.row-removed .ag-cell[col-id="__rowNo"] {
+    border-left: 3px solid var(--p-red-500);
+  }
+
+  .ag-header-cell.column-removed {
+    --ag-header-cell-hover-background-color: color-mix(in srgb, var(--p-red-500) 8%, transparent);
+    background: color-mix(in srgb, var(--p-red-500) 8%, transparent);
+    border-top: 3px solid var(--p-red-500);
+    color: var(--p-red-600);
+    text-decoration: line-through;
+  }
+
+  .ag-header-cell.column-removed .ag-header-cell-text {
+    color: var(--p-red-600);
+    text-decoration: line-through;
+  }
+}
+
+.ag-theme-quartz.signal-grid {
+  .ag-row.row-summary-hidden {
+    visibility: hidden;
+    pointer-events: none;
+  }
+
+  --ag-header-background-color: var(--p-surface-0);
+  --ag-header-foreground-color: var(--p-surface-700);
+  --ag-odd-row-background-color: var(--p-surface-0);
+  --ag-header-column-separator-display: block;
+  --ag-header-column-separator-color: var(--p-surface-200);
+  --ag-row-height: 40px;
+
+  .ag-cell.cell-modified {
+    color: var(--p-red-700);
+    background-color: var(--p-red-50);
+  }
+
+  .signal-change-new,
+  .signal-change-old {
+    display: block;
+    line-height: 1.2;
+  }
+
+  .signal-change-badge {
+    display: inline-block;
+    border-radius: 999px;
+    padding: 0 8px;
+    color: var(--p-red-700);
+    background: var(--p-red-100);
+    font-weight: 600;
+    line-height: 22px;
+  }
+
+  .ag-header-cell,
+  .ag-header-group-cell {
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: normal;
+    text-transform: none;
+  }
+
+  /* Group colours, for open group headers and collapsed rails (signal-grid-rails.css). */
+  .signal-level-0 {
+    --group-bg: var(--color-brand-700);
+    --group-divider: rgba(255, 255, 255, 0.1);
+    color: var(--color-white);
+  }
+
+  .signal-level-1,
+  .signal-level-2 {
+    --group-bg: var(--color-brand-50);
+    --group-divider: rgba(0, 0, 0, 0.1);
+    color: var(--color-brand-900);
+  }
+
+  .signal-level-3 {
+    --group-bg: var(--color-white);
+    --group-divider: rgba(185, 56, 21, 0.24);
+    color: var(--color-brand-900);
+  }
+
+  .ag-header-group-cell.signal-group {
+    --ag-header-cell-hover-background-color: var(--group-bg);
+    background: var(--group-bg);
+
+    &::before {
+      display: none;
+    }
+
+    &:not(.signal-level-0) {
+      border-bottom: 1px solid var(--group-divider);
+    }
+
+    &.signal-level-0:focus-within {
+      outline-color: var(--color-white);
+    }
+
+    .ag-header-expand-icon {
+      order: -1;
+      flex-shrink: 0;
+      place-content: center;
+      width: 24px;
+      height: 24px;
+      margin: 0 4px 0 0;
+      border-radius: 6px;
+      color: inherit;
+      font-size: 16px;
+    }
+
+    .ag-header-expand-icon:not(.ag-hidden) {
+      display: grid;
+    }
+  }
+
+  .ag-header-cell.pending-column-header,
+  .ag-header-group-cell.pending-column-header {
+    --ag-header-cell-hover-background-color: var(--color-brand-25);
+    background: var(--color-brand-25);
+    color: var(--p-surface-700);
+    cursor: text;
+  }
+
+  /* Edit rows are 60px tall, so every cell centers its text like the input cells do. */
+  &.signal-grid-edit .ag-cell {
+    line-height: 58px;
+  }
+
+  .ag-cell-inline-editing {
+    box-shadow: none;
+  }
+
+  /* Editable cells in edit mode look like the tab information inputs: one 36px box in a 60px row. */
+  .ag-cell.cell-input {
+    padding-inline: 16px;
+    cursor: text;
+  }
+
+  /* The grid's own focus and editing frame is hidden, so the input box is the only border. */
+  .ag-cell.cell-input.ag-cell-focus,
+  .ag-cell.cell-input.ag-cell-focus:not(.ag-cell-range-selected):focus-within,
+  .ag-cell.cell-input.ag-cell-inline-editing {
+    border-color: transparent !important;
+    border-radius: 0;
+    box-shadow: none !important;
+    background: transparent;
+    outline: none;
+  }
+
+  /* Cell padding plus input padding add up, so the cell keeps 6px and the input 10px: text stays at 16px. */
+  .ag-cell.cell-input.ag-cell-inline-editing {
+    padding-inline: 6px;
+  }
+
+  .ag-cell.cell-input::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    right: 6px;
+    left: 6px;
+    height: 36px;
+    transform: translateY(-50%);
+    border: 1px solid var(--p-inputtext-border-color);
+    border-radius: var(--p-inputtext-border-radius);
+    pointer-events: none;
+  }
+
+  .ag-cell.cell-input:hover::after {
+    border-color: var(--p-inputtext-hover-border-color);
+  }
+
+  .ag-cell.cell-input.ag-cell-inline-editing::after,
+  .ag-cell.cell-input.ag-cell-focus::after {
+    border-color: var(--p-inputtext-focus-border-color);
+  }
+
+  /* The grid sets min-height: 100% on the editor, so it must be reset to get a 36px input. */
+  .ag-cell.cell-input.ag-cell-inline-editing .ag-cell-edit-wrapper {
+    display: flex;
+    align-items: center;
+  }
+
+  .ag-cell.cell-input.ag-cell-inline-editing .ag-cell-editor,
+  .ag-cell.cell-input.ag-cell-inline-editing .ag-cell-editor .ag-wrapper,
+  .ag-cell.cell-input.ag-cell-inline-editing .ag-cell-editor input {
+    height: 36px;
+    min-height: 0;
+  }
+
+  .ag-cell.cell-input.ag-cell-inline-editing .ag-cell-editor input {
+    padding-inline: 10px;
+    line-height: 34px;
+  }
+
+  .ag-cell-inline-editing .ag-cell-editor input,
+  .ag-cell-inline-editing .ag-cell-editor input:focus {
+    border: none;
+    outline: none;
+    box-shadow: none;
+  }
+
+  /* Show the expand/collapse icon before the group title instead of after it. */
+  .ag-header-group-cell .ag-header-group-cell-label {
+    display: flex;
+  }
+
+  .ag-header :is(.ag-grid-pinned-left-cells, .ag-grid-pinned-right-cells) .ag-header-cell {
+    --ag-header-cell-hover-background-color: var(--ag-header-background-color);
+    background: var(--ag-header-background-color);
+  }
+
+  .ag-cell:not(.signal-rail-cell, .ag-cell-focus:focus-within, .ag-cell-range-selected) {
+    border-bottom: 1px solid var(--ag-row-border-color);
+  }
+}
+
+.ag-theme-quartz.signal-grid.signal-grid-edit {
+  --ag-row-height: 60px;
+}
+
+.ag-menu-option.remove-column-menu-item,
+.ag-menu-option.delete-row-menu-item {
+  border-top: 1px solid var(--p-surface-200);
+  color: #D92D20;
+  margin-top: 4px;
+  padding-top: 4px;
+}
+
+.ag-menu-option.remove-column-menu-item .ag-menu-option-icon,
+.ag-menu-option.delete-row-menu-item .ag-menu-option-icon {
+  color: #D92D20;
+}
