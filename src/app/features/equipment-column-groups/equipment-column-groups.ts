@@ -82,7 +82,7 @@ function blankEquipmentRow(id: number): EquipmentRow {
       typeof value === 'string' ? '' : value,
     ]),
   ) as unknown as EquipmentRow;
-  return { ...blank, id, bookings: 0, changed: false, previousWard: null, previousWardCode: null };
+  return { ...blank, id, changed: false, previousWard: null, previousWardCode: null };
 }
 
 @Component({
