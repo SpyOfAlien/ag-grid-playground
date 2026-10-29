@@ -1,7 +1,7 @@
 /*
- * Tailwind CSS v4, used by the equipment column groups demo.
+ * Tailwind CSS v4, used by the equipment column groups and rail header label demos.
  * - No Preflight: the other demos and Angular Material keep their own base styles.
- * - Only that feature's folder is scanned for class names.
+ * - Only those features' folders are scanned for class names.
  * - Utilities are !important so they win over AG Grid's theme styles, which are
  *   unlayered and would otherwise beat anything inside a cascade layer.
  */
@@ -10,6 +10,7 @@
 @import 'tailwindcss/utilities.css' layer(utilities) source(none) important;
 
 @source './app/features/equipment-column-groups';
+@source './app/features/rail-header-label';
 /* Words from comments that would otherwise become global !important utilities. */
 @source not inline('border collapse filter fixed grid hidden resize ring visible sr-only');
 

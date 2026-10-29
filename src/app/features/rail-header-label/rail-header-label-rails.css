@@ -1,0 +1,93 @@
+/* Collapsed-group rails drawn entirely by their header component (RailLabelHeader): badge, rail
+   colour and name, from the header down past the bottom of the table. Apply .rail-header-labels
+   to the grid.
+
+   The header stays put while rows scroll, so the name does too: nothing to keep in step
+   vertically. Sideways, the header slides under the pinned columns, which its own pinned cells
+   cover; but below the header the rail paints over the rows, and AG Grid paints the whole header
+   over the rows, so there nothing would cover it. The column header row (where the rails are)
+   is therefore cut off at the pinned edge: in its own coordinates that edge is the horizontal
+   scroll offset, which a scroll-driven animation on the grid's own scrolling feeds it, in step
+   with the scrolling and with no script. Where scroll timelines aren't supported,
+   clipHeaderAtPinnedEdge() feeds --rail-header-scroll-left instead, from a scroll listener.
+
+   Works with the classes the column defs put on rails: .signal-rail on the header cell,
+   .signal-rail-cell on body cells, and a level class setting --group-bg, --group-divider and
+   color. */
+
+.rail-header-labels {
+  /* --- The rail reaches out of its header cell ------------------------------------------ */
+
+  .ag-header-cell.signal-rail {
+    --ag-header-cell-hover-background-color: var(--group-bg);
+    overflow: visible;
+    padding: 0;
+    background: var(--group-bg);
+
+    &::before,
+    &::after {
+      display: none;
+    }
+
+    .ag-header-cell-comp-wrapper {
+      width: 100%;
+      height: 100%;
+      max-height: none;
+      align-items: flex-start;
+      overflow: visible;
+    }
+  }
+
+  /* Down over the filter row: the rails' row goes over it, and every header row's pinned cells
+     over both, from the group rows the rail header spans to the filter row. */
+  .ag-header-row-column {
+    z-index: 3;
+  }
+
+  .ag-header-row :is(.ag-grid-pinned-left-cells, .ag-grid-pinned-right-cells) {
+    z-index: 4;
+  }
+
+  /* Under the rail anyway; coloured so a rail never shows white while the header lays out. */
+  .ag-cell.signal-rail-cell {
+    border: 0;
+    background: var(--group-bg);
+  }
+
+  /* The rail reaches 100vh past the header; stop that at the table's bottom edge so it never
+     adds scroll height. clip (unlike hidden) keeps the sticky header working. */
+  .ag-grid-scrollable-area {
+    overflow-y: clip;
+  }
+
+  /* --- Cut off at the pinned edge -------------------------------------------------------- */
+
+  /* Open above (rail headers reach up through the group rows) and below (down the table). */
+  .ag-header-row-column > .ag-grid-scrolling-cells {
+    clip-path: inset(-100vh -100vh -100vh var(--rail-header-scroll-left, 0px));
+  }
+
+  @supports (animation-timeline: scroll()) {
+    .ag-grid-viewport {
+      scroll-timeline: --rail-header-x inline;
+    }
+
+    /* Over a fixed 0-100000px of scrolling, whatever the table's real scroll width, so at any
+       offset the edge has moved exactly that offset: nothing to measure. */
+    .ag-header-row-column > .ag-grid-scrolling-cells {
+      animation: rail-header-pinned-edge linear both;
+      animation-timeline: --rail-header-x;
+      animation-range: 0px 100000px;
+    }
+  }
+}
+
+@keyframes rail-header-pinned-edge {
+  from {
+    clip-path: inset(-100vh -100vh -100vh 0px);
+  }
+
+  to {
+    clip-path: inset(-100vh -100vh -100vh 100000px);
+  }
+}

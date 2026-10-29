@@ -47,5 +47,11 @@ export const routes: Routes = [
     loadComponent: () =>
       import('./features/tree-table-lab/tree-table-lab').then((m) => m.TreeTableLab),
   },
+  {
+    path: 'rail-header-label',
+    title: 'Signals · Rail label in its header',
+    loadComponent: () =>
+      import('./features/rail-header-label/rail-header-label').then((m) => m.RailHeaderLabel),
+  },
   { path: '**', redirectTo: 'grid-demo' },
 ];

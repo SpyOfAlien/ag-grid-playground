@@ -1,0 +1,212 @@
+/* Rail-header-label demo, styled after the Signal List Management Figma frame (node 1814:107892).
+   The tokens below are that file's variables; the grid's own sizes are in the theme params
+   (rail-header-label.ts). */
+
+app-rail-header-label {
+  --signal-surface: #ffffff; /* bg-primary */
+  --signal-text: #181d27; /* text-primary (900) */
+  --signal-text-secondary: #414651; /* fg-secondary (700) */
+  --signal-text-placeholder: #717680; /* text-quaternary (500) */
+  --signal-icon: #535862; /* button-tertiary-fg */
+  --signal-border: #e9eaeb; /* border-secondary */
+  --signal-border-strong: #d5d7da; /* border-primary */
+  --signal-focus: #004e50;
+  --signal-hover: #f5f5f5; /* utility-gray-100 */
+  /* The outermost groups. */
+  --signal-outer-bg: #004e50; /* utility-brand-700 */
+  --signal-outer-fg: #ffffff; /* fg-white */
+  --signal-outer-divider: rgba(255, 255, 255, 0.1); /* alpha-white-10 */
+  /* Every group below them, however deep. */
+  --signal-inner-bg: #e0f3f3; /* utility-brand-50_alt */
+  --signal-inner-fg: #003133; /* text-brand-primary (900) */
+  --signal-inner-divider: rgba(0, 0, 0, 0.1); /* alpha-black-10 */
+  --signal-badge-bg: #d92d20; /* bg-error-solid */
+  --signal-badge-fg: #ffffff;
+
+  display: block;
+  font-family: Inter, sans-serif;
+  color: var(--signal-text);
+  background: var(--signal-surface);
+}
+
+.signal-page {
+  display: flex;
+  height: 100vh;
+  flex-direction: column;
+}
+
+.signal-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 16px;
+  border-bottom: 1px solid var(--signal-border);
+
+  h1 {
+    margin: 0;
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 20px;
+  }
+}
+
+.signal-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 16px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--signal-text-secondary);
+
+  button {
+    min-height: 36px;
+    padding: 8px 14px;
+    border: 1px solid var(--signal-border-strong);
+    border-radius: 8px;
+    background: var(--signal-surface);
+    color: var(--signal-text-secondary);
+    font: inherit;
+    font-weight: 600;
+    cursor: pointer;
+  }
+
+  label {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  input[type='checkbox'] {
+    width: 16px;
+    height: 16px;
+    margin: 0;
+    accent-color: var(--signal-focus);
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--signal-focus);
+    outline-offset: 2px;
+  }
+}
+
+.signal-grid {
+  display: block;
+  flex: 1;
+  min-height: 0;
+
+  /* Row lines stop at the rails. A focused or selected cell keeps the grid's own border, which
+     this would otherwise override at the bottom. */
+  .ag-cell:not(.signal-rail-cell, .ag-cell-focus, .ag-cell-range-selected) {
+    border-bottom: 1px solid var(--signal-border);
+  }
+
+  /* --- Group headers ---------------------------------------------------------------------- */
+
+  .signal-level-outer {
+    --group-bg: var(--signal-outer-bg);
+    --group-divider: var(--signal-outer-divider);
+    color: var(--signal-outer-fg);
+  }
+
+  .signal-level-inner {
+    --group-bg: var(--signal-inner-bg);
+    --group-divider: var(--signal-inner-divider);
+    color: var(--signal-inner-fg);
+  }
+
+  .ag-header-group-cell.signal-group {
+    --ag-header-cell-hover-background-color: var(--group-bg);
+    background: var(--group-bg);
+    font-weight: 600;
+    box-shadow:
+      inset 1px 0 0 var(--group-divider),
+      inset -1px 0 0 var(--group-divider);
+
+    &::before,
+    &::after,
+    .ag-header-cell-resize::after {
+      display: none;
+    }
+
+    &:focus-visible,
+    &:focus-within {
+      outline: 2px solid currentColor;
+      outline-offset: -3px;
+    }
+
+    .ag-header-group-cell-label {
+      display: flex;
+      align-items: center;
+    }
+
+    .ag-header-expand-icon {
+      order: -1;
+      flex-shrink: 0;
+      display: grid;
+      place-content: center;
+      width: 24px;
+      height: 24px;
+      margin: 0 8px 0 0;
+      border-radius: 6px;
+      color: inherit;
+      cursor: pointer;
+    }
+
+    .ag-header-expand-icon.ag-hidden {
+      display: none;
+    }
+
+    /* Collapsed: only the centred chevron shows; the name stays for screen readers. */
+    &[aria-expanded='false'] {
+      padding: 0;
+
+      .ag-header-group-text {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip-path: inset(50%);
+        white-space: nowrap;
+      }
+
+      .ag-header-group-cell-label {
+        justify-content: center;
+      }
+
+      .ag-header-expand-icon {
+        margin: 0;
+      }
+    }
+  }
+
+  .signal-chevron {
+    width: 20px;
+    height: 20px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.67;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  /* --- Column headers and cells ----------------------------------------------------------- */
+
+  /* Column names sit at the bottom of their cell, whatever number of group rows is above. */
+  .ag-header-row-column .ag-header-cell:not(.signal-rail) {
+    align-items: flex-end;
+    padding-bottom: 12px;
+  }
+
+  .ag-header-row-filter .ag-floating-filter:not([col-id$='__rail']) {
+    padding-inline: 8px;
+  }
+
+  .ag-cell.cell-row-index {
+    padding-inline: 8px;
+    color: var(--signal-text-secondary);
+    text-align: center;
+  }
+}
