@@ -42,12 +42,6 @@ export const routes: Routes = [
     loadComponent: () => import('./features/cells-perf/cells-perf').then((m) => m.CellsPerf),
   },
   {
-    path: 'tree-table-lab',
-    title: 'Tree table lab',
-    loadComponent: () =>
-      import('./features/tree-table-lab/tree-table-lab').then((m) => m.TreeTableLab),
-  },
-  {
     path: 'rail-header-label',
     title: 'Signals · Rail label in its header',
     loadComponent: () =>
